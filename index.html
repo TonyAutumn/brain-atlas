@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="离线交互式脑区学习工具：主要脑区、功能、典型实验与记忆技巧。">
+  <title>脑区探索室 · Brain Atlas Lab</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="runtime-notice" id="runtimeNotice" role="status">
+    正在启动交互功能…如果此提示持续显示，请改用解压后的 <b>Brain-Atlas-Offline.html</b>。
+  </div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="脑区探索室首页">
+        <span class="brand-mark" aria-hidden="true">脑</span>
+        <span><strong>脑区探索室</strong><small>Brain Atlas Lab</small></span>
+      </a>
+      <nav class="mode-tabs" aria-label="学习模式">
+        <button class="mode-tab active" data-mode="explore">探索</button>
+        <button class="mode-tab" data-mode="topic">专题</button>
+        <button class="mode-tab" data-mode="cards">记忆卡</button>
+        <button class="mode-tab" data-mode="quiz">测验</button>
+      </nav>
+      <div class="top-actions">
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="搜索脑区、功能或实验…" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <div class="progress-pill" title="已掌握的脑区">
+          <span class="progress-ring" id="progressRing"><b id="progressPercent">0%</b></span>
+          <span>学习进度</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="exploreMode" class="mode-panel active">
+        <aside class="region-sidebar panel">
+          <div class="sidebar-heading">
+            <div><span class="eyebrow">区域索引</span><h2>从系统理解脑</h2></div>
+            <span class="count-badge" id="regionCount">0</span>
+          </div>
+          <div class="filter-row" id="systemFilters" aria-label="系统筛选"></div>
+          <div id="regionList" class="region-list"></div>
+          <div class="extension-note">
+            <span class="extension-icon">＋</span>
+            <div><strong>为下一层留好位置</strong><p>可继续加入皮层分区、Brodmann 区和神经环路。</p></div>
+          </div>
+        </aside>
+
+        <section class="atlas-panel panel">
+          <div class="panel-toolbar">
+            <div class="view-tabs" role="tablist" aria-label="脑图视角">
+              <button class="view-tab active" data-view="lateral">外侧面</button>
+              <button class="view-tab" data-view="deep">内侧与深部</button>
+            </div>
+            <button class="ghost-button" id="labelToggle" aria-pressed="true"><span>◎</span> 标签</button>
+          </div>
+
+          <div class="brain-stage" id="brainStage">
+            <div class="orientation"><span>前</span><i></i><span>后</span></div>
+            <svg id="brainMap" viewBox="0 0 780 520" role="img" aria-labelledby="brainTitle brainDesc">
+              <title id="brainTitle">可交互的人脑主要区域示意图</title>
+              <desc id="brainDesc">点击彩色脑区查看其功能、典型实验和记忆方法。</desc>
+              <defs>
+                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#183a4a" flood-opacity=".16"/>
+                </filter>
+                <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1" fill="#183a4a" opacity=".08"/>
+                </pattern>
+              </defs>
+
+              <g class="brain-view active" data-brain-view="lateral">
+                <path class="brain-silhouette" d="M112 271C80 198 115 117 187 78c72-39 185-45 276-15 85 28 153 93 164 172 7 52-13 94-47 123-44 38-100 55-166 56-45 1-77 21-118 18-71-4-147-59-184-161Z"/>
+                <path class="brain-region" data-region="frontal" d="M111 268c-28-68 5-140 72-179 45-26 99-37 156-36l15 56-28 73 12 91-55 62-82 14-66-39Z"/>
+                <path class="brain-region" data-region="parietal" d="M339 53c52 0 102 9 142 26 53 23 91 56 117 101l-49 37-76 3-60 44-75 9-12-91 28-73Z"/>
+                <path class="brain-region" data-region="occipital" d="M598 180c18 31 27 65 29 90 3 46-16 82-50 109l-66-20-38-68v-71l76-3Z"/>
+                <path class="brain-region" data-region="temporal" d="M201 349l82-14 55-62 75-9 60 27 38 68-35 45-65 10c-43 1-77 21-117 18-34-3-68-17-93-38Z"/>
+                <path class="brain-region" data-region="insula" d="M351 243c18-26 44-39 72-34 23 4 40 20 50 42-16 27-41 41-72 39-25-1-42-17-50-47Z"/>
+                <path class="brain-region" data-region="cerebellum" d="M468 380c32-37 74-55 119-43 50 13 73 67 48 108-23 37-78 49-124 31-28-11-44-46-43-96Z"/>
+                <path class="brain-region" data-region="brainstem" d="M405 397c27-6 55 6 66 28 9 20 1 42-9 61l-6 28h-44l9-35c-19-17-29-48-16-82Z"/>
+
+                <g class="map-labels">
+                  <g class="map-label" data-label-for="frontal"><path d="M228 154 166 115"/><text x="96" y="109">额叶</text></g>
+                  <g class="map-label" data-label-for="parietal"><path d="M456 139 501 105"/><text x="508" y="103">顶叶</text></g>
+                  <g class="map-label" data-label-for="occipital"><path d="M568 267 648 250"/><text x="655" y="255">枕叶</text></g>
+                  <g class="map-label" data-label-for="temporal"><path d="M357 354 324 405"/><text x="256" y="426">颞叶</text></g>
+                  <g class="map-label" data-label-for="insula"><path d="M413 245 413 175"/><text x="385" y="164">岛叶</text></g>
+                  <g class="map-label" data-label-for="cerebellum"><path d="M556 406 629 417"/><text x="641" y="423">小脑</text></g>
+                  <g class="map-label" data-label-for="brainstem"><path d="M438 460 366 486"/><text x="292" y="501">脑干</text></g>
+                </g>
+              </g>
+
+              <g class="brain-view" data-brain-view="deep">
+                <path class="brain-silhouette deep-outline" d="M111 276C80 201 114 118 186 78c76-42 195-47 291-13 89 32 150 102 151 181 1 79-58 133-142 157-49 14-93 13-138 23-70 16-161-21-212-85-16-20-19-42-25-65Z"/>
+                <path class="deep-ghost" d="M170 271c-17-62 20-127 88-155 71-29 175-24 240 20 53 36 76 93 55 143-23 56-94 80-174 78-85-2-181-22-209-86Z"/>
+                <path class="brain-region" data-region="corpus-callosum" d="M234 226c47-84 178-119 275-58 26 16 45 38 55 62l-31 10c-47-59-146-74-214-28-22 15-37 35-47 57Z"/>
+                <path class="brain-region" data-region="basal-ganglia" d="M305 237c26-30 72-39 105-18 27 17 30 53 8 76-28 29-81 24-111-2-17-15-18-38-2-56Z"/>
+                <ellipse class="brain-region" data-region="thalamus" cx="425" cy="282" rx="67" ry="46"/>
+                <path class="brain-region" data-region="hypothalamus" d="M409 324c24-5 54 3 65 22 12 20-1 44-23 51-25 8-53-5-60-26-7-19-2-42 18-47Z"/>
+                <path class="brain-region" data-region="hippocampus" d="M339 331c43 2 82 28 89 62 5 26-15 52-44 55-17 2-27-7-23-19 5-14 18-22 14-36-5-19-29-29-54-29-16 0-23-13-15-23 7-8 17-11 33-10Z"/>
+                <circle class="brain-region" data-region="amygdala" cx="325" cy="371" r="26"/>
+                <path class="brain-region" data-region="cerebellum" d="M501 358c45-33 103-25 129 14 26 40 4 92-47 107-47 14-94-7-104-43-7-27 0-55 22-78Z"/>
+                <path class="brain-region" data-region="brainstem" d="M443 377c28-4 52 10 62 34 8 20 2 43-12 62l-4 41h-46l8-51c-21-20-28-59-8-86Z"/>
+                <path class="brain-region" data-region="insula" d="M208 278c21-35 57-52 91-40 31 11 44 46 28 77-18 35-62 50-96 31-25-14-37-44-23-68Z"/>
+
+                <g class="map-labels deep-labels">
+                  <g class="map-label" data-label-for="corpus-callosum"><path d="M384 176 361 112"/><text x="303" y="101">胼胝体</text></g>
+                  <g class="map-label" data-label-for="basal-ganglia"><path d="M345 254 292 193"/><text x="216" y="183">基底神经节</text></g>
+                  <g class="map-label" data-label-for="thalamus"><path d="M463 272 540 265"/><text x="551" y="271">丘脑</text></g>
+                  <g class="map-label" data-label-for="hypothalamus"><path d="M452 366 532 391"/><text x="543" y="399">下丘脑</text></g>
+                  <g class="map-label" data-label-for="hippocampus"><path d="M386 418 349 476"/><text x="281" y="499">海马</text></g>
+                  <g class="map-label" data-label-for="amygdala"><path d="M307 372 235 395"/><text x="169" y="404">杏仁核</text></g>
+                  <g class="map-label" data-label-for="insula"><path d="M247 284 177 244"/><text x="112" y="239">岛叶</text></g>
+                </g>
+              </g>
+            </svg>
+            <p class="diagram-note">教学示意图 · 比例与边界已简化，不用于临床定位</p>
+          </div>
+
+          <div class="atlas-footer">
+            <div class="legend"><span><i class="legend-dot cortex"></i>大脑皮层</span><span><i class="legend-dot deep"></i>深部结构</span><span><i class="legend-dot support"></i>后脑与脑干</span></div>
+            <span class="hint">点击脑区，或用列表快速定位</span>
+          </div>
+        </section>
+
+        <aside class="detail-panel panel" id="detailPanel" aria-live="polite"></aside>
+      </section>
+
+      <section id="topicMode" class="mode-panel topic-mode">
+        <aside class="topic-sidebar panel" id="topicSidebar"></aside>
+        <section class="topic-main panel" id="topicMain" aria-live="polite"></section>
+      </section>
+
+      <section id="cardsMode" class="mode-panel learning-mode">
+        <div class="learning-header">
+          <div><span class="eyebrow">主动回忆</span><h1>先想答案，再翻面</h1><p>用左右方向键切换，按 F 翻面。比反复阅读更容易形成长期记忆。</p></div>
+          <div class="card-controls"><button class="ghost-button" id="shuffleCards">↻ 打乱</button><span id="cardCounter">1 / 13</span></div>
+        </div>
+        <div class="flashcard-wrap">
+          <button class="round-nav" id="prevCard" aria-label="上一张">←</button>
+          <button class="flashcard" id="flashcard" aria-label="翻转记忆卡">
+            <div class="flashcard-inner">
+              <div class="flashcard-face flashcard-front" id="cardFront"></div>
+              <div class="flashcard-face flashcard-back" id="cardBack"></div>
+            </div>
+          </button>
+          <button class="round-nav" id="nextCard" aria-label="下一张">→</button>
+        </div>
+        <p class="keyboard-hint"><kbd>←</kbd><kbd>→</kbd> 切换　<kbd>F</kbd> 翻面</p>
+      </section>
+
+      <section id="quizMode" class="mode-panel learning-mode">
+        <div class="quiz-shell panel">
+          <div id="quizIntro" class="quiz-intro">
+            <span class="eyebrow">快速检索练习</span>
+            <h1>8 题测测你的脑区地图</h1>
+            <p>题目混合功能、经典实验与结构关系。答错后会立即解释。</p>
+            <div class="quiz-features"><span>约 3 分钟</span><span>每次随机题目</span><span>本机保存最佳成绩</span></div>
+            <button class="primary-button" id="startQuiz">开始测验 <span>→</span></button>
+          </div>
+          <div id="quizGame" class="quiz-game hidden"></div>
+          <div id="quizResult" class="quiz-result hidden"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <noscript>此学习工具需要启用 JavaScript 才能使用交互功能。</noscript>
+  <script src="data/regions.js"></script>
+  <script src="data/deep-dives.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
