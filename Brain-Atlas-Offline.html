@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="离线交互式脑区学习工具：主要脑区、功能、典型实验与记忆技巧。">
+  <title>脑区探索室 · Brain Atlas Lab</title>
+  <style>
+:root {
+  --ink: #163846;
+  --muted: #657a82;
+  --paper: #f5f1e8;
+  --surface: #fffdf8;
+  --line: #ddd8cd;
+  --teal: #1f6c68;
+  --teal-dark: #164f4c;
+  --mint: #dcebe4;
+  --amber: #f1a35f;
+  --shadow: 0 18px 48px rgba(31, 64, 72, .09);
+  --radius: 22px;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 85% 0%, rgba(196, 220, 211, .45), transparent 26rem),
+    var(--paper);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+button, input, textarea { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 3px solid rgba(31, 108, 104, .26); outline-offset: 2px; }
+.runtime-notice {
+  position: fixed; left: 50%; bottom: 18px; z-index: 100; transform: translateX(-50%);
+  width: min(680px, calc(100% - 28px)); padding: 11px 15px; border: 1px solid #d89d68;
+  border-radius: 12px; color: #6f3818; background: #fff0df; box-shadow: 0 12px 30px rgba(89, 49, 25, .16);
+  font-size: 12px; text-align: center;
+}
+
+.app-shell { min-height: 100vh; }
+.topbar {
+  height: 76px;
+  padding: 0 26px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid rgba(22, 56, 70, .12);
+  background: rgba(245, 241, 232, .88);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.brand { display: inline-flex; align-items: center; gap: 11px; color: inherit; text-decoration: none; width: max-content; }
+.brand-mark {
+  width: 40px; height: 40px; display: grid; place-items: center; border-radius: 14px 14px 10px 14px;
+  color: white; font-size: 19px; font-weight: 800; background: var(--teal); box-shadow: 0 7px 16px rgba(31, 108, 104, .22);
+}
+.brand strong { display: block; font-size: 15px; letter-spacing: .08em; }
+.brand small { display: block; margin-top: 2px; color: var(--muted); font: 9px/1.1 ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+.mode-tabs { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255, 253, 248, .58); }
+.mode-tab { min-width: 72px; padding: 8px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; transition: .2s ease; }
+.mode-tab:hover { color: var(--ink); }
+.mode-tab.active { color: #fff; background: var(--teal); box-shadow: 0 4px 12px rgba(31, 108, 104, .17); }
+.top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 17px; }
+.search-box { width: min(290px, 24vw); height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 10px 0 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+.search-box > span { color: var(--teal); font-size: 22px; transform: rotate(-20deg); }
+.search-box input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 13px; }
+.search-box input::placeholder { color: #8a989b; }
+kbd { min-width: 22px; padding: 3px 6px; border: 1px solid #d6d2c8; border-bottom-width: 2px; border-radius: 6px; color: #6f7d80; background: #f4f1e9; font: 11px/1.2 ui-monospace, monospace; text-align: center; }
+.progress-pill { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.progress-ring { --progress: 0deg; width: 40px; height: 40px; padding: 4px; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--teal) var(--progress), #d9ddd7 0); position: relative; }
+.progress-ring::before { content: ""; position: absolute; inset: 4px; border-radius: inherit; background: var(--paper); }
+.progress-ring b { position: relative; font-size: 9px; color: var(--ink); }
+
+main { padding: 20px 24px 26px; }
+.mode-panel { display: none; }
+.mode-panel.active { display: grid; }
+#exploreMode { grid-template-columns: 245px minmax(460px, 1fr) 365px; gap: 16px; height: calc(100vh - 122px); min-height: 660px; }
+.panel { border: 1px solid rgba(22, 56, 70, .11); border-radius: var(--radius); background: rgba(255, 253, 248, .92); box-shadow: var(--shadow); overflow: hidden; }
+.region-sidebar { display: flex; flex-direction: column; padding: 20px 14px 14px; }
+.sidebar-heading { display: flex; align-items: end; justify-content: space-between; padding: 0 7px 14px; }
+.eyebrow { display: block; margin-bottom: 6px; color: var(--teal); font-size: 10px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+.sidebar-heading h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 18px; font-weight: 600; }
+.count-badge { min-width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; color: var(--teal); background: var(--mint); font: 700 11px ui-monospace, monospace; }
+.filter-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 5px; border-radius: 12px; background: #f0ede5; }
+.filter-chip { padding: 7px 3px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 11px; cursor: pointer; }
+.filter-chip.active { color: var(--ink); background: var(--surface); box-shadow: 0 2px 7px rgba(22,56,70,.08); font-weight: 700; }
+.region-list { flex: 1; overflow: auto; margin: 12px -3px 10px 0; padding-right: 5px; scrollbar-width: thin; scrollbar-color: #c8d0cc transparent; }
+.group-label { padding: 7px 9px 5px; color: #879397; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
+.region-item { width: 100%; min-height: 49px; display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 10px; padding: 7px 9px; border: 0; border-radius: 12px; background: transparent; text-align: left; cursor: pointer; transition: .18s ease; }
+.region-item:hover { background: rgba(31, 108, 104, .06); transform: translateX(2px); }
+.region-item.active { background: var(--ink); color: white; box-shadow: 0 7px 16px rgba(22, 56, 70, .16); }
+.region-item > i { width: 7px; height: 28px; border-radius: 8px; background: var(--region-color); }
+.region-item strong { display: block; font-size: 13px; }
+.region-item small { display: block; margin-top: 2px; color: #89989c; font: 9px/1.2 ui-monospace, monospace; }
+.region-item.active small { color: rgba(255,255,255,.62); }
+.item-arrow { font: 21px/1 Georgia, serif; color: #99a5a6; }
+.learned-check { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: var(--teal); background: var(--mint); font-size: 11px; }
+.extension-note { display: flex; gap: 9px; padding: 11px 10px; border: 1px dashed #b7c9c0; border-radius: 13px; background: rgba(220,235,228,.42); }
+.extension-icon { flex: 0 0 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; color: white; background: var(--teal); }
+.extension-note strong { display: block; font-size: 10px; }
+.extension-note p { margin: 3px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
+.empty-state { display: grid; gap: 5px; padding: 24px 10px; text-align: center; }
+.empty-state strong { font-size: 13px; }
+.empty-state span { color: var(--muted); font-size: 10px; }
+
+.atlas-panel { display: grid; grid-template-rows: auto 1fr auto; background: linear-gradient(155deg, rgba(255,253,248,.96), rgba(236,240,233,.88)); }
+.panel-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 0; position: relative; z-index: 5; }
+.view-tabs { display: flex; gap: 3px; padding: 3px; border-radius: 11px; background: rgba(225,228,219,.75); }
+.view-tab { padding: 7px 14px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 11px; cursor: pointer; }
+.view-tab.active { color: var(--ink); background: var(--surface); font-weight: 700; box-shadow: 0 2px 7px rgba(22,56,70,.09); }
+.ghost-button { min-height: 36px; padding: 7px 13px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: rgba(255,253,248,.72); cursor: pointer; transition: .18s ease; }
+.ghost-button:hover, .ghost-button.active { color: var(--teal); border-color: #a9c6bb; background: #fafffb; }
+.brain-stage { min-height: 0; display: grid; place-items: center; position: relative; overflow: hidden; }
+.brain-stage::before { content: ""; width: min(78%, 590px); aspect-ratio: 1; position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(220,235,228,.72), rgba(220,235,228,0) 67%); }
+#brainMap { width: min(96%, 760px); height: 100%; max-height: 610px; position: relative; z-index: 1; overflow: visible; }
+.brain-view { opacity: 0; pointer-events: none; transition: opacity .28s ease; }
+.brain-view.active { opacity: 1; pointer-events: auto; }
+.brain-silhouette { fill: url(#dots); stroke: rgba(22,56,70,.22); stroke-width: 2; stroke-dasharray: 4 5; }
+.deep-outline { fill: rgba(247,245,237,.74); }
+.deep-ghost { fill: none; stroke: rgba(22,56,70,.08); stroke-width: 24; }
+.brain-region { fill: color-mix(in srgb, var(--fill) 85%, white); stroke: rgba(255,255,255,.83); stroke-width: 4; cursor: pointer; filter: url(#softShadow); transform-origin: center; transition: opacity .2s ease, filter .2s ease, stroke .2s ease, transform .2s ease; }
+.brain-region:hover { opacity: .88; stroke: white; stroke-width: 6; }
+.brain-region.selected { stroke: var(--ink); stroke-width: 7; filter: url(#softShadow); }
+.map-label { cursor: pointer; }
+.map-label path { fill: none; stroke: rgba(22,56,70,.56); stroke-width: 1.4; stroke-dasharray: 2 3; }
+.map-label path::after { content: ""; }
+.map-label text { fill: var(--ink); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: rgba(245,241,232,.9); stroke-width: 5px; }
+.hide-labels .map-labels { opacity: 0; pointer-events: none; }
+.map-labels { transition: opacity .2s ease; }
+.orientation { position: absolute; top: 45px; right: 24px; display: flex; align-items: center; gap: 7px; z-index: 3; color: #75878b; font-size: 9px; letter-spacing: .15em; }
+.orientation i { width: 46px; height: 1px; position: relative; background: #9bacad; }
+.orientation i::after { content: ""; width: 5px; height: 5px; position: absolute; right: 0; top: -2px; border-top: 1px solid #9bacad; border-right: 1px solid #9bacad; transform: rotate(45deg); }
+.diagram-note { position: absolute; bottom: 1px; z-index: 2; margin: 0; color: #819094; font-size: 9px; letter-spacing: .04em; }
+.atlas-footer { min-height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 18px; border-top: 1px solid rgba(22,56,70,.08); }
+.legend { display: flex; flex-wrap: wrap; gap: 13px; color: var(--muted); font-size: 9px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+.legend-dot.deep { background: #8faeeb; }
+.legend-dot.support { background: #8db765; }
+.hint { color: #879397; font-size: 9px; }
+
+.detail-panel { display: flex; flex-direction: column; background: var(--surface); }
+.detail-hero { padding: 19px 21px 18px; border-bottom: 1px solid rgba(22,56,70,.09); background: linear-gradient(130deg, color-mix(in srgb, var(--accent) 21%, white), rgba(255,253,248,.76)); position: relative; overflow: hidden; }
+.detail-hero::after { content: ""; width: 130px; height: 130px; position: absolute; right: -48px; bottom: -60px; border: 25px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 50%; }
+.detail-kicker { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.detail-kicker > span { color: var(--teal); font-size: 9px; font-weight: 800; letter-spacing: .15em; }
+.learn-button { padding: 6px 9px; border: 1px solid rgba(22,56,70,.18); border-radius: 9px; background: rgba(255,255,255,.56); color: var(--ink); font-size: 10px; cursor: pointer; }
+.learn-button.done { color: var(--teal-dark); border-color: #a4c8b8; background: #e5f2eb; }
+.region-title-row { display: flex; align-items: center; gap: 12px; margin-top: 13px; position: relative; z-index: 1; }
+.region-index { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--ink); font: 700 11px ui-monospace, monospace; }
+.region-title-row h1 { margin: 0; font: 600 25px/1.05 Georgia, "Songti SC", serif; }
+.region-title-row p { margin: 4px 0 0; color: var(--muted); font: 9px ui-monospace, monospace; letter-spacing: .08em; }
+.region-summary { margin: 13px 0 0; padding-left: 50px; font-size: 12px; line-height: 1.7; position: relative; z-index: 1; }
+.detail-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px 22px; scrollbar-width: thin; scrollbar-color: #c8d0cc transparent; }
+.detail-section { padding: 16px 0; border-bottom: 1px solid rgba(22,56,70,.08); }
+.detail-section h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 11px; font-size: 11px; letter-spacing: .08em; }
+.section-icon { color: var(--teal); font-size: 15px; }
+.function-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.function-list li { display: flex; align-items: center; gap: 8px; color: #455d65; font-size: 11px; }
+.function-list li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 3px rgba(241,163,95,.15); }
+.experiment-card { margin: 12px 0 0; padding: 14px; border: 1px solid #d7e1dc; border-radius: 15px; background: #f4f8f4; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; }
+.type-tag { padding: 4px 7px; border-radius: 7px; color: var(--teal); background: var(--mint); font-size: 8px; }
+.experiment-card h4 { margin: 3px 0 9px; font: 600 16px/1.25 Georgia, "Songti SC", serif; }
+.experiment-card dl { display: grid; gap: 8px; margin: 0; }
+.experiment-card dl > div { display: grid; grid-template-columns: 59px 1fr; gap: 6px; }
+.experiment-card dt { color: var(--teal); font-size: 9px; font-weight: 800; }
+.experiment-card dd { margin: 0; color: #52666c; font-size: 10px; line-height: 1.55; }
+.memory-card { margin-top: 12px; padding: 14px; border: 0; border-radius: 15px; background: #fff2df; }
+.memory-head { display: flex; align-items: center; justify-content: space-between; color: #a5612f; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.memory-head b { padding: 3px 6px; border-radius: 6px; color: #9a5d30; background: rgba(255,255,255,.55); font-size: 8px; }
+.memory-card h4 { margin: 10px 0 6px; font: 600 15px Georgia, "Songti SC", serif; }
+.memory-card p, .pitfall p { margin: 0; color: #5f625d; font-size: 10px; line-height: 1.65; }
+.pitfall { margin-top: 12px; padding: 11px 13px; border: 1px solid #ded9ce; border-radius: 12px; background: #fbf9f3; }
+.pitfall summary { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; cursor: pointer; list-style: none; }
+.pitfall summary::-webkit-details-marker { display: none; }
+.pitfall[open] summary span { transform: rotate(45deg); }
+.pitfall p { margin-top: 9px; }
+.notes-section { border-bottom: 0; }
+.notes-section textarea { width: 100%; min-height: 78px; resize: vertical; padding: 10px 11px; border: 1px solid var(--line); border-radius: 11px; outline: 0; color: var(--ink); background: #faf8f2; font-size: 10px; line-height: 1.55; }
+.notes-section textarea:focus { border-color: #90b9ab; background: white; }
+.notes-section small { display: block; margin-top: 5px; color: #909b9d; font-size: 8px; text-align: right; }
+.topic-entry { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 2px; padding: 13px 14px; border: 0; border-radius: 14px; color: white; background: linear-gradient(135deg, #183e49, #286a64); text-align: left; cursor: pointer; box-shadow: 0 9px 20px rgba(22,56,70,.16); }
+.topic-entry span { display: grid; gap: 4px; font-size: 11px; }
+.topic-entry span b { color: #a9d6c8; font-size: 8px; letter-spacing: .13em; text-transform: uppercase; }
+.topic-entry i { flex: 0 0 auto; color: #fff2d7; font-size: 9px; font-style: normal; }
+.topic-entry:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(22,56,70,.21); }
+
+#topicMode { grid-template-columns: 230px minmax(0, 1fr); gap: 16px; height: calc(100vh - 122px); min-height: 680px; }
+.topic-sidebar { display: flex; flex-direction: column; padding: 20px 13px 14px; }
+.topic-side-head { padding: 3px 8px 18px; border-bottom: 1px solid rgba(22,56,70,.09); }
+.topic-number { display: inline-block; margin-bottom: 12px; padding: 5px 8px; border-radius: 7px; color: #8c4738; background: #f7ded6; font: 800 9px ui-monospace, monospace; letter-spacing: .12em; }
+.topic-side-head h2 { margin: 0; font: 600 20px/1.25 Georgia, "Songti SC", serif; }
+.topic-side-head p { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+.topic-nav { display: grid; gap: 5px; margin-top: 14px; }
+.topic-nav button { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 10px 9px; border: 0; border-radius: 11px; color: var(--muted); background: transparent; text-align: left; cursor: pointer; }
+.topic-nav button i { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; color: var(--teal); background: #e7f0eb; font-style: normal; }
+.topic-nav button span { font-size: 11px; }
+.topic-nav button b { color: #99a5a6; font: 17px Georgia, serif; }
+.topic-nav button:hover { color: var(--ink); background: #f1f3ed; }
+.topic-nav button.active { color: white; background: var(--ink); }
+.topic-nav button.active i { color: white; background: rgba(255,255,255,.13); }
+.topic-nav button.active b { color: white; }
+.topic-side-foot { margin-top: auto; padding: 13px 8px 3px; border-top: 1px solid rgba(22,56,70,.09); }
+.topic-side-foot > span { display: inline-block; margin-right: 4px; padding: 4px 6px; border-radius: 6px; color: var(--teal); background: #e7f0eb; font-size: 8px; }
+.topic-side-foot p { margin: 8px 0 0; color: #879397; font-size: 8px; line-height: 1.5; }
+.topic-main { overflow-y: auto; background: #fbfaf5; scrollbar-width: thin; scrollbar-color: #c8d0cc transparent; }
+.topic-hero { padding: 30px 38px 27px; color: white; background: linear-gradient(125deg, #173b48 0%, #245d5a 62%, color-mix(in srgb, var(--topic-accent) 64%, #245d5a) 125%); position: relative; overflow: hidden; }
+.topic-hero::after { content: ""; width: 310px; height: 310px; position: absolute; right: -110px; top: -155px; border: 58px solid rgba(255,255,255,.07); border-radius: 50%; }
+.topic-hero-meta { display: flex; gap: 7px; position: relative; z-index: 1; }
+.topic-hero-meta span { padding: 5px 8px; border: 1px solid rgba(255,255,255,.16); border-radius: 7px; color: #cde4dd; background: rgba(255,255,255,.07); font: 700 8px ui-monospace, monospace; letter-spacing: .13em; }
+.topic-hero h1 { max-width: 820px; margin: 17px 0 9px; position: relative; z-index: 1; font: 600 clamp(30px, 4.2vw, 52px)/1.08 Georgia, "Songti SC", serif; }
+.topic-hero > p { max-width: 930px; margin: 0; position: relative; z-index: 1; color: rgba(255,255,255,.77); font-size: 12px; line-height: 1.75; }
+.objective-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; position: relative; z-index: 1; }
+.objective-row span { padding: 6px 9px; border-radius: 99px; color: #e8f3ef; background: rgba(255,255,255,.09); font-size: 9px; }
+.topic-body { padding: 28px 34px 40px; }
+.topic-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 18px; }
+.topic-section-heading h2 { margin: 0; font: 600 clamp(23px, 3vw, 34px)/1.2 Georgia, "Songti SC", serif; }
+.topic-section-heading > p { max-width: 370px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.65; text-align: right; }
+.pathway-layout { display: grid; gap: 15px; }
+.pathway-map { display: flex; align-items: stretch; gap: 7px; padding: 15px; border: 1px solid #dce2dc; border-radius: 18px; background: #f1f5f1; overflow-x: auto; }
+.route-node { min-width: 132px; flex: 1 0 132px; display: grid; align-content: start; gap: 5px; padding: 12px 11px; border: 1px solid transparent; border-radius: 13px; color: var(--ink); background: rgba(255,255,255,.72); text-align: left; cursor: pointer; }
+.route-node > b { width: 25px; height: 25px; display: grid; place-items: center; margin-bottom: 4px; border-radius: 50%; color: white; background: var(--node-color); font: 700 9px ui-monospace, monospace; }
+.route-node span { font-size: 11px; font-weight: 800; }
+.route-node small { color: var(--muted); font-size: 8px; line-height: 1.4; }
+.route-node:hover { border-color: var(--node-color); transform: translateY(-2px); }
+.route-node.active { border-color: var(--node-color); background: white; box-shadow: 0 9px 22px color-mix(in srgb, var(--node-color) 22%, transparent); }
+.route-arrow { align-self: center; flex: 0 0 auto; color: #8ba19d; font-size: 16px; }
+.route-detail { display: grid; grid-template-columns: 210px 1fr; gap: 22px; padding: 20px; border: 1px solid color-mix(in srgb, var(--node-color) 35%, #d8ddd7); border-radius: 18px; background: linear-gradient(135deg, white, color-mix(in srgb, var(--node-color) 8%, white)); }
+.route-detail-top { display: flex; align-items: center; gap: 12px; }
+.route-detail-top > span { width: 44px; height: 44px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; color: white; background: var(--node-color); font: 700 13px ui-monospace, monospace; }
+.route-detail-top small { color: var(--muted); font-size: 8px; letter-spacing: .12em; }
+.route-detail-top h3 { margin: 4px 0 0; font: 600 21px Georgia, "Songti SC", serif; }
+.route-examples { grid-column: 1; margin: 8px 0 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+.route-facts { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.route-facts > div { padding: 12px; border-radius: 12px; background: rgba(255,255,255,.76); }
+.route-facts b { color: var(--node-color); font-size: 9px; }
+.route-facts p { margin: 6px 0 0; color: #52666c; font-size: 10px; line-height: 1.62; }
+.model-heading { margin-top: 30px; }
+.model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+.model-card { padding: 17px; border: 1px solid #dedbd2; border-radius: 16px; background: white; }
+.model-title { display: flex; align-items: center; gap: 10px; }
+.model-title > span { color: #c98565; font: 700 17px ui-monospace, monospace; }
+.model-title small { color: var(--teal); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.model-title h3 { margin: 3px 0 0; font: 600 16px Georgia, "Songti SC", serif; }
+.model-claim { min-height: 62px; margin: 13px 0; color: #40575f; font-size: 10px; line-height: 1.62; }
+.model-card dl { display: grid; gap: 7px; margin: 0; }
+.model-card dl > div { padding: 9px; border-radius: 10px; background: #f5f5ef; }
+.model-card dt { color: var(--teal); font-size: 8px; font-weight: 800; }
+.model-card dd { margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.study-anchor { display: grid; grid-template-columns: auto 1fr; gap: 14px; margin-top: 17px; padding: 14px 16px; border-radius: 14px; color: #70401f; background: #fff0de; }
+.study-anchor b { font-size: 10px; }
+.study-anchor span { font-size: 10px; line-height: 1.6; }
+
+.experiment-stack { display: grid; gap: 9px; }
+.deep-experiment { border: 1px solid #dcd9d0; border-radius: 15px; background: white; overflow: hidden; }
+.deep-experiment summary { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.deep-experiment summary::-webkit-details-marker { display: none; }
+.experiment-no { color: #c67e5e; font: 700 13px ui-monospace, monospace; }
+.deep-experiment summary small { color: var(--teal); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.deep-experiment summary h3 { margin: 3px 0 0; font: 600 17px Georgia, "Songti SC", serif; }
+.deep-experiment summary i { font-style: normal; transition: transform .2s ease; }
+.deep-experiment[open] summary i { transform: rotate(45deg); }
+.deep-experiment[open] summary { background: #f4f7f3; }
+.deep-experiment-body { padding: 0 16px 16px 65px; background: #f4f7f3; }
+.experiment-question { display: grid; grid-template-columns: 65px 1fr; gap: 8px; padding: 10px 12px; border-radius: 11px; color: white; background: var(--ink); }
+.experiment-question b { color: #a9d6c8; font-size: 9px; }
+.experiment-question p { margin: 0; font-size: 10px; line-height: 1.5; }
+.experiment-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.experiment-method-grid > div { padding: 11px 12px; border: 1px solid #dde1dc; border-radius: 11px; background: white; }
+.experiment-method-grid b { color: var(--teal); font-size: 9px; }
+.experiment-method-grid p { margin: 5px 0 0; color: var(--muted); font-size: 9px; line-height: 1.55; }
+.experiment-method-grid .warning { border-color: #ecd0bc; background: #fff5e9; }
+.experiment-method-grid .warning b { color: #a65335; }
+.evidence-ladder { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 17px; padding: 14px; border-radius: 14px; background: #eaf2ed; }
+.evidence-ladder span { padding: 6px 9px; border-radius: 8px; color: var(--teal-dark); background: white; font-size: 9px; font-weight: 700; }
+.evidence-ladder i { color: #7d9e94; font-style: normal; }
+.evidence-ladder small { flex-basis: 100%; color: var(--muted); font-size: 8px; text-align: center; }
+
+.paper-timeline { display: grid; gap: 9px; position: relative; }
+.paper-timeline::before { content: ""; width: 1px; position: absolute; left: 34px; top: 20px; bottom: 20px; background: #d9d5cb; }
+.paper-card { display: grid; grid-template-columns: 70px 1fr; gap: 10px; position: relative; }
+.paper-year { width: 58px; height: 31px; display: grid; place-items: center; margin-top: 15px; border: 1px solid #d6d7d0; border-radius: 9px; color: #9c583d; background: #fbfaf5; font: 700 10px ui-monospace, monospace; z-index: 1; }
+.paper-content { padding: 14px 16px; border: 1px solid #dedbd2; border-radius: 15px; background: white; }
+.paper-tags { display: flex; gap: 5px; margin-bottom: 7px; }
+.paper-tags span, .paper-tags b { padding: 4px 6px; border-radius: 6px; color: var(--teal); background: #e8f1ec; font-size: 8px; }
+.paper-tags b { color: #8c4936; background: #f8e4dc; }
+.paper-content > a { color: var(--ink); font: 600 16px/1.35 Georgia, serif; text-decoration: none; }
+.paper-content > a:hover { color: var(--teal); text-decoration: underline; }
+.paper-content > a i { margin-left: 6px; color: var(--teal); font-style: normal; }
+.paper-content > small { display: block; margin-top: 5px; color: #7b898c; font-size: 8px; }
+.paper-evidence { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.paper-evidence p { margin: 0; padding: 9px 10px; border-radius: 10px; color: var(--muted); background: #f5f5ef; font-size: 9px; line-height: 1.55; }
+.paper-evidence b { display: block; margin-bottom: 3px; color: var(--teal); font-size: 8px; }
+.citation-note { margin: 16px 0 0 80px; padding: 14px 16px; border-radius: 14px; color: #654421; background: #fff1dc; }
+.citation-note b { font-size: 10px; }
+.citation-note p { margin: 5px 0 0; font-size: 9px; line-height: 1.6; }
+
+.frontier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.frontier-card { min-height: 250px; display: flex; flex-direction: column; padding: 18px; border: 1px solid #dedbd2; border-top: 4px solid #598f86; border-radius: 17px; background: white; }
+.frontier-card.amber { border-top-color: #d59a43; }
+.frontier-card.violet { border-top-color: #9b75ad; }
+.frontier-card.red { border-top-color: #c9665c; }
+.frontier-top { display: flex; align-items: center; justify-content: space-between; }
+.frontier-top span { padding: 5px 7px; border-radius: 7px; color: var(--teal); background: #e8f1ec; font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.frontier-card.amber .frontier-top span { color: #8a5a18; background: #faeccf; }
+.frontier-card.violet .frontier-top span { color: #70447f; background: #efe4f3; }
+.frontier-card.red .frontier-top span { color: #8c3d37; background: #f8e1de; }
+.frontier-top b { color: #a6afb0; font: 700 14px ui-monospace, monospace; }
+.frontier-card h3 { margin: 16px 0 8px; font: 600 20px/1.3 Georgia, "Songti SC", serif; }
+.frontier-card > p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
+.frontier-card > div:last-child { margin-top: auto; padding-top: 14px; }
+.frontier-card > div:last-child small { display: block; color: #8d989a; font-size: 8px; letter-spacing: .1em; }
+.frontier-card > div:last-child strong { display: block; margin-top: 5px; color: #384e55; font-size: 10px; line-height: 1.55; }
+.research-bridge { display: grid; grid-template-columns: 280px 1fr; gap: 24px; margin-top: 14px; padding: 20px; border-radius: 17px; color: white; background: linear-gradient(135deg, #173b48, #275f5b); }
+.research-bridge h3 { margin: 0; font: 600 18px Georgia, "Songti SC", serif; }
+.research-bridge p { margin: 0; color: rgba(255,255,255,.72); font-size: 10px; line-height: 1.75; }
+
+.topic-quiz-intro, .topic-quiz-result { max-width: 700px; margin: 35px auto; padding: 45px; border: 1px solid #dedbd2; border-radius: 22px; background: white; text-align: center; box-shadow: var(--shadow); }
+.topic-quiz-intro h2, .topic-quiz-result h2 { margin: 0; font: 600 clamp(27px, 4vw, 40px)/1.15 Georgia, "Songti SC", serif; }
+.topic-quiz-intro p, .topic-quiz-result p { margin: 12px auto 24px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.topic-question { max-width: 760px; margin: 10px auto; }
+.topic-question h2 { margin: 20px 0; font: 600 clamp(22px, 3vw, 30px)/1.4 Georgia, "Songti SC", serif; }
+
+.learning-mode { min-height: calc(100vh - 122px); align-content: start; padding: 22px min(7vw, 100px) 40px; }
+.learning-header { display: flex; align-items: end; justify-content: space-between; gap: 30px; max-width: 1000px; width: 100%; margin: 0 auto 24px; }
+.learning-header h1, .quiz-intro h1, .quiz-result h1 { margin: 0; font: 600 clamp(28px, 4vw, 46px)/1.1 Georgia, "Songti SC", serif; }
+.learning-header p, .quiz-intro > p, .quiz-result > p { max-width: 590px; margin: 11px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.card-controls { display: flex; align-items: center; gap: 14px; color: var(--muted); font: 12px ui-monospace, monospace; }
+.flashcard-wrap { display: grid; grid-template-columns: auto minmax(300px, 690px) auto; align-items: center; justify-content: center; gap: 24px; perspective: 1400px; }
+.round-nav { width: 47px; height: 47px; border: 1px solid var(--line); border-radius: 50%; color: var(--teal); background: var(--surface); box-shadow: 0 8px 20px rgba(22,56,70,.08); cursor: pointer; font-size: 20px; }
+.flashcard { width: 100%; aspect-ratio: 1.65; min-height: 370px; padding: 0; border: 0; background: transparent; cursor: pointer; perspective: 1400px; }
+.flashcard-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .58s cubic-bezier(.2,.72,.2,1); }
+.flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+.flashcard-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px; border: 1px solid rgba(22,56,70,.12); border-radius: 30px; background: var(--surface); box-shadow: 0 28px 75px rgba(22,56,70,.12); backface-visibility: hidden; overflow: hidden; }
+.flashcard-front::before { content: ""; width: 410px; height: 410px; position: absolute; left: -210px; top: -215px; border: 52px solid #e0ece5; border-radius: 50%; }
+.flashcard-front::after { content: ""; width: 250px; height: 250px; position: absolute; right: -115px; bottom: -145px; border-radius: 50%; background: #f7e5cc; }
+.card-system { position: relative; z-index: 1; color: var(--teal); font: 700 10px ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+.card-region-dot { width: 18px; height: 18px; margin: 28px 0 8px; border: 5px solid color-mix(in srgb, var(--card-color) 30%, transparent); border-radius: 50%; background: var(--card-color); box-shadow: 0 0 0 12px color-mix(in srgb, var(--card-color) 12%, transparent); position: relative; z-index: 1; }
+.flashcard h2 { margin: 20px 0 8px; font: 600 clamp(42px, 7vw, 68px) Georgia, "Songti SC", serif; position: relative; z-index: 1; }
+.flashcard-front p { margin: 0; color: var(--muted); font-size: 14px; position: relative; z-index: 1; }
+.flip-prompt { position: absolute; bottom: 27px; color: #829093; font-size: 10px; }
+.flip-prompt b { margin-left: 6px; color: var(--teal); font-size: 15px; }
+.flashcard-back { transform: rotateY(180deg); align-items: flex-start; color: white; background: linear-gradient(145deg, #173b48, #1d5d5a); }
+.flashcard-back .card-system { color: #b8ddd2; }
+.flashcard-back h3 { max-width: 560px; margin: 22px 0; font: 500 clamp(20px, 3vw, 31px)/1.45 Georgia, "Songti SC", serif; }
+.card-answer-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card-answer-grid > div { display: grid; gap: 5px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.13); border-radius: 12px; background: rgba(255,255,255,.06); }
+.card-answer-grid b { color: #abd1c6; font-size: 9px; letter-spacing: .1em; }
+.card-answer-grid span { font-size: 12px; }
+.flashcard-back > p { margin: 16px 0 0; color: rgba(255,255,255,.72); font-size: 11px; line-height: 1.7; }
+.mini-learn { position: absolute; right: 25px; bottom: 23px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 9px; color: white; background: rgba(255,255,255,.07); font-size: 10px; cursor: pointer; }
+.keyboard-hint { display: flex; justify-content: center; align-items: center; margin: 20px 0 0; color: var(--muted); font-size: 10px; }
+
+.quiz-shell { width: min(850px, 100%); min-height: 550px; margin: 18px auto; display: grid; place-items: center; padding: 50px; text-align: center; }
+.quiz-intro, .quiz-result { max-width: 660px; }
+.quiz-features { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 23px 0 30px; }
+.quiz-features span { padding: 8px 11px; border: 1px solid #d4dfd9; border-radius: 99px; color: var(--teal); background: #f2f7f3; font-size: 10px; }
+.primary-button { padding: 12px 18px; border: 0; border-radius: 12px; color: white; background: var(--teal); box-shadow: 0 8px 20px rgba(31,108,104,.18); cursor: pointer; font-weight: 700; font-size: 12px; }
+.primary-button:hover { background: var(--teal-dark); transform: translateY(-1px); }
+.primary-button span { margin-left: 20px; }
+.hidden { display: none !important; }
+.quiz-game { width: min(680px, 100%); text-align: left; }
+.quiz-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+.quiz-progress { height: 5px; margin: 9px 0 35px; border-radius: 99px; background: #e5e3da; overflow: hidden; }
+.quiz-progress i { display: block; height: 100%; border-radius: inherit; background: var(--teal); transition: width .25s ease; }
+.quiz-category { color: var(--teal); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.quiz-game h2 { margin: 10px 0 23px; font: 600 clamp(22px, 3vw, 31px)/1.35 Georgia, "Songti SC", serif; }
+.answer-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.answer-option { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 13px; color: var(--ink); background: #fbfaf5; text-align: left; cursor: pointer; }
+.answer-option:hover:not(:disabled) { border-color: #90b9ab; background: #f3f8f4; transform: translateY(-1px); }
+.answer-option b { width: 31px; height: 31px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 9px; color: var(--teal); background: var(--mint); font: 700 11px ui-monospace, monospace; }
+.answer-option span { font-size: 12px; }
+.answer-option.correct { border-color: #62a77e; background: #edf8ef; }
+.answer-option.wrong { border-color: #d77871; background: #fff0ee; }
+.answer-option.wrong b { color: #a94740; background: #f7cfca; }
+.answer-feedback { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 18px; padding: 14px 16px; border-radius: 13px; background: #edf4ef; }
+.answer-feedback strong { color: var(--teal); font-size: 12px; }
+.answer-feedback p { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+.answer-feedback .primary-button { flex: 0 0 auto; }
+.score-orbit { --score: 0deg; width: 112px; height: 112px; margin: 0 auto 25px; display: flex; align-items: baseline; justify-content: center; border-radius: 50%; background: conic-gradient(var(--amber) var(--score), #e6e4dc 0); position: relative; }
+.score-orbit::before { content: ""; position: absolute; inset: 8px; border-radius: inherit; background: var(--surface); }
+.score-orbit strong, .score-orbit span { position: relative; }
+.score-orbit strong { font: 600 40px Georgia, serif; }
+.score-orbit span { color: var(--muted); font-size: 13px; }
+.result-actions { display: flex; justify-content: center; gap: 9px; margin-top: 25px; }
+
+@media (max-width: 1150px) {
+  .topbar { grid-template-columns: auto 1fr auto; }
+  .top-actions .progress-pill > span:last-child { display: none; }
+  #exploreMode { grid-template-columns: 220px 1fr 330px; }
+  .region-summary { padding-left: 0; }
+}
+
+@media (max-width: 900px) {
+  .topbar { height: auto; min-height: 70px; grid-template-columns: 1fr auto; padding: 12px 16px; }
+  .mode-tabs { grid-row: 2; grid-column: 1 / -1; justify-self: stretch; }
+  .mode-tab { flex: 1; }
+  .top-actions { gap: 6px; }
+  .search-box { width: min(42vw, 280px); }
+  main { padding: 14px; }
+  #exploreMode { height: auto; min-height: 0; grid-template-columns: 200px 1fr; }
+  .atlas-panel { min-height: 610px; }
+  .detail-panel { grid-column: 1 / -1; min-height: 620px; }
+  #topicMode { height: auto; min-height: 0; grid-template-columns: 190px 1fr; }
+  .topic-main { max-height: none; }
+  .topic-body { padding: 24px 22px 35px; }
+  .route-detail { grid-template-columns: 1fr; }
+  .route-facts { grid-column: 1; grid-row: auto; }
+  .model-grid { grid-template-columns: 1fr; }
+  .model-claim { min-height: 0; }
+}
+
+@media (max-width: 640px) {
+  .brand small, .progress-pill { display: none; }
+  .search-box { width: 44vw; }
+  .search-box kbd { display: none; }
+  #exploreMode.active { display: flex; flex-direction: column; }
+  .region-sidebar { max-height: 390px; }
+  .atlas-panel { min-height: 510px; }
+  .brain-stage { min-height: 420px; }
+  .orientation, .atlas-footer .hint { display: none; }
+  .atlas-footer { justify-content: center; }
+  .detail-panel { min-height: 650px; }
+  #topicMode.active { display: flex; flex-direction: column; }
+  .topic-sidebar { min-height: auto; }
+  .topic-nav { grid-template-columns: 1fr 1fr; }
+  .topic-side-foot { margin-top: 13px; }
+  .topic-hero { padding: 25px 20px; }
+  .topic-body { padding: 22px 15px 32px; }
+  .topic-section-heading { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .topic-section-heading > p { text-align: left; }
+  .route-facts, .experiment-method-grid, .paper-evidence, .frontier-grid { grid-template-columns: 1fr; }
+  .deep-experiment-body { padding: 0 11px 13px; }
+  .experiment-question { grid-template-columns: 1fr; }
+  .paper-card { grid-template-columns: 53px 1fr; }
+  .paper-timeline::before { left: 26px; }
+  .paper-year { width: 50px; }
+  .citation-note { margin-left: 0; }
+  .research-bridge { grid-template-columns: 1fr; gap: 12px; }
+  .learning-mode { padding: 15px 0 30px; }
+  .learning-header { align-items: flex-start; flex-direction: column; }
+  .flashcard-wrap { grid-template-columns: 1fr; gap: 12px; }
+  .round-nav { display: none; }
+  .flashcard { min-height: 430px; aspect-ratio: auto; }
+  .flashcard-face { padding: 28px; border-radius: 22px; }
+  .card-answer-grid { grid-template-columns: 1fr; }
+  .quiz-shell { padding: 30px 18px; }
+  .answer-list { grid-template-columns: 1fr; }
+  .answer-feedback { align-items: stretch; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+</style>
+</head>
+<body>
+  <div class="runtime-notice" id="runtimeNotice" role="status">
+    正在启动交互功能…如果此提示持续显示，请改用解压后的 <b>Brain-Atlas-Offline.html</b>。
+  </div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="脑区探索室首页">
+        <span class="brand-mark" aria-hidden="true">脑</span>
+        <span><strong>脑区探索室</strong><small>Brain Atlas Lab</small></span>
+      </a>
+      <nav class="mode-tabs" aria-label="学习模式">
+        <button class="mode-tab active" data-mode="explore">探索</button>
+        <button class="mode-tab" data-mode="topic">专题</button>
+        <button class="mode-tab" data-mode="cards">记忆卡</button>
+        <button class="mode-tab" data-mode="quiz">测验</button>
+      </nav>
+      <div class="top-actions">
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="搜索脑区、功能或实验…" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <div class="progress-pill" title="已掌握的脑区">
+          <span class="progress-ring" id="progressRing"><b id="progressPercent">0%</b></span>
+          <span>学习进度</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="exploreMode" class="mode-panel active">
+        <aside class="region-sidebar panel">
+          <div class="sidebar-heading">
+            <div><span class="eyebrow">区域索引</span><h2>从系统理解脑</h2></div>
+            <span class="count-badge" id="regionCount">0</span>
+          </div>
+          <div class="filter-row" id="systemFilters" aria-label="系统筛选"></div>
+          <div id="regionList" class="region-list"></div>
+          <div class="extension-note">
+            <span class="extension-icon">＋</span>
+            <div><strong>为下一层留好位置</strong><p>可继续加入皮层分区、Brodmann 区和神经环路。</p></div>
+          </div>
+        </aside>
+
+        <section class="atlas-panel panel">
+          <div class="panel-toolbar">
+            <div class="view-tabs" role="tablist" aria-label="脑图视角">
+              <button class="view-tab active" data-view="lateral">外侧面</button>
+              <button class="view-tab" data-view="deep">内侧与深部</button>
+            </div>
+            <button class="ghost-button" id="labelToggle" aria-pressed="true"><span>◎</span> 标签</button>
+          </div>
+
+          <div class="brain-stage" id="brainStage">
+            <div class="orientation"><span>前</span><i></i><span>后</span></div>
+            <svg id="brainMap" viewBox="0 0 780 520" role="img" aria-labelledby="brainTitle brainDesc">
+              <title id="brainTitle">可交互的人脑主要区域示意图</title>
+              <desc id="brainDesc">点击彩色脑区查看其功能、典型实验和记忆方法。</desc>
+              <defs>
+                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#183a4a" flood-opacity=".16"/>
+                </filter>
+                <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1" fill="#183a4a" opacity=".08"/>
+                </pattern>
+              </defs>
+
+              <g class="brain-view active" data-brain-view="lateral">
+                <path class="brain-silhouette" d="M112 271C80 198 115 117 187 78c72-39 185-45 276-15 85 28 153 93 164 172 7 52-13 94-47 123-44 38-100 55-166 56-45 1-77 21-118 18-71-4-147-59-184-161Z"/>
+                <path class="brain-region" data-region="frontal" d="M111 268c-28-68 5-140 72-179 45-26 99-37 156-36l15 56-28 73 12 91-55 62-82 14-66-39Z"/>
+                <path class="brain-region" data-region="parietal" d="M339 53c52 0 102 9 142 26 53 23 91 56 117 101l-49 37-76 3-60 44-75 9-12-91 28-73Z"/>
+                <path class="brain-region" data-region="occipital" d="M598 180c18 31 27 65 29 90 3 46-16 82-50 109l-66-20-38-68v-71l76-3Z"/>
+                <path class="brain-region" data-region="temporal" d="M201 349l82-14 55-62 75-9 60 27 38 68-35 45-65 10c-43 1-77 21-117 18-34-3-68-17-93-38Z"/>
+                <path class="brain-region" data-region="insula" d="M351 243c18-26 44-39 72-34 23 4 40 20 50 42-16 27-41 41-72 39-25-1-42-17-50-47Z"/>
+                <path class="brain-region" data-region="cerebellum" d="M468 380c32-37 74-55 119-43 50 13 73 67 48 108-23 37-78 49-124 31-28-11-44-46-43-96Z"/>
+                <path class="brain-region" data-region="brainstem" d="M405 397c27-6 55 6 66 28 9 20 1 42-9 61l-6 28h-44l9-35c-19-17-29-48-16-82Z"/>
+
+                <g class="map-labels">
+                  <g class="map-label" data-label-for="frontal"><path d="M228 154 166 115"/><text x="96" y="109">额叶</text></g>
+                  <g class="map-label" data-label-for="parietal"><path d="M456 139 501 105"/><text x="508" y="103">顶叶</text></g>
+                  <g class="map-label" data-label-for="occipital"><path d="M568 267 648 250"/><text x="655" y="255">枕叶</text></g>
+                  <g class="map-label" data-label-for="temporal"><path d="M357 354 324 405"/><text x="256" y="426">颞叶</text></g>
+                  <g class="map-label" data-label-for="insula"><path d="M413 245 413 175"/><text x="385" y="164">岛叶</text></g>
+                  <g class="map-label" data-label-for="cerebellum"><path d="M556 406 629 417"/><text x="641" y="423">小脑</text></g>
+                  <g class="map-label" data-label-for="brainstem"><path d="M438 460 366 486"/><text x="292" y="501">脑干</text></g>
+                </g>
+              </g>
+
+              <g class="brain-view" data-brain-view="deep">
+                <path class="brain-silhouette deep-outline" d="M111 276C80 201 114 118 186 78c76-42 195-47 291-13 89 32 150 102 151 181 1 79-58 133-142 157-49 14-93 13-138 23-70 16-161-21-212-85-16-20-19-42-25-65Z"/>
+                <path class="deep-ghost" d="M170 271c-17-62 20-127 88-155 71-29 175-24 240 20 53 36 76 93 55 143-23 56-94 80-174 78-85-2-181-22-209-86Z"/>
+                <path class="brain-region" data-region="corpus-callosum" d="M234 226c47-84 178-119 275-58 26 16 45 38 55 62l-31 10c-47-59-146-74-214-28-22 15-37 35-47 57Z"/>
+                <path class="brain-region" data-region="basal-ganglia" d="M305 237c26-30 72-39 105-18 27 17 30 53 8 76-28 29-81 24-111-2-17-15-18-38-2-56Z"/>
+                <ellipse class="brain-region" data-region="thalamus" cx="425" cy="282" rx="67" ry="46"/>
+                <path class="brain-region" data-region="hypothalamus" d="M409 324c24-5 54 3 65 22 12 20-1 44-23 51-25 8-53-5-60-26-7-19-2-42 18-47Z"/>
+                <path class="brain-region" data-region="hippocampus" d="M339 331c43 2 82 28 89 62 5 26-15 52-44 55-17 2-27-7-23-19 5-14 18-22 14-36-5-19-29-29-54-29-16 0-23-13-15-23 7-8 17-11 33-10Z"/>
+                <circle class="brain-region" data-region="amygdala" cx="325" cy="371" r="26"/>
+                <path class="brain-region" data-region="cerebellum" d="M501 358c45-33 103-25 129 14 26 40 4 92-47 107-47 14-94-7-104-43-7-27 0-55 22-78Z"/>
+                <path class="brain-region" data-region="brainstem" d="M443 377c28-4 52 10 62 34 8 20 2 43-12 62l-4 41h-46l8-51c-21-20-28-59-8-86Z"/>
+                <path class="brain-region" data-region="insula" d="M208 278c21-35 57-52 91-40 31 11 44 46 28 77-18 35-62 50-96 31-25-14-37-44-23-68Z"/>
+
+                <g class="map-labels deep-labels">
+                  <g class="map-label" data-label-for="corpus-callosum"><path d="M384 176 361 112"/><text x="303" y="101">胼胝体</text></g>
+                  <g class="map-label" data-label-for="basal-ganglia"><path d="M345 254 292 193"/><text x="216" y="183">基底神经节</text></g>
+                  <g class="map-label" data-label-for="thalamus"><path d="M463 272 540 265"/><text x="551" y="271">丘脑</text></g>
+                  <g class="map-label" data-label-for="hypothalamus"><path d="M452 366 532 391"/><text x="543" y="399">下丘脑</text></g>
+                  <g class="map-label" data-label-for="hippocampus"><path d="M386 418 349 476"/><text x="281" y="499">海马</text></g>
+                  <g class="map-label" data-label-for="amygdala"><path d="M307 372 235 395"/><text x="169" y="404">杏仁核</text></g>
+                  <g class="map-label" data-label-for="insula"><path d="M247 284 177 244"/><text x="112" y="239">岛叶</text></g>
+                </g>
+              </g>
+            </svg>
+            <p class="diagram-note">教学示意图 · 比例与边界已简化，不用于临床定位</p>
+          </div>
+
+          <div class="atlas-footer">
+            <div class="legend"><span><i class="legend-dot cortex"></i>大脑皮层</span><span><i class="legend-dot deep"></i>深部结构</span><span><i class="legend-dot support"></i>后脑与脑干</span></div>
+            <span class="hint">点击脑区，或用列表快速定位</span>
+          </div>
+        </section>
+
+        <aside class="detail-panel panel" id="detailPanel" aria-live="polite"></aside>
+      </section>
+
+      <section id="topicMode" class="mode-panel topic-mode">
+        <aside class="topic-sidebar panel" id="topicSidebar"></aside>
+        <section class="topic-main panel" id="topicMain" aria-live="polite"></section>
+      </section>
+
+      <section id="cardsMode" class="mode-panel learning-mode">
+        <div class="learning-header">
+          <div><span class="eyebrow">主动回忆</span><h1>先想答案，再翻面</h1><p>用左右方向键切换，按 F 翻面。比反复阅读更容易形成长期记忆。</p></div>
+          <div class="card-controls"><button class="ghost-button" id="shuffleCards">↻ 打乱</button><span id="cardCounter">1 / 13</span></div>
+        </div>
+        <div class="flashcard-wrap">
+          <button class="round-nav" id="prevCard" aria-label="上一张">←</button>
+          <button class="flashcard" id="flashcard" aria-label="翻转记忆卡">
+            <div class="flashcard-inner">
+              <div class="flashcard-face flashcard-front" id="cardFront"></div>
+              <div class="flashcard-face flashcard-back" id="cardBack"></div>
+            </div>
+          </button>
+          <button class="round-nav" id="nextCard" aria-label="下一张">→</button>
+        </div>
+        <p class="keyboard-hint"><kbd>←</kbd><kbd>→</kbd> 切换　<kbd>F</kbd> 翻面</p>
+      </section>
+
+      <section id="quizMode" class="mode-panel learning-mode">
+        <div class="quiz-shell panel">
+          <div id="quizIntro" class="quiz-intro">
+            <span class="eyebrow">快速检索练习</span>
+            <h1>8 题测测你的脑区地图</h1>
+            <p>题目混合功能、经典实验与结构关系。答错后会立即解释。</p>
+            <div class="quiz-features"><span>约 3 分钟</span><span>每次随机题目</span><span>本机保存最佳成绩</span></div>
+            <button class="primary-button" id="startQuiz">开始测验 <span>→</span></button>
+          </div>
+          <div id="quizGame" class="quiz-game hidden"></div>
+          <div id="quizResult" class="quiz-result hidden"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <noscript>此学习工具需要启用 JavaScript 才能使用交互功能。</noscript>
+  <script>
+window.BRAIN_REGIONS = [
+  {
+    id: "frontal", name: "额叶", latin: "Frontal lobe", system: "cortex", view: "lateral", color: "#F3A46B",
+    summary: "负责计划、抑制、决策与随意运动，是把目标变成行动的“总导演”。",
+    functions: ["执行控制与工作记忆", "反应抑制与冲突监控", "随意运动与语言产生"],
+    experiment: {name: "Stroop / Go–No-go", question: "人能否压住自动反应，按当前目标行动？", method: "比较一致与冲突试次，或要求对 Go 刺激反应、对 No-go 刺激停止。", signal: "冲突条件反应时更长；抑制失败率反映控制能力。"},
+    memory: {title: "额头 = 规划台", text: "摸一下额头：先在这里“想好”，再让身体行动。额叶就是计划、控制和动作的前台。"},
+    pitfall: "额叶不是单一的“理性中心”；其不同亚区承担运动、语言和价值判断等不同功能。",
+    relations: ["basal-ganglia", "parietal"],
+    quiz: {q: "当任务要求压住一个已经准备好的按键反应时，最直接涉及哪个大区？", options: ["额叶", "枕叶", "小脑", "颞叶"], answer: 0, why: "反应抑制与执行控制主要依赖前额叶—基底神经节环路。"}
+  },
+  {
+    id: "parietal", name: "顶叶", latin: "Parietal lobe", system: "cortex", view: "lateral", color: "#E9CB68",
+    summary: "整合触觉、视觉与身体位置，帮助你定位物体、分配空间注意并操作数量。",
+    functions: ["躯体感觉整合", "空间注意与视觉引导动作", "数量与心理旋转"],
+    experiment: {name: "心理旋转实验", question: "大脑是否像转动物体一样旋转心理表征？", method: "判断两个不同角度的三维图形是否相同，并记录反应时。", signal: "角度差越大，反应时通常越长；斜率反映旋转速度。"},
+    memory: {title: "头顶 = 空间雷达", text: "顶叶在头顶，像一台雷达：它把“我在哪里、东西在哪里、手该伸向哪里”放到同一张地图。"},
+    pitfall: "空间忽视并非简单的视力丧失，而是对一侧空间的注意与表征障碍。",
+    relations: ["frontal", "occipital"],
+    quiz: {q: "Shepard–Metzler 心理旋转任务最常用来研究哪类能力？", options: ["空间表征", "恐惧条件化", "语言产生", "生理稳态"], answer: 0, why: "心理旋转要求操作物体的空间表征，顶叶参与尤其明显。"}
+  },
+  {
+    id: "temporal", name: "颞叶", latin: "Temporal lobe", system: "cortex", view: "lateral", color: "#E98B91",
+    summary: "处理听觉、物体与面孔识别，并与语言理解和记忆系统紧密相连。",
+    functions: ["听觉加工", "语义与语言理解", "物体、面孔识别"],
+    experiment: {name: "双耳分听实验", question: "两耳同时收到不同信息时，注意会选择哪一路？", method: "左右耳同时呈现不同音节，要求复述一侧或报告听到的内容。", signal: "正确率的耳侧差异可反映注意选择与语言侧化。"},
+    memory: {title: "太阳穴旁 = 耳机房", text: "颞叶就在耳朵附近：先记住“听”，再联想到它也负责理解声音代表的语言与物体。"},
+    pitfall: "“颞叶负责记忆”过于笼统；陈述性记忆更具体地依赖内侧颞叶系统。",
+    relations: ["hippocampus", "amygdala"],
+    quiz: {q: "双耳分听任务主要用来研究什么？", options: ["听觉注意与侧化", "运动协调", "体温调节", "视觉皮层定位"], answer: 0, why: "双耳分听操纵左右耳输入，是研究听觉选择性注意与语言侧化的经典范式。"}
+  },
+  {
+    id: "occipital", name: "枕叶", latin: "Occipital lobe", system: "cortex", view: "lateral", color: "#8BC7B8",
+    summary: "视觉信息进入大脑皮层后的第一站，并逐步分析边缘、颜色、运动和形状。",
+    functions: ["初级视觉加工", "颜色与形状分析", "视觉运动信息处理"],
+    experiment: {name: "视觉场定位实验", question: "视野中的位置如何映射到视觉皮层？", method: "在屏幕不同位置闪现刺激，同时记录 fMRI 或 EEG 反应。", signal: "刺激位置与枕叶激活位置呈有规律的视网膜拓扑映射。"},
+    memory: {title: "后脑勺 = 放映厅", text: "眼睛长在前面，视觉皮层却在后面。把枕叶想成后脑勺里的放映厅。"},
+    pitfall: "看见不是枕叶独立完成的；识别“是什么”和判断“在哪里”还需颞叶、顶叶通路。",
+    relations: ["parietal", "temporal"],
+    quiz: {q: "视觉刺激在屏幕上的位置与皮层激活位置形成系统映射，这称为什么？", options: ["视网膜拓扑组织", "躯体拓扑组织", "长时程增强", "动作电位全或无"], answer: 0, why: "枕叶视觉区保留视网膜空间关系，形成视网膜拓扑地图。"}
+  },
+  {
+    id: "insula", name: "岛叶", latin: "Insula", system: "cortex", view: "deep", color: "#8FAEEB",
+    summary: "把心跳、呼吸和内脏状态带入主观体验，也参与疼痛、厌恶与显著性检测。",
+    functions: ["内感受与身体状态", "疼痛和厌恶体验", "显著性检测"],
+    experiment: {name: "心跳知觉任务", question: "人能多准确地感知自己的内部身体信号？", method: "要求被试在一段时间内计数心跳，或判断声音是否与心跳同步。", signal: "客观准确性、主观信心与岛叶活动可被分开比较。"},
+    memory: {title: "岛 = 身体内部的观察站", text: "岛叶藏在外侧裂深处，像一座隐蔽小岛；它监测身体内部的潮汐——心跳、呼吸和不适。"},
+    pitfall: "心跳计数会受先验知识影响，不能把成绩直接等同于纯粹的内感受能力。",
+    relations: ["amygdala", "frontal"],
+    quiz: {q: "判断声音是否与自己心跳同步，最常用来研究哪种加工？", options: ["内感受", "语义启动", "空间忽视", "程序性学习"], answer: 0, why: "任务要求感知身体内部信号，岛叶是内感受网络的重要节点。"}
+  },
+  {
+    id: "hippocampus", name: "海马", latin: "Hippocampus", system: "deep", view: "deep", color: "#C58BD4",
+    summary: "帮助形成新的情景记忆和空间地图，让经历带着时间、地点被保存。",
+    functions: ["情景记忆形成", "空间导航", "关系绑定与记忆巩固"],
+    experiment: {name: "虚拟导航 / H.M. 病例", question: "新记忆形成是否依赖内侧颞叶？", method: "让被试学习虚拟路线并回忆地标；病例研究比较术前术后的记忆能力。", signal: "新情景记忆受损但部分技能学习保留，提示记忆系统并非单一。"},
+    memory: {title: "海马 = 记忆的地图册", text: "把“海马”想成在海里认路的动物：它把人物、地点和时间装订成一页经历。"},
+    pitfall: "海马不是永久存放所有记忆的“硬盘”，更像新情景记忆的快速编码与索引系统。",
+    relations: ["temporal", "amygdala"],
+    quiz: {q: "H.M. 手术后最突出的困难是什么？", options: ["形成新的陈述性记忆", "识别基本颜色", "维持呼吸节律", "完成简单反射"], answer: 0, why: "双侧内侧颞叶切除造成严重顺行性遗忘，而部分程序性学习仍可保留。"}
+  },
+  {
+    id: "amygdala", name: "杏仁核", latin: "Amygdala", system: "deep", view: "deep", color: "#EE7E77",
+    summary: "快速评估威胁和生物学意义，参与情绪学习并增强重要事件的记忆。",
+    functions: ["威胁检测", "恐惧条件化", "情绪记忆调节"],
+    experiment: {name: "恐惧条件化", question: "中性线索怎样获得威胁意义？", method: "将中性声音与轻微厌恶刺激配对，之后单独呈现声音。", signal: "皮肤电、惊跳反射或瞳孔扩大显示条件性恐惧反应。"},
+    memory: {title: "杏仁 = 情绪警报器", text: "杏仁核形状像杏仁，功能像烟雾报警器：先标记“重要或危险”，再调动身体和记忆。"},
+    pitfall: "杏仁核不只处理恐惧，也参与奖励、社会线索和广义的情绪显著性。",
+    relations: ["hippocampus", "hypothalamus"],
+    quiz: {q: "中性声音与厌恶刺激反复配对后，声音单独引起皮肤电增强。这是什么？", options: ["恐惧条件化", "视觉适应", "语义饱和", "心理旋转"], answer: 0, why: "中性条件刺激获得了威胁意义，杏仁核参与这种联结学习。"}
+  },
+  {
+    id: "thalamus", name: "丘脑", latin: "Thalamus", system: "deep", view: "deep", color: "#76B7D4",
+    summary: "多数感觉信息通往皮层的中继与调节站，也参与注意、唤醒和皮层节律。",
+    functions: ["感觉信息中继", "注意选择", "唤醒与皮层协调"],
+    experiment: {name: "空间线索任务", question: "注意线索如何增强随后出现的感觉信号？", method: "先给出可能位置的线索，再呈现目标，比较有效与无效线索试次。", signal: "有效线索缩短反应时；丘脑枕核与皮层注意网络共同调节信息。"},
+    memory: {title: "丘脑 = 中央车站", text: "几乎所有感觉列车都先到丘脑换乘，再前往不同皮层；嗅觉是常被记住的例外。"},
+    pitfall: "丘脑并非被动转发器，它会依据注意与脑状态主动调节信息通行。",
+    relations: ["cortex", "brainstem"],
+    quiz: {q: "下列哪种感觉通常不先经丘脑中继就到达初级皮层？", options: ["嗅觉", "视觉", "听觉", "躯体感觉"], answer: 0, why: "嗅觉通路是经典例外；其他主要感觉均有丘脑中继核。"}
+  },
+  {
+    id: "hypothalamus", name: "下丘脑", latin: "Hypothalamus", system: "deep", view: "deep", color: "#F2B85B",
+    summary: "维持体温、饥饿、口渴、昼夜节律和激素平衡，把神经活动连接到内分泌系统。",
+    functions: ["稳态调节", "内分泌控制", "动机与昼夜节律"],
+    experiment: {name: "稳态操纵实验", question: "身体缺水、能量变化如何转化为动机和行为？", method: "操纵饮水、进食或光照条件，记录行为、激素和生理指标。", signal: "摄入行为与激素节律随内部状态改变，显示负反馈调节。"},
+    memory: {title: "下丘脑 = 身体恒温器", text: "它虽小，却像恒温器和总务处：温度、吃喝、睡眠、激素都要保持在合适范围。"},
+    pitfall: "稳态不是保持绝对不变，而是在目标范围内动态预测和调节。",
+    relations: ["thalamus", "amygdala"],
+    quiz: {q: "体温、饥饿与激素调节最直接依赖哪个结构？", options: ["下丘脑", "胼胝体", "枕叶", "小脑"], answer: 0, why: "下丘脑连接自主神经和内分泌系统，是稳态调节核心。"}
+  },
+  {
+    id: "basal-ganglia", name: "基底神经节", latin: "Basal ganglia", system: "deep", view: "deep", color: "#7795C9",
+    summary: "帮助选择动作、建立习惯，并利用奖励预测误差更新行为策略。",
+    functions: ["动作选择与启动", "习惯和程序学习", "奖励学习"],
+    experiment: {name: "序列反应时任务", question: "人能否在没有明确意识时学会动作序列？", method: "对不同位置刺激按键，序列规律在练习后突然改变。", signal: "规律阶段反应变快，序列被打乱后反应变慢，提示隐性序列学习。"},
+    memory: {title: "基底神经节 = 动作闸门", text: "它不是直接发出动作，而像地铁闸门：放行合适动作、压住竞争动作，重复后形成习惯通道。"},
+    pitfall: "“基底节”并非一个核团，而是一组相互连接的深部结构与环路。",
+    relations: ["frontal", "thalamus"],
+    quiz: {q: "序列反应时任务中，隐藏规律被打乱后反应突然变慢，说明出现了什么？", options: ["隐性序列学习", "视觉失认", "语言侧化", "感觉适应"], answer: 0, why: "即使说不出规律，被试的反应仍显示已学会序列，涉及基底神经节。"}
+  },
+  {
+    id: "corpus-callosum", name: "胼胝体", latin: "Corpus callosum", system: "deep", view: "deep", color: "#D9C6A5",
+    summary: "连接左右大脑半球，使感觉、动作和认知信息能够跨半球整合。",
+    functions: ["半球间信息传递", "双侧感觉运动整合", "功能侧化协调"],
+    experiment: {name: "裂脑实验", question: "当两半球无法直接交流时，各自能做什么？", method: "向单侧视野短暂呈现刺激，要求被试说出或用手选择所见物体。", signal: "语言报告与非言语选择出现分离，揭示半球侧化与通路限制。"},
+    memory: {title: "胼胝体 = 跨江大桥", text: "左右半球像江两岸，胼胝体是最大的信息桥；切断后两岸仍运转，但难以直接交换消息。"},
+    pitfall: "裂脑不等于出现两个完整人格，实验效应高度依赖刺激位置、任务和残余连接。",
+    relations: ["frontal", "parietal"],
+    quiz: {q: "裂脑研究中，把图片短暂呈现在左视野主要先到达哪个半球？", options: ["右半球", "左半球", "两半球同时", "小脑"], answer: 0, why: "视野信息交叉投射；左视野主要进入右半球，胼胝体切断后难以传给左半球语言区。"}
+  },
+  {
+    id: "cerebellum", name: "小脑", latin: "Cerebellum", system: "support", view: "lateral", color: "#A8C971",
+    summary: "比较预期与实际结果，校正动作误差，也参与时间预测和部分认知自动化。",
+    functions: ["运动协调与误差校正", "平衡和姿势", "时间预测与学习"],
+    experiment: {name: "棱镜适应实验", question: "视觉和动作不一致时，大脑怎样逐步校正？", method: "戴偏转视野的棱镜眼镜反复指向目标，之后摘下眼镜再测试。", signal: "误差逐渐减小；摘镜后出现反方向后效，说明内部模型被更新。"},
+    memory: {title: "小脑 = 动作校准器", text: "它像相机防抖：每次比较“本来想怎样”和“实际怎样”，再把下一次动作调准。"},
+    pitfall: "小脑不只服务运动；语言、时间与预测任务中也可见其作用，但具体机制仍在研究。",
+    relations: ["brainstem", "frontal"],
+    quiz: {q: "棱镜适应中，摘下棱镜后出现反方向偏差，最能说明什么？", options: ["内部运动模型被更新", "视觉永久受损", "语言记忆增强", "恐惧消退"], answer: 0, why: "后效说明系统并非临时补偿，而是小脑相关的感觉—运动映射发生了学习。"}
+  },
+  {
+    id: "brainstem", name: "脑干", latin: "Brainstem", system: "support", view: "lateral", color: "#67A9A0",
+    summary: "连接大脑与脊髓，维持呼吸、心率、睡眠—觉醒和多种基本反射。",
+    functions: ["呼吸与心血管调节", "睡眠和觉醒", "基本反射与传导"],
+    experiment: {name: "惊跳反射范式", question: "快速防御反应如何受情绪和注意调节？", method: "播放突然的强声，记录眨眼肌电，并比较不同情境。", signal: "惊跳幅度会被威胁情境增强，显示基础反射可受高层状态调节。"},
+    memory: {title: "脑干 = 生命主干道", text: "它是大脑通往身体的主干道，也维持最基础的自动运行：呼吸、心跳、清醒。"},
+    pitfall: "脑干包含中脑、脑桥和延髓，不是功能单一的一根“电缆”。",
+    relations: ["cerebellum", "thalamus"],
+    quiz: {q: "呼吸节律、心率调节和基本觉醒最依赖哪个区域？", options: ["脑干", "顶叶", "海马", "胼胝体"], answer: 0, why: "脑干包含维持生命功能和觉醒水平的重要核团。"}
+  }
+];
+
+window.BRAIN_SYSTEMS = {
+  all: {name: "全部", color: "#163846"},
+  cortex: {name: "皮层", color: "#F3A46B"},
+  deep: {name: "深部", color: "#8FAEEB"},
+  support: {name: "后脑", color: "#8DB765"}
+};
+
+</script>
+  <script>
+window.DEEP_DIVE_TOPICS = [
+  {
+    id: "interoception-self-consciousness",
+    number: "01",
+    title: "内感受、身体自我与意识",
+    subtitle: "从身体传入信号，到“这是我的身体、这是我的感受”",
+    updated: "2026-07",
+    level: "进阶",
+    accent: "#D8735A",
+    thesis: "内感受不是岛叶单独读取身体的过程，而是身体、脑干、丘脑、岛叶、扣带与全脑网络共同进行的预测、校正和调节。它为情绪与身体自我提供基础，但不能被简单等同于意识本身。",
+    objectives: [
+      "说清两条主要上行通路",
+      "区分后岛叶与前岛叶",
+      "读懂 HEP、心跳任务和身体错觉",
+      "判断相关、因果与临床标志物证据"
+    ],
+    pathway: [
+      {
+        id: "sensors", order: "A", name: "身体传感器", short: "压力、化学与内脏状态",
+        examples: "动脉压力感受器、化学感受器、心肺和胃肠机械感受器、痛温与免疫信号",
+        role: "把血压、氧合、心跳、胃肠牵张、温度和组织状态转换为神经或体液信号。",
+        caution: "内感受远不止心跳；心肺、胃肠、呼吸、疼痛、温度和免疫状态可能具有不同编码机制。",
+        color: "#D8735A"
+      },
+      {
+        id: "brainstem", order: "B", name: "脑干整合", short: "NTS 与臂旁核",
+        examples: "迷走/舌咽传入 → 孤束核（NTS）；脊髓薄层 I → 脊髓丘脑通路；臂旁核（PBN）参与中继",
+        role: "在意识出现之前完成大量稳态反射，并把身体状态送往丘脑、下丘脑、杏仁核和皮层。",
+        caution: "脑干不是被动电缆；它已经在选择、整合并调节身体信号。",
+        color: "#4F8D86"
+      },
+      {
+        id: "thalamus", order: "C", name: "丘脑与皮层入口", short: "感觉中继与状态调节",
+        examples: "腹后内侧丘脑等核团；与岛叶、扣带、躯体感觉区相连",
+        role: "将不同来源的身体信号按状态和注意需要送入皮层，同时参与唤醒和皮层节律协调。",
+        caution: "不同内感受模态并不都沿完全相同的丘脑路线。",
+        color: "#6CA9C5"
+      },
+      {
+        id: "posterior-insula", order: "D", name: "后岛叶", short: "较具体的身体状态地图",
+        examples: "以颗粒型皮层为主，接收较直接的丘脑—皮层输入；与痛温、心肺和内脏感觉相关",
+        role: "更接近“身体现在发生了什么”的感觉表征，并计算来自身体的信号与预测之间的偏差。",
+        caution: "把后岛叶叫作唯一的“初级内感受皮层”仍是简化；躯体感觉区、扣带和其他区域也参与。",
+        color: "#7D9BCB"
+      },
+      {
+        id: "anterior-insula", order: "E", name: "前岛叶—dACC", short: "显著性、主观感受与行动",
+        examples: "前岛叶（AI）、背侧前扣带（dACC）、杏仁核、眶额和前额叶",
+        role: "把身体状态与情境、目标、情绪和信心结合，形成可报告感受，并通过自主神经和行为更新身体。",
+        caution: "前岛叶活动不等于“意识位置”；它也参与注意切换、认知控制、疼痛与社会情绪。",
+        color: "#B276B2"
+      },
+      {
+        id: "whole-system", order: "F", name: "全身—全脑闭环", short: "预测、误差与稳态行动",
+        examples: "显著性网络、默认网络、下丘脑、导水管周围灰质、脑干自主神经核团",
+        role: "大脑不仅读取身体，还提前预测能量需要，并用行为、自主神经和内分泌反应改变身体。",
+        caution: "最新证据更支持分布式系统，而不是一条从身体到前岛叶的单向阶梯。",
+        color: "#D29A45"
+      }
+    ],
+    models: [
+      {
+        id: "ascending", name: "上行表征模型", tag: "基础框架",
+        claim: "身体信号逐级从脑干、丘脑、后岛叶到前岛叶，最终成为可报告的主观感受。",
+        useful: "适合建立解剖主干，理解为什么后岛叶更接近感觉输入、前岛叶更接近整合。",
+        limit: "容易把系统误记成单向流水线，也难解释预测、注意和情境如何改变同一身体信号。"
+      },
+      {
+        id: "predictive", name: "预测性内感受", tag: "计算框架",
+        claim: "高层产生身体状态预测，低层传回预测误差；注意与精度加权决定哪类信号更能影响体验。",
+        useful: "可连接情绪、焦虑、身体所有权、安慰剂效应和主动推断。",
+        limit: "许多实验同时符合注意或一般显著性解释，预测误差与精度常缺乏直接、独立测量。"
+      },
+      {
+        id: "allostatic", name: "异稳态—内感受系统", tag: "前沿更新",
+        claim: "内感受服务于异稳态：大脑提前调配身体资源。显著性网络与默认网络在多个内脏运动枢纽重叠。",
+        useful: "把岛叶放回全脑—全身系统，解释身体调节、自我相关加工和脑网络枢纽为何相连。",
+        limit: "功能连接揭示协同而非信息流方向；网络模型仍需因果干预和跨模态验证。"
+      }
+    ],
+    experiments: [
+      {
+        id: "heartbeat-discrimination", name: "心跳辨别任务", year: "方法基础", badge: "行为",
+        question: "被试能否判断外部声音与自己的心跳同步？",
+        design: "同步记录 ECG；在不同延迟下播放声音，要求判断同步/不同步，并同时报告信心。",
+        readout: "正确率或心理测量曲线衡量表现；准确率与信心的对应关系衡量元认知觉察。",
+        inference: "比单纯心跳计数更少依赖心率知识，但结果仍受心跳感觉位置、延迟假设和任务难度影响。",
+        warning: "不要把某一个心跳任务分数当作统一的“内感受能力”。"
+      },
+      {
+        id: "cardiac-rhi", name: "心脏同步身体所有权错觉", year: "Suzuki et al., 2013", badge: "身体自我",
+        question: "与心跳同步的视觉反馈能否让虚拟手更像“我的手”？",
+        design: "虚拟手表面随被试实时心跳同步或异步闪烁，再测量所有权评分与位置漂移。",
+        readout: "同步条件增强部分身体所有权与自我定位体验，说明外感受与内感受可以共同约束身体模型。",
+        inference: "身体所有权不是纯视觉—触觉整合；内部节律也能参与“这是我”的归属判断。",
+        warning: "后续研究并非都支持心脏内感受与橡胶手错觉强度稳定相关。"
+      },
+      {
+        id: "intracranial-hep", name: "颅内 EEG × 全身错觉", year: "Park et al., 2018", badge: "直接记录",
+        question: "心跳诱发反应来自哪里，它是否随身体自我改变？",
+        design: "在癫痫患者岛叶、岛盖等电极记录 HEP；部分患者完成虚拟全身错觉任务。",
+        readout: "心跳后相位集中主要见于岛叶/岛盖，也见于杏仁核和额颞区；岛叶 HEP 随自我认同操纵变化。",
+        inference: "为脑—心信号与身体自我提供较直接的电生理证据，并提示 HEP 可能源于相位重置。",
+        warning: "颅内样本小且来自临床人群，电极覆盖由治疗需要决定。"
+      },
+      {
+        id: "doc-hep", name: "HEP × 意识障碍", year: "Candia-Rivera et al., 2021", badge: "临床",
+        question: "无行为反应患者是否仍保留可检测的意识相关脑—心交互？",
+        design: "分析昏迷后患者静息 EEG 中与每次心跳时间锁定的脑反应，并与临床意识诊断比较。",
+        readout: "HEP 的空间和时间特征捕捉到部分残余意识信息，为床旁评估提供候选标志物。",
+        inference: "身体信号相关脑活动可能补充纯外部刺激范式，尤其适合无法运动或交流的患者。",
+        warning: "HEP 不是独立的“意识探测器”，不能替代重复临床评估与其他 EEG/fMRI 指标。"
+      },
+      {
+        id: "lifu", name: "聚焦超声扰动岛叶", year: "Strohman et al., 2024", badge: "因果干预",
+        question: "改变前/后岛叶或 dACC 活动会不会改变 HEP？",
+        design: "16 名健康参与者分别接受前岛叶、后岛叶、dACC 或假刺激的低强度聚焦超声，同时记录 EEG–ECG。",
+        readout: "不同靶点刺激均可降低部分 HEP 成分，且效应随靶点和声压不同。",
+        inference: "从相关成像迈向可操纵深部皮层的因果检验。",
+        warning: "这是小样本概念验证；靶向精度、声场传播和重复性仍需更大研究确认。"
+      }
+    ],
+    papers: [
+      {
+        year: "2004", authors: "Critchley et al.", title: "Neural systems supporting interoceptive awareness",
+        journal: "Nature Neuroscience", kind: "经典成像", strength: "奠基",
+        finding: "心跳觉察表现与右前岛叶活动相关；岛叶灰质体积也与主观内感受表现相关。",
+        meaning: "支持前岛叶与可报告身体感受的联系，但属于相关证据。",
+        url: "https://pubmed.ncbi.nlm.nih.gov/14730305/"
+      },
+      {
+        year: "2009", authors: "Khalsa et al.", title: "The pathways of interoceptive awareness",
+        journal: "Nature Neuroscience", kind: "病损与药理", strength: "关键反例",
+        finding: "双侧岛叶和 ACC 严重损伤患者仍能在异丙肾上腺素诱发强烈心跳时报告感觉。",
+        meaning: "岛叶重要但并非唯一通路；强身体信号可经躯体感觉或其他路径进入觉察。",
+        url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC2787640/"
+      },
+      {
+        year: "2013", authors: "Suzuki et al.", title: "Multisensory integration across exteroceptive and interoceptive domains modulates self-experience",
+        journal: "Neuropsychologia", kind: "身体错觉", strength: "经典",
+        finding: "让虚拟手的视觉变化与心跳同步，可调节身体所有权和自我体验。",
+        meaning: "内部节律可以和视觉信号一起塑造身体模型。",
+        url: "https://pubmed.ncbi.nlm.nih.gov/23993906/"
+      },
+      {
+        year: "2018", authors: "Park et al.", title: "Neural responses to heartbeats and their role in bodily self-consciousness",
+        journal: "Cerebral Cortex", kind: "颅内 EEG", strength: "直接记录",
+        finding: "岛叶/岛盖出现心跳锁定相位重置；岛叶 HEP 随全身错觉中的自我认同变化。",
+        meaning: "把脑—心电生理信号与身体自我联系起来。",
+        url: "https://academic.oup.com/cercor/article/28/7/2351/3862200"
+      },
+      {
+        year: "2021", authors: "Candia-Rivera et al.", title: "Neural responses to heartbeats detect residual signs of consciousness",
+        journal: "Journal of Neuroscience", kind: "意识障碍", strength: "临床前沿",
+        finding: "静息 HEP 特征能提供部分昏迷后患者残余意识的信息。",
+        meaning: "提示脑—心交互可能成为意识评估的补充维度。",
+        url: "https://www.jneurosci.org/content/41/24/5251"
+      },
+      {
+        year: "2024", authors: "Strohman et al.", title: "Low-intensity focused ultrasound to the insula differentially modulates the HEP",
+        journal: "Clinical Neurophysiology", kind: "聚焦超声", strength: "概念验证",
+        finding: "针对前岛叶、后岛叶与 dACC 的低强度聚焦超声对 HEP 产生靶点相关影响。",
+        meaning: "提供无创深部靶向的因果研究路线，但样本仅 16 人。",
+        url: "https://pubmed.ncbi.nlm.nih.gov/39366795/"
+      },
+      {
+        year: "2025", authors: "Zhang et al.", title: "Cortical and subcortical mapping of the human allostatic–interoceptive system using 7 Tesla fMRI",
+        journal: "Nature Neuroscience", kind: "7T 精细成像", strength: "前沿地图",
+        finding: "90 人 7T fMRI 复现并扩展分布式异稳态—内感受系统，并覆盖更多脑干核团。",
+        meaning: "把内感受从“岛叶中心论”推进为全脑网络与脑干共同系统。",
+        url: "https://www.nature.com/articles/s41593-025-02087-x"
+      },
+      {
+        year: "2025", authors: "Minenko et al.", title: "Comparison of three behavioral cardioception tasks and HEPs",
+        journal: "Scientific Reports", kind: "测量比较", strength: "方法警告",
+        finding: "48 名参与者的心跳敲击、辨别、计数和 HEP 并未形成一致的共同指标。",
+        meaning: "“内感受”是多维构念；任务不同，测到的过程可能不同。",
+        url: "https://www.nature.com/articles/s41598-025-08779-5"
+      }
+    ],
+    frontiers: [
+      {
+        status: "正在重画地图", title: "从岛叶中心转向全脑异稳态系统", evidence: "2025 年 7T fMRI 在 90 人中细化扣带和脑干拓扑，并发现与动物示踪连接高度吻合的分布式系统。",
+        question: "这些静息连接怎样在饥饿、缺氧、疼痛或濒死等强状态中改变信息流？", tone: "teal"
+      },
+      {
+        status: "测量危机", title: "心跳任务并不测同一个东西", evidence: "计数、辨别、敲击、主观问卷与 HEP 的相关常不稳定；先验心率知识和时间估计会污染结果。",
+        question: "能否建立跨心脏、呼吸和胃肠模态，且具有心理测量可靠性的任务组合？", tone: "amber"
+      },
+      {
+        status: "因果方法起步", title: "开始直接扰动深部岛叶", evidence: "低强度聚焦超声可以非侵入性靶向前/后岛叶与 dACC，并对 HEP 产生初步可测影响。",
+        question: "靶点效应能否重复，并能否选择性改变身体感受而非一般注意或疼痛？", tone: "violet"
+      },
+      {
+        status: "谨慎的临床希望", title: "脑—心交互能否辅助检测残余意识", evidence: "HEP 在意识障碍患者中包含诊断相关信息，但受到心脏状态、伪迹、损伤位置和分析方法影响。",
+        question: "它能否在多中心数据中增加诊断和预后价值，而不只是在小样本中分类成功？", tone: "red"
+      }
+    ],
+    quiz: [
+      {
+        q: "哪一结构更接近较具体的身体状态感觉表征？",
+        options: ["后岛叶", "前额叶背外侧部", "胼胝体", "初级视觉皮层"], answer: 0,
+        why: "后岛叶接收较直接的丘脑—皮层内感受输入；前岛叶更强调跨模态、情境与可报告感受的整合。"
+      },
+      {
+        q: "Khalsa 等（2009）的双侧岛叶/ACC 病损病例最直接挑战了什么说法？",
+        options: ["岛叶是内感受觉察的唯一路径", "丘脑参与感觉中继", "心跳能影响情绪", "脑干调节自主神经"], answer: 0,
+        why: "患者仍能感到药理诱发的强烈心跳，说明替代通路可以支持部分觉察。"
+      },
+      {
+        q: "心跳诱发电位 HEP 是怎样获得的？",
+        options: ["把 EEG 按 ECG 的心跳事件对齐并平均", "只计算平均心率", "对岛叶进行结构 MRI", "记录被试按键次数"], answer: 0,
+        why: "HEP 是与心跳事件（常用 ECG R 峰）时间锁定的脑电反应。"
+      },
+      {
+        q: "为什么不能只用心跳计数判断一个人的总体内感受能力？",
+        options: ["它会受时间估计和心率知识影响", "它只能在动物中完成", "它必须使用 7T MRI", "它只测视觉注意"], answer: 0,
+        why: "计数成绩可能来自先验知识或估时，且与辨别、敲击、HEP 等指标的关系并不稳定。"
+      },
+      {
+        q: "2025 年 7T fMRI 研究带来的主要更新是什么？",
+        options: ["内感受依赖分布式全脑—脑干系统", "内感受只位于右前岛叶", "HEP 已成为临床金标准", "心跳计数完全无效"], answer: 0,
+        why: "研究复现并细化了覆盖皮层、皮层下和脑干的异稳态—内感受系统。"
+      },
+      {
+        q: "关于 HEP 与意识，当前最严谨的结论是哪一个？",
+        options: ["HEP 可补充残余意识评估，但不能单独确诊", "出现 HEP 就证明有完整意识", "没有 HEP 就证明没有意识", "HEP 与意识研究无关"], answer: 0,
+        why: "现有临床结果有希望，但 HEP 仍受多种生理与方法因素影响，需要与临床和其他神经指标联合。"
+      }
+    ]
+  }
+];
+
+</script>
+  <script>
+(function () {
+  "use strict";
+
+  const regions = window.BRAIN_REGIONS;
+  const systems = window.BRAIN_SYSTEMS;
+  const topics = window.DEEP_DIVE_TOPICS || [];
+  const byId = Object.fromEntries(regions.map((r) => [r.id, r]));
+  const storageKey = "brain-atlas-lab-v1";
+  function readSavedState() {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || "{}");
+    } catch (_) {
+      return {};
+    }
+  }
+  const saved = readSavedState();
+  const state = {
+    selected: saved.lastRegion && byId[saved.lastRegion] ? saved.lastRegion : "frontal",
+    view: saved.view || "lateral",
+    filter: "all",
+    learned: new Set(saved.learned || []),
+    notes: saved.notes || {},
+    labels: saved.labels !== false,
+    mode: "explore",
+    cardOrder: regions.map((r) => r.id),
+    cardIndex: 0,
+    quiz: null,
+    best: saved.best || 0,
+    topicSection: "pathway",
+    topicNode: "sensors",
+    topicQuiz: null
+  };
+
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+  function persist() {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({
+        lastRegion: state.selected,
+        view: state.view,
+        learned: [...state.learned],
+        notes: state.notes,
+        labels: state.labels,
+        best: state.best
+      }));
+    } catch (_) {
+      // The learning interface remains usable when browser storage is disabled.
+    }
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    $$(".mode-tab").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+    $$(".mode-panel").forEach((p) => p.classList.remove("active"));
+    $("#" + mode + "Mode").classList.add("active");
+    if (mode === "cards") renderCard();
+    if (mode === "topic") renderTopic();
+  }
+
+  function renderFilters() {
+    $("#systemFilters").innerHTML = Object.entries(systems).map(([id, s]) =>
+      `<button class="filter-chip ${id === state.filter ? "active" : ""}" data-filter="${id}">${s.name}</button>`
+    ).join("");
+    $$(".filter-chip").forEach((button) => button.addEventListener("click", () => {
+      state.filter = button.dataset.filter;
+      renderFilters();
+      renderRegionList();
+    }));
+  }
+
+  function matchRegion(region, term) {
+    if (!term) return true;
+    const haystack = [region.name, region.latin, region.summary, ...region.functions, region.experiment.name, region.experiment.question].join(" ").toLowerCase();
+    return haystack.includes(term.toLowerCase());
+  }
+
+  function renderRegionList() {
+    const term = $("#searchInput").value.trim();
+    const visible = regions.filter((r) => (state.filter === "all" || r.system === state.filter) && matchRegion(r, term));
+    $("#regionCount").textContent = visible.length;
+    if (!visible.length) {
+      $("#regionList").innerHTML = `<div class="empty-state"><strong>没有匹配结果</strong><span>试试“记忆”“恐惧”或“Stroop”</span></div>`;
+      return;
+    }
+    const groups = ["cortex", "deep", "support"];
+    $("#regionList").innerHTML = groups.map((system) => {
+      const items = visible.filter((r) => r.system === system);
+      if (!items.length) return "";
+      return `<div class="region-group"><div class="group-label">${systems[system].name}</div>${items.map((r) => `
+        <button class="region-item ${r.id === state.selected ? "active" : ""}" data-region-id="${r.id}">
+          <i style="--region-color:${r.color}"></i>
+          <span><strong>${r.name}</strong><small>${r.latin}</small></span>
+          ${state.learned.has(r.id) ? '<b class="learned-check">✓</b>' : '<b class="item-arrow">›</b>'}
+        </button>`).join("")}</div>`;
+    }).join("");
+    $$(".region-item").forEach((button) => button.addEventListener("click", () => selectRegion(button.dataset.regionId)));
+  }
+
+  function renderDetail() {
+    const r = byId[state.selected];
+    const isLearned = state.learned.has(r.id);
+    $("#detailPanel").innerHTML = `
+      <div class="detail-hero" style="--accent:${r.color}">
+        <div class="detail-kicker"><span>${systems[r.system].name}结构</span><button class="learn-button ${isLearned ? "done" : ""}" id="learnButton">${isLearned ? "✓ 已掌握" : "标记掌握"}</button></div>
+        <div class="region-title-row"><span class="region-index">${String(regions.indexOf(r) + 1).padStart(2, "0")}</span><div><h1>${r.name}</h1><p>${r.latin}</p></div></div>
+        <p class="region-summary">${r.summary}</p>
+      </div>
+      <div class="detail-scroll">
+        <section class="detail-section"><h3><span class="section-icon">◇</span> 核心功能</h3><ul class="function-list">${r.functions.map((f) => `<li>${f}</li>`).join("")}</ul></section>
+        <section class="detail-section experiment-card"><div class="section-heading"><h3><span class="section-icon">⌁</span> 典型实验</h3><span class="type-tag">实验范式</span></div><h4>${r.experiment.name}</h4><dl><div><dt>研究问题</dt><dd>${r.experiment.question}</dd></div><div><dt>基本做法</dt><dd>${r.experiment.method}</dd></div><div><dt>怎么看结果</dt><dd>${r.experiment.signal}</dd></div></dl></section>
+        <section class="detail-section memory-card"><div class="memory-head"><span>记忆技巧</span><b>易记版</b></div><h4>${r.memory.title}</h4><p>${r.memory.text}</p></section>
+        <details class="pitfall"><summary>别把它记得太简单 <span>＋</span></summary><p>${r.pitfall}</p></details>
+        ${r.id === "insula" ? '<button class="topic-entry" id="topicEntry"><span><b>进阶专题 01</b>内感受、身体自我与意识</span><i>进入专题 →</i></button>' : ""}
+        <section class="detail-section notes-section"><h3><span class="section-icon">✎</span> 我的联想</h3><textarea id="regionNote" placeholder="写下你自己的例子、联想或疑问…">${escapeHtml(state.notes[r.id] || "")}</textarea><small>自动保存在这台设备上</small></section>
+      </div>`;
+    $("#learnButton").addEventListener("click", toggleLearned);
+    $("#regionNote").addEventListener("input", (e) => { state.notes[r.id] = e.target.value; persist(); });
+    const topicEntry = $("#topicEntry");
+    if (topicEntry) topicEntry.addEventListener("click", () => setMode("topic"));
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  }
+
+  function updateMap() {
+    $$(".brain-view").forEach((g) => g.classList.toggle("active", g.dataset.brainView === state.view));
+    $$(".view-tab").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
+    $$(".brain-region").forEach((shape) => {
+      const r = byId[shape.dataset.region];
+      if (r) shape.style.setProperty("--fill", r.color);
+      shape.classList.toggle("selected", shape.dataset.region === state.selected);
+      shape.setAttribute("tabindex", "0");
+      shape.setAttribute("role", "button");
+      shape.setAttribute("aria-label", r ? `${r.name}：${r.summary}` : "脑区");
+    });
+    $("#brainStage").classList.toggle("hide-labels", !state.labels);
+    $("#labelToggle").setAttribute("aria-pressed", String(state.labels));
+    $("#labelToggle").classList.toggle("active", state.labels);
+  }
+
+  function selectRegion(id) {
+    const r = byId[id];
+    if (!r) return;
+    state.selected = id;
+    state.view = r.view;
+    persist();
+    renderRegionList();
+    renderDetail();
+    updateMap();
+  }
+
+  function toggleLearned() {
+    state.learned.has(state.selected) ? state.learned.delete(state.selected) : state.learned.add(state.selected);
+    persist();
+    renderRegionList();
+    renderDetail();
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const percent = Math.round(state.learned.size / regions.length * 100);
+    $("#progressPercent").textContent = percent + "%";
+    $("#progressRing").style.setProperty("--progress", percent * 3.6 + "deg");
+  }
+
+  function renderCard() {
+    const r = byId[state.cardOrder[state.cardIndex]];
+    $("#flashcard").classList.remove("flipped");
+    $("#cardCounter").textContent = `${state.cardIndex + 1} / ${state.cardOrder.length}`;
+    $("#cardFront").innerHTML = `<span class="card-system">${systems[r.system].name} · ${r.latin}</span><div class="card-region-dot" style="--card-color:${r.color}"></div><h2>${r.name}</h2><p>它的核心功能、典型实验和最佳记忆线索是什么？</p><span class="flip-prompt">点击翻面 <b>↻</b></span>`;
+    $("#cardBack").innerHTML = `<span class="card-system">答案</span><h3>${r.summary}</h3><div class="card-answer-grid"><div><b>典型实验</b><span>${r.experiment.name}</span></div><div><b>记忆锚点</b><span>${r.memory.title}</span></div></div><p>${r.memory.text}</p><button class="mini-learn" data-card-learn="${r.id}">${state.learned.has(r.id) ? "✓ 已掌握" : "标记为掌握"}</button>`;
+    $("[data-card-learn]").addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = e.currentTarget.dataset.cardLearn;
+      state.learned.has(id) ? state.learned.delete(id) : state.learned.add(id);
+      persist(); updateProgress(); renderCard(); renderRegionList();
+    });
+  }
+
+  function moveCard(delta) {
+    state.cardIndex = (state.cardIndex + delta + state.cardOrder.length) % state.cardOrder.length;
+    renderCard();
+  }
+
+  const topicSections = {
+    pathway: {name: "通路与模型", icon: "⌁"},
+    experiments: {name: "典型实验", icon: "⚗"},
+    papers: {name: "关键文献", icon: "▤"},
+    frontiers: {name: "前沿问题", icon: "◌"},
+    topicQuiz: {name: "专题测验", icon: "✓"}
+  };
+
+  function renderTopic() {
+    const topic = topics[0];
+    if (!topic) return;
+    $("#topicSidebar").innerHTML = `
+      <div class="topic-side-head"><span class="topic-number">专题 ${topic.number}</span><h2>${topic.title}</h2><p>${topic.subtitle}</p></div>
+      <nav class="topic-nav" aria-label="专题章节">${Object.entries(topicSections).map(([id, item]) => `<button class="${state.topicSection === id ? "active" : ""}" data-topic-section="${id}"><i>${item.icon}</i><span>${item.name}</span><b>›</b></button>`).join("")}</nav>
+      <div class="topic-side-foot"><span>${topic.level}</span><span>更新 ${topic.updated}</span><p>本专题内容可离线阅读；文献原文链接需要联网。</p></div>`;
+
+    $$("[data-topic-section]").forEach((button) => button.addEventListener("click", () => {
+      state.topicSection = button.dataset.topicSection;
+      renderTopic();
+    }));
+
+    const main = $("#topicMain");
+    const hero = topicHero(topic);
+    if (state.topicSection === "pathway") main.innerHTML = hero + pathwayView(topic);
+    if (state.topicSection === "experiments") main.innerHTML = hero + experimentsView(topic);
+    if (state.topicSection === "papers") main.innerHTML = hero + papersView(topic);
+    if (state.topicSection === "frontiers") main.innerHTML = hero + frontiersView(topic);
+    if (state.topicSection === "topicQuiz") main.innerHTML = hero + topicQuizView(topic);
+    bindTopicContent(topic);
+  }
+
+  function topicHero(topic) {
+    return `<header class="topic-hero" style="--topic-accent:${topic.accent}">
+      <div class="topic-hero-meta"><span>DEEP DIVE · ${topic.number}</span><span>${topic.level}</span></div>
+      <h1>${topic.title}</h1><p>${topic.thesis}</p>
+      <div class="objective-row">${topic.objectives.map((item) => `<span>${item}</span>`).join("")}</div>
+    </header>`;
+  }
+
+  function pathwayView(topic) {
+    const selected = topic.pathway.find((node) => node.id === state.topicNode) || topic.pathway[0];
+    return `<div class="topic-body">
+      <div class="topic-section-heading"><div><span class="eyebrow">PATHWAY</span><h2>信号如何变成“我的感受”</h2></div><p>点击每一站查看它在闭环中的角色。先记主干，再理解模型争议。</p></div>
+      <div class="pathway-layout">
+        <div class="pathway-map">${topic.pathway.map((node, index) => `${index ? '<span class="route-arrow">→</span>' : ""}<button class="route-node ${node.id === selected.id ? "active" : ""}" data-topic-node="${node.id}" style="--node-color:${node.color}"><b>${node.order}</b><span>${node.name}</span><small>${node.short}</small></button>`).join("")}</div>
+        <article class="route-detail" style="--node-color:${selected.color}"><div class="route-detail-top"><span>${selected.order}</span><div><small>当前节点</small><h3>${selected.name}</h3></div></div><p class="route-examples">${selected.examples}</p><div class="route-facts"><div><b>核心作用</b><p>${selected.role}</p></div><div><b>不能过度简化</b><p>${selected.caution}</p></div></div></article>
+      </div>
+      <div class="topic-section-heading model-heading"><div><span class="eyebrow">THREE MODELS</span><h2>同一系统的三种理解方式</h2></div></div>
+      <div class="model-grid">${topic.models.map((model, index) => `<article class="model-card"><div class="model-title"><span>0${index + 1}</span><div><small>${model.tag}</small><h3>${model.name}</h3></div></div><p class="model-claim">${model.claim}</p><dl><div><dt>最有用之处</dt><dd>${model.useful}</dd></div><div><dt>当前局限</dt><dd>${model.limit}</dd></div></dl></article>`).join("")}</div>
+      <div class="study-anchor"><b>一句话记忆</b><span>后岛叶更像“身体状态图”，前岛叶—dACC 更像“结合情境后决定这意味着什么、该做什么”，但两者都嵌在全脑—全身闭环中。</span></div>
+    </div>`;
+  }
+
+  function experimentsView(topic) {
+    return `<div class="topic-body"><div class="topic-section-heading"><div><span class="eyebrow">EXPERIMENTS</span><h2>五个实验，五种证据强度</h2></div><p>重点区分行为相关、病损反例、直接记录、临床标志物和因果扰动。</p></div>
+      <div class="experiment-stack">${topic.experiments.map((exp, index) => `<details class="deep-experiment" ${index === 0 ? "open" : ""}><summary><span class="experiment-no">${String(index + 1).padStart(2, "0")}</span><div><small>${exp.badge} · ${exp.year}</small><h3>${exp.name}</h3></div><i>＋</i></summary><div class="deep-experiment-body"><div class="experiment-question"><b>研究问题</b><p>${exp.question}</p></div><div class="experiment-method-grid"><div><b>设计</b><p>${exp.design}</p></div><div><b>指标与发现</b><p>${exp.readout}</p></div><div><b>允许的推断</b><p>${exp.inference}</p></div><div class="warning"><b>方法警告</b><p>${exp.warning}</p></div></div></div></details>`).join("")}</div>
+      <div class="evidence-ladder"><span>相关成像</span><i>→</i><span>病损反例</span><i>→</i><span>颅内记录</span><i>→</i><span>因果干预</span><small>证据不是简单“越右越真”：不同方法回答不同问题，结论必须受样本与任务限制。</small></div>
+    </div>`;
+  }
+
+  function papersView(topic) {
+    return `<div class="topic-body"><div class="topic-section-heading"><div><span class="eyebrow">LITERATURE</span><h2>从奠基论文到 2025 前沿</h2></div><p>卡片中的“发现”和“意义”已压缩为学习版；点击标题可在联网时打开原文页面。</p></div>
+      <div class="paper-timeline">${topic.papers.map((paper) => `<article class="paper-card"><div class="paper-year">${paper.year}</div><div class="paper-content"><div class="paper-tags"><span>${paper.kind}</span><b>${paper.strength}</b></div><a href="${paper.url}" target="_blank" rel="noopener noreferrer">${paper.title}<i>↗</i></a><small>${paper.authors} · ${paper.journal}</small><div class="paper-evidence"><p><b>发现</b>${paper.finding}</p><p><b>为什么重要</b>${paper.meaning}</p></div></div></article>`).join("")}</div>
+      <div class="citation-note"><b>阅读顺序建议</b><p>先读 Critchley 2004 建立经典观点，再用 Khalsa 2009 看到反例；之后读 Park 2018 理解 HEP 与身体自我，最后用 Zhang 2025 和 Minenko 2025 更新网络观与测量观。</p></div>
+    </div>`;
+  }
+
+  function frontiersView(topic) {
+    return `<div class="topic-body"><div class="topic-section-heading"><div><span class="eyebrow">FRONTIERS</span><h2>现在真正值得追的问题</h2></div><p>前沿不是“已经证实的新知识”，而是证据正在聚集、仍可被推翻的问题。</p></div>
+      <div class="frontier-grid">${topic.frontiers.map((item, index) => `<article class="frontier-card ${item.tone}"><div class="frontier-top"><span>${item.status}</span><b>0${index + 1}</b></div><h3>${item.title}</h3><p>${item.evidence}</p><div><small>开放问题</small><strong>${item.question}</strong></div></article>`).join("")}</div>
+      <div class="research-bridge"><div><span class="eyebrow">与你现有方向的连接</span><h3>濒死体验、身体所有权与 NeuroAI</h3></div><p>这个专题可以直接连接三个研究方向：用 HEP/自主神经指标研究意识状态；用身体错觉检验自我模型；用预测编码或主动推断建立可计算的脑—身模型。关键是避免把“岛叶激活”直接解释成意识或身体脱离的原因。</p></div>
+    </div>`;
+  }
+
+  function topicQuizView(topic) {
+    if (!state.topicQuiz) return `<div class="topic-body"><div class="topic-quiz-intro"><span class="eyebrow">RETRIEVAL PRACTICE</span><h2>完成专题后再做这 6 题</h2><p>题目重点不是背名词，而是判断哪种证据支持哪种结论。</p><button class="primary-button" id="startTopicQuiz">开始专题测验 →</button></div></div>`;
+    const quiz = state.topicQuiz;
+    if (quiz.done) {
+      const weak = quiz.answers.filter((a) => !a.correct).length;
+      return `<div class="topic-body"><div class="topic-quiz-result"><div class="score-orbit" style="--score:${quiz.score / topic.quiz.length * 360}deg"><strong>${quiz.score}</strong><span>/ ${topic.quiz.length}</span></div><span class="eyebrow">专题 01 完成</span><h2>${quiz.score === topic.quiz.length ? "你已经能用证据说话" : "主干已经形成，再补强推断边界"}</h2><p>${weak ? `有 ${weak} 题需要回看。建议重新阅读“实验”和“前沿问题”中的方法警告。` : "全部答对。你已经能区分通路、任务指标、因果证据与临床标志物。"}</p><button class="primary-button" id="restartTopicQuiz">重新测验 ↻</button></div></div>`;
+    }
+    const q = topic.quiz[quiz.index];
+    return `<div class="topic-body"><div class="topic-question"><div class="quiz-top"><span>专题题目 ${quiz.index + 1} / ${topic.quiz.length}</span><span>${quiz.score} 分</span></div><div class="quiz-progress"><i style="width:${quiz.index / topic.quiz.length * 100}%"></i></div><h2>${q.q}</h2><div class="answer-list">${q.options.map((option, i) => `<button class="answer-option" data-topic-answer="${i}"><b>${String.fromCharCode(65 + i)}</b><span>${option}</span></button>`).join("")}</div><div id="topicAnswerFeedback" class="answer-feedback hidden"></div></div></div>`;
+  }
+
+  function bindTopicContent(topic) {
+    $$("[data-topic-node]").forEach((button) => button.addEventListener("click", () => { state.topicNode = button.dataset.topicNode; renderTopic(); }));
+    const start = $("#startTopicQuiz");
+    if (start) start.addEventListener("click", () => { state.topicQuiz = {index: 0, score: 0, answers: [], done: false}; renderTopic(); });
+    const restart = $("#restartTopicQuiz");
+    if (restart) restart.addEventListener("click", () => { state.topicQuiz = {index: 0, score: 0, answers: [], done: false}; renderTopic(); });
+    $$("[data-topic-answer]").forEach((button) => button.addEventListener("click", () => answerTopicQuestion(topic, Number(button.dataset.topicAnswer))));
+  }
+
+  function answerTopicQuestion(topic, choice) {
+    const quiz = state.topicQuiz;
+    const q = topic.quiz[quiz.index];
+    const correct = choice === q.answer;
+    if (correct) quiz.score += 1;
+    quiz.answers.push({correct});
+    $$("[data-topic-answer]").forEach((button, index) => {
+      button.disabled = true;
+      if (index === q.answer) button.classList.add("correct");
+      if (index === choice && !correct) button.classList.add("wrong");
+    });
+    const feedback = $("#topicAnswerFeedback");
+    feedback.classList.remove("hidden");
+    feedback.innerHTML = `<div><strong>${correct ? "判断正确" : "注意推断边界"}</strong><p>${q.why}</p></div><button class="primary-button" id="nextTopicQuestion">${quiz.index === topic.quiz.length - 1 ? "查看结果" : "下一题"} →</button>`;
+    $("#nextTopicQuestion").addEventListener("click", () => {
+      quiz.index += 1;
+      if (quiz.index >= topic.quiz.length) quiz.done = true;
+      renderTopic();
+    });
+  }
+
+  function startQuiz() {
+    const questions = shuffle(regions.map((r) => ({...r.quiz, region: r.name}))).slice(0, 8).map((q) => {
+      const correct = q.options[q.answer];
+      const shuffled = shuffle([...q.options]);
+      return {...q, options: shuffled, answer: shuffled.indexOf(correct)};
+    });
+    state.quiz = {questions, index: 0, score: 0, answers: []};
+    $("#quizIntro").classList.add("hidden");
+    $("#quizResult").classList.add("hidden");
+    $("#quizGame").classList.remove("hidden");
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const quiz = state.quiz;
+    const q = quiz.questions[quiz.index];
+    const progress = quiz.index / quiz.questions.length * 100;
+    $("#quizGame").innerHTML = `<div class="quiz-top"><span>问题 ${quiz.index + 1} / ${quiz.questions.length}</span><span>当前 ${quiz.score} 分</span></div><div class="quiz-progress"><i style="width:${progress}%"></i></div><span class="quiz-category">脑区与实验</span><h2>${q.q}</h2><div class="answer-list">${q.options.map((option, i) => `<button class="answer-option" data-answer="${i}"><b>${String.fromCharCode(65 + i)}</b><span>${option}</span></button>`).join("")}</div><div id="answerFeedback" class="answer-feedback hidden"></div>`;
+    $$(".answer-option").forEach((button) => button.addEventListener("click", () => answerQuestion(Number(button.dataset.answer))));
+  }
+
+  function answerQuestion(choice) {
+    const quiz = state.quiz;
+    const q = quiz.questions[quiz.index];
+    const correct = choice === q.answer;
+    if (correct) quiz.score += 1;
+    quiz.answers.push({region: q.region, correct});
+    $$(".answer-option").forEach((button, i) => {
+      button.disabled = true;
+      if (i === q.answer) button.classList.add("correct");
+      if (i === choice && !correct) button.classList.add("wrong");
+    });
+    const feedback = $("#answerFeedback");
+    feedback.classList.remove("hidden");
+    feedback.innerHTML = `<div><strong>${correct ? "答对了" : "再连一次"}</strong><p>${q.why}</p></div><button class="primary-button" id="nextQuestion">${quiz.index === quiz.questions.length - 1 ? "查看结果" : "下一题"} →</button>`;
+    $("#nextQuestion").addEventListener("click", () => {
+      quiz.index += 1;
+      quiz.index < quiz.questions.length ? renderQuestion() : showQuizResult();
+    });
+  }
+
+  function showQuizResult() {
+    const quiz = state.quiz;
+    const percent = Math.round(quiz.score / quiz.questions.length * 100);
+    state.best = Math.max(state.best, quiz.score);
+    persist();
+    $("#quizGame").classList.add("hidden");
+    const result = $("#quizResult");
+    result.classList.remove("hidden");
+    const missed = quiz.answers.filter((a) => !a.correct).map((a) => a.region);
+    result.innerHTML = `<div class="score-orbit" style="--score:${percent * 3.6}deg"><strong>${quiz.score}</strong><span>/ ${quiz.questions.length}</span></div><span class="eyebrow">测验完成</span><h1>${percent >= 88 ? "脑区地图已经很清晰" : percent >= 63 ? "主干已经搭起来了" : "先建立几个牢固锚点"}</h1><p>${missed.length ? `建议回看：${[...new Set(missed)].join("、")}。` : "全部答对，可以开始加入更细的功能分区。"} 历史最佳 ${state.best} / 8。</p><div class="result-actions"><button class="primary-button" id="retryQuiz">再测一次 ↻</button><button class="ghost-button" id="backExplore">回到脑图</button></div>`;
+    $("#retryQuiz").addEventListener("click", startQuiz);
+    $("#backExplore").addEventListener("click", () => setMode("explore"));
+  }
+
+  function shuffle(list) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  }
+
+  function bindEvents() {
+    $$(".mode-tab").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+    $$(".view-tab").forEach((b) => b.addEventListener("click", () => { state.view = b.dataset.view; persist(); updateMap(); }));
+    $("#labelToggle").addEventListener("click", () => { state.labels = !state.labels; persist(); updateMap(); });
+    $("#searchInput").addEventListener("input", renderRegionList);
+    $$(".brain-region").forEach((shape) => {
+      shape.addEventListener("click", () => selectRegion(shape.dataset.region));
+      shape.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectRegion(shape.dataset.region); } });
+    });
+    $$(".map-label").forEach((label) => label.addEventListener("click", () => selectRegion(label.dataset.labelFor)));
+    $("#flashcard").addEventListener("click", () => $("#flashcard").classList.toggle("flipped"));
+    $("#prevCard").addEventListener("click", () => moveCard(-1));
+    $("#nextCard").addEventListener("click", () => moveCard(1));
+    $("#shuffleCards").addEventListener("click", () => { state.cardOrder = shuffle([...state.cardOrder]); state.cardIndex = 0; renderCard(); });
+    $("#startQuiz").addEventListener("click", startQuiz);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") { e.preventDefault(); $("#searchInput").focus(); }
+      if (state.mode === "cards" && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+        if (e.key === "ArrowLeft") moveCard(-1);
+        if (e.key === "ArrowRight") moveCard(1);
+        if (e.key.toLowerCase() === "f") $("#flashcard").classList.toggle("flipped");
+      }
+    });
+  }
+
+  function init() {
+    renderFilters();
+    renderRegionList();
+    renderDetail();
+    updateMap();
+    updateProgress();
+    renderCard();
+    bindEvents();
+    const notice = $("#runtimeNotice");
+    if (notice) notice.remove();
+    window.__BRAIN_ATLAS_READY__ = true;
+  }
+
+  init();
+})();
+
+</script>
+</body>
+</html>
