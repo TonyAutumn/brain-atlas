@@ -1,5 +1,5 @@
 import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js';
-import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,validateBackup,human} from './model.js';
+import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=match2';
 import {automaticThemes} from './theme-policy.js';
 import {readLibrary,saveLibrary} from './store.js';
 const $=id=>document.getElementById(id);
@@ -84,7 +84,7 @@ function field(label,value,key,rows=0){return `<label>${label}${rows?`<textarea 
 function enumOptions(values,selected){return Object.entries(values).map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');}
 function mappingRow(r,p){
  const m=p.mappings[r.id],allowed=r.level==='region'&&human(r.species);
- return `<div class="mapping-row" data-region="${esc(r.id)}"><h3>${esc(r.name)}</h3><p>${esc(r.species)} · ${{region:'脑区 / 核团',celltype:'细胞类型',neuron:'单神经元'}[r.level]} · 原文侧别：${esc(r.hemisphere)}<br>${esc(r.locator)}</p>${allowed?`<div class="row"><label>图谱对应<select data-mapping><option value="">保留未匹配</option>${options.map(o=>`<option value="${o.value}" ${m?.target===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label><label>用于显示的侧别<select data-side>${enumOptions({unknown:'未明确，不投到图中',L:'左侧',R:'右侧',both:'双侧'},m?.hemisphere||r.hemisphere)}</select></label></div><label class="check"><input type="checkbox" data-confirmed ${m?.confirmed?'checked':''}>我已核对侧别与图谱范围</label><small>自动对应只是候选。大结构对应的是已收录分区集合，不能擅自把论文中的海马细化成 CA1 等亚区。</small>`:'<p class="filter-note">保留在证据列表中；当前人脑底座不显示动物脑区、细胞类型或单神经元位置。</p>'}</div>`;
+ return `<div class="mapping-row" data-region="${esc(r.id)}"><h3>${esc(r.name)}</h3><p>${esc(r.species)} · ${{region:'脑区 / 核团',celltype:'细胞类型',neuron:'单神经元'}[r.level]} · 原文侧别：${esc(r.hemisphere)}<br>${esc(r.locator)}</p>${allowed?`<div class="row"><label>图谱对应<select data-mapping><option value="">保留未匹配</option>${options.map(o=>`<option value="${o.value}" ${m?.target===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label><label>用于显示的侧别<select data-side>${enumOptions({unknown:'未明确，不投到图中',L:'左侧',R:'右侧',both:'双侧'},m?.hemisphere||r.hemisphere)}</select></label></div><label class="check"><input type="checkbox" data-confirmed ${m?.confirmed?'checked':''}>我已核对侧别与图谱范围</label><p class="filter-note">${esc(mappingExplanation(r,m,entries))}</p><small>自动对应只是候选。大结构对应的是已收录分区集合，不能擅自把论文中的海马细化成 CA1 等亚区。</small>`:'<p class="filter-note">保留在证据列表中；当前人脑底座不显示动物脑区、细胞类型或单神经元位置。</p>'}</div>`;
 }
 function mechanismEditor(m,p){
  const quotes={matched:'已在提取文本中找到原文；仍需核对它是否支持结论',unmatched:'摘录未在提取文本中找到，请核对原 PDF 或附图',missing:'尚无可核验的原文摘录'};
@@ -132,6 +132,11 @@ function bind(){
  $('addTheme').onclick=()=>{rename=false;$('nameTitle').textContent='新建主题';$('themeName').value='';showDialog('nameDialog');};
  $('renameTheme').onclick=()=>{rename=true;$('nameTitle').textContent='重命名 / 合并主题';$('themeName').value=activeTheme;showDialog('nameDialog');};
  $('nameForm').onsubmit=async e=>{e.preventDefault();const name=canonicalTheme($('themeName').value);if(!name)return;const old=activeTheme,papers=rename?library.papers.map(p=>({...p,data:{...p.data,themes:themeList(p.data.themes.map(t=>t.toLowerCase()===old.toLowerCase()?name:t))}})):library.papers;activeTheme=name;const saved=await commit({...library,themes:themeList([...library.themes.filter(t=>!rename||t!==old),name]),papers});if(saved)$('nameDialog').close();};
+ $('rematchBtn').onclick=async()=>{
+  if(busy){message('请等待当前分析完成后重新匹配。');return;}
+  $('rematchBtn').disabled=true;
+  try{const result=rematchPapers(library.papers,entries);const saved=await commit({...library,papers:result.papers});if(saved){$('rematchStatus').textContent=`已补充 ${result.matched} 项自动候选；仍有 ${result.remaining} 项缺少可靠对应。已有匹配与人工核对状态保留。无需调用 Kimi。`;}}catch(e){message(e.message);}finally{$('rematchBtn').disabled=false;}
+ };
  $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('backupFile').click();
  $('backupFile').onchange=async()=>{const f=$('backupFile').files[0];if(!f)return;try{if(f.size>80*1024*1024)throw Error('备份文件超过 80 MB。');const data=validateBackup(JSON.parse(await f.text()),entries),existing=new Set(library.papers.map(p=>p.id)),added=data.papers.filter(p=>!existing.has(p.id));const saved=await commit({...library,themes:themeList([...library.themes,...data.themes]),papers:[...library.papers,...added]});if(saved)message(`已导入 ${added.length} 篇文献；相同编号的现有文献未被覆盖。`);}catch(e){message(e.message);}finally{$('backupFile').value='';}};
  $('markLearned').onclick=()=>{try{const spec=evidenceScene(currentRows,entries,{confirmedOnly:true}),ids=[...new Set(spec.nodes.flatMap(n=>n.entryIds))];if(!ids.length)return;const key='brain-atlas-anatomy-known-v1',known=new Set(JSON.parse(localStorage.getItem(key)||'[]'));ids.forEach(id=>known.add(id));localStorage.setItem(key,JSON.stringify([...known]));if(ready)$('brainFrame').contentWindow.brainAtlas.markLearned(ids);message(`已保存 ${ids.length} 个图谱条目的学习标记；仅包含已核对定位。`);}catch{message('学习标记未能保存，请检查浏览器存储权限。');}};

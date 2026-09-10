@@ -1,13 +1,14 @@
+import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
 import {NAV,inGroup} from '../anatomy/navigation.js?v=nav3';
 import {describe} from '../anatomy/labels.js';
 import {validateAnalysis,canonicalTheme,themeList} from './schema.js';
 export {canonicalTheme,themeList};
 export const normalize=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 const aliases={
- hippocampus:'hippocampus',海马:'hippocampus',amygdala:'amygdala',杏仁核:'amygdala',insula:'insula',insularcortex:'insula',岛叶:'insula',thalamus:'thalamus',丘脑:'thalamus',frontalobe:'frontal',frontallobe:'frontal',额叶:'frontal',parietallobe:'parietal',顶叶:'parietal',temporallobe:'temporal',颞叶:'temporal',occipitallobe:'occipital',枕叶:'occipital',cerebellum:'cerebellum',小脑:'cerebellum',anteriorcingulatecortex:'cingulate',acc:'cingulate',前扣带皮层:'cingulate'
+ hippocampus:'hippocampus',海马:'hippocampus',amygdala:'amygdala',杏仁核:'amygdala',insula:'insula',insularcortex:'insula',岛叶:'insula',thalamus:'thalamus',丘脑:'thalamus',frontalobe:'frontal',frontallobe:'frontal',额叶:'frontal',parietallobe:'parietal',顶叶:'parietal',temporallobe:'temporal',颞叶:'temporal',occipitallobe:'occipital',枕叶:'occipital',cerebellum:'cerebellum',小脑:'cerebellum',cingulatecortex:'cingulate',扣带皮层:'cingulate'
 };
 export function mappingOptions(entries){
- const options=[];
+ const options=RULES.filter(rule=>entries.some(e=>rule[2].includes(atlasCode(e)))).map(rule=>({value:'set:'+rule[0],label:rule[1].at(-1)+' · '+rule[0]+'（候选范围）'}));
  for(const id of Object.keys(NAV).filter(id=>!['all','unassigned','medial','deep','brainstem'].includes(id)))options.push({value:'group:'+id,label:NAV[id].label+'（已收录范围）'});
  const seen=new Set();
  for(const e of entries){const key=e.atlas+'|'+e.name.replace(/^[LR] /,'').trim();if(seen.has(key))continue;seen.add(key);options.push({value:'parcel:'+e.id,label:describe(e).title+' · '+e.atlas});}
@@ -15,15 +16,30 @@ export function mappingOptions(entries){
 }
 export function suggestMapping(region,entries){
  if(region.level!=='region'||!human(region.species)||region.hemisphere==='unknown')return null;
- const n=normalize(region.name);
- const found=entries.filter(e=>{
-  const full=e.name.replace(/^[LR] /,'').trim(),code=full.startsWith('Area ')?full.slice(5).split(' (')[0]:full.split(' (')[0];
-  return [full,code,describe(e).title].some(s=>normalize(s)===n);
- });
- const unique=[...new Set(found.map(e=>e.atlas+'|'+e.name.replace(/^[LR] /,'').trim()))];
+ const side=/^(left\s+|左侧)/i.test(region.name)?'L':/^(right\s+|右侧)/i.test(region.name)?'R':null;
+ if(side&&side!==region.hemisphere)return null;
+ const variants=nameVariants(region.name).map(normalize);
+ const rule=RULES.find(rule=>rule[1].some(n=>variants.includes(normalize(n))));
+ if(rule&&entries.some(e=>rule[2].includes(atlasCode(e))))return {target:'set:'+rule[0],hemisphere:region.hemisphere,confirmed:false};
+ const found=entries.filter(e=>[atlasName(e),atlasCode(e),describe(e).title].some(s=>variants.includes(normalize(s))));
+ const unique=[...new Set(found.map(e=>e.atlas+'|'+atlasName(e)))];
  if(unique.length===1)return {target:'parcel:'+found[0].id,hemisphere:region.hemisphere,confirmed:false};
- if(aliases[n])return {target:'group:'+aliases[n],hemisphere:region.hemisphere,confirmed:false};
+ const groups=[...new Set(variants.map(n=>aliases[n]).filter(Boolean))];
+ if(groups.length===1)return {target:'group:'+groups[0],hemisphere:region.hemisphere,confirmed:false};
  return null;
+}
+export function mappingExplanation(region,mapping,entries){
+ if(region.level!=='region')return '细胞类型或单神经元缺少可用的个体坐标，保留文字证据。';
+ if(!human(region.species))return '物种未确认为人类；不投射到人脑底座。';
+ if(!mapping){if(region.hemisphere==='unknown')return '原文侧别未明确，不能自动猜测双侧；核对后可选择显示侧别。';return '名称存在歧义、尚无对应规则或当前图谱未收录；不会以附近脑区代替。';}
+ const rule=RULES.find(r=>'set:'+r[0]===mapping.target);
+ const detail=rule?(rule[3]||'根据中英文学名或缩写识别为已收录结构。'):mapping.target.startsWith('group:')?'大结构对应已收录分区集合，不表示每个亚区都在论文中被激活。':'名称与图谱标签对应，不代表受试者实际激活边界。';
+ return (mapping.confirmed?'已人工核对。':'自动候选，尚未人工核对。')+detail+' 显示 '+resolveMapping(region,mapping,entries).length+' 个图谱条目。';
+}
+export function rematchPapers(papers,entries){
+ let matched=0,remaining=0;
+ const updated=papers.map(p=>{const mappings={...p.mappings};for(const r of p.data.regions){if(mappings[r.id]?.target)continue;const m=suggestMapping(r,entries);if(m&&resolveMapping(r,m,entries).length){mappings[r.id]=m;matched++;}else remaining++;}return {...p,mappings};});
+ return {papers:updated,matched,remaining};
 }
 export function human(species){return /^(human|humans|homo sapiens|人|人类|成人|健康成人|人类被试)$/i.test((species||'').trim());}
 export function resolveMapping(region,mapping,entries){
@@ -31,6 +47,7 @@ export function resolveMapping(region,mapping,entries){
  const [kind,...rest]=String(mapping.target||'').split(':'),id=rest.join(':');
  let found=[];
  if(kind==='group'&&NAV[id])found=entries.filter(e=>e.atlas!=='cit168'&&inGroup(e,id));
+ if(kind==='set'){const rule=RULES.find(r=>r[0]===id);if(rule)found=entries.filter(e=>rule[2].includes(atlasCode(e)));}
  if(kind==='parcel'){
   const anchor=entries.find(e=>e.id===id);if(!anchor)return [];
   const name=anchor.name.replace(/^[LR] /,'').trim();
