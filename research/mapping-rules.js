@@ -1,5 +1,7 @@
 // Names target only structures actually present in the shipped atlas manifest.
 export const RULES=[
+ ['MTL',['mesiotemporal lobe','medial temporal lobe','内侧颞叶'],['CA1','CA2','CA3','DG','Subc','EC','Ph1','Ph2','Ph3'],'内侧颞叶已收录分区参考集合；并非完整体积或本文激活边界。'],
+ ['Meynert',['basal forebrain/Meynert nucleus','nucleus basalis of Meynert','Meynert nucleus','Meynert基底核'],['Ch 4'],'原文名称混合了基底前脑与Meynert核：以Ch4作为候选，范围需核对，不代表整个基底前脑。'],
  ['TPJ',['temporoparietal junction','temporo-parietal junction','TPJ','颞顶联合区','颞顶交界区'],['TPJ'],'近似候选：Julich 的 Area TPJ；不代表论文中所有 TPJ 定义或实际激活范围。'],
  ['ACC',['anterior cingulate cortex','ACC','前扣带皮层','前扣带回'],['25','33','p24ab','p24c','p32','s24','s32'],'已收录前扣带分区集合；不包含整个扣带回，也不等于实验激活掩膜。'],
  ['OFC',['orbitofrontal cortex','OFC','眶额皮层'],['Fo1','Fo2','Fo3','Fo4','Fo5','Fo6','Fo7'],'已收录眶额分区集合。'],

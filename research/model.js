@@ -1,3 +1,4 @@
+import {DMN,networkOf,recordKind} from './networks.js';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
 import {NAV,inGroup} from '../anatomy/navigation.js?v=nav3';
 import {describe} from '../anatomy/labels.js';
@@ -10,11 +11,13 @@ const aliases={
 export function mappingOptions(entries){
  const options=RULES.filter(rule=>entries.some(e=>rule[2].includes(atlasCode(e)))).map(rule=>({value:'set:'+rule[0],label:rule[1].at(-1)+' · '+rule[0]+'（候选范围）'}));
  for(const id of Object.keys(NAV).filter(id=>!['all','unassigned','medial','deep','brainstem'].includes(id)))options.push({value:'group:'+id,label:NAV[id].label+'（已收录范围）'});
+ options.unshift({value:'network:DMN',label:'DMN · 功能网络（仅角回参考位置）'});
  const seen=new Set();
  for(const e of entries){const key=e.atlas+'|'+e.name.replace(/^[LR] /,'').trim();if(seen.has(key))continue;seen.add(key);options.push({value:'parcel:'+e.id,label:describe(e).title+' · '+e.atlas});}
  return options;
 }
 export function suggestMapping(region,entries){
+ if(networkOf(region)&&human(region.species)&&region.hemisphere!=='unknown')return {target:'network:DMN',hemisphere:region.hemisphere,confirmed:false};
  if(region.level!=='region'||!human(region.species)||region.hemisphere==='unknown')return null;
  const side=/^(left\s+|左侧)/i.test(region.name)?'L':/^(right\s+|右侧)/i.test(region.name)?'R':null;
  if(side&&side!==region.hemisphere)return null;
@@ -29,7 +32,10 @@ export function suggestMapping(region,entries){
  return null;
 }
 export function mappingExplanation(region,mapping,entries){
+ if(networkOf(region))return DMN.note;
  if(region.level!=='region')return '细胞类型或单神经元缺少可用的个体坐标，保留文字证据。';
+ if(/人类.*[/、]|[/、].*人类/.test(region.species))return '跨物种合并记录：需根据原文将人类与动物证据分开；不会把动物发现直接投到人脑中。';
+ if(/raphe|coeruleus|pedunculopontine|dorsal tegmental/i.test(region.name))return '当前底座未收录该核团，保留机制记录；补充侧别也无法生成其真实几何。';
  if(!human(region.species))return '物种未确认为人类；不投射到人脑底座。';
  if(!mapping){if(region.hemisphere==='unknown')return '原文侧别未明确，不能自动猜测双侧；核对后可选择显示侧别。';return '名称存在歧义、尚无对应规则或当前图谱未收录；不会以附近脑区代替。';}
  const rule=RULES.find(r=>'set:'+r[0]===mapping.target);
@@ -43,12 +49,13 @@ export function rematchPapers(papers,entries){
 }
 export function human(species){return /^(human|humans|homo sapiens|人|人类|成人|健康成人|人类被试)$/i.test((species||'').trim());}
 export function resolveMapping(region,mapping,entries){
- if(!mapping||region.level!=='region'||!human(region.species)||!['L','R','both'].includes(mapping.hemisphere))return [];
+ if(!mapping||!['region','network'].includes(region.level)||!human(region.species)||!['L','R','both'].includes(mapping.hemisphere))return [];
  const [kind,...rest]=String(mapping.target||'').split(':'),id=rest.join(':');
  let found=[];
- if(kind==='group'&&NAV[id])found=entries.filter(e=>e.atlas!=='cit168'&&inGroup(e,id));
- if(kind==='set'){const rule=RULES.find(r=>r[0]===id);if(rule)found=entries.filter(e=>rule[2].includes(atlasCode(e)));}
- if(kind==='parcel'){
+ if(kind==='network'&&id==='DMN'&&networkOf(region))found=entries.filter(e=>DMN.codes.includes(atlasCode(e)));
+ if(kind==='group'&&NAV[id]&&recordKind(region)!=='network')found=entries.filter(e=>e.atlas!=='cit168'&&inGroup(e,id));
+ if(kind==='set'&&recordKind(region)!=='network'){const rule=RULES.find(r=>r[0]===id);if(rule)found=entries.filter(e=>rule[2].includes(atlasCode(e)));}
+ if(kind==='parcel'&&recordKind(region)!=='network'){
   const anchor=entries.find(e=>e.id===id);if(!anchor)return [];
   const name=anchor.name.replace(/^[LR] /,'').trim();
   found=entries.filter(e=>e.atlas===anchor.atlas&&e.name.replace(/^[LR] /,'').trim()===name);
@@ -67,10 +74,10 @@ export function evidenceScene(rows,entries,{confirmedOnly=false}={}){
   const mapped=new Map();
   for(const rid of m.regions){
    const region=paper.data.regions.find(r=>r.id===rid),mapping=paper.mappings[rid];
-   if(!region||confirmedOnly&&!mapping?.confirmed)continue;
+   if(!region||confirmedOnly&&(!mapping?.confirmed||recordKind(region)==='network'))continue;
    const parcels=resolveMapping(region,mapping,entries);if(!parcels.length)continue;
    const id=paper.id+':'+rid;mapped.set(rid,id);
-   if(!nodes.some(n=>n.id===id))nodes.push({id,name:region.name,entryIds:parcels.map(e=>e.id),provisional:!mapping.confirmed});
+   if(!nodes.some(n=>n.id===id))nodes.push({id,name:region.name,entryIds:parcels.map(e=>e.id),provisional:!mapping.confirmed,kind:recordKind(region),color:networkOf(region)?.color});
   }
   for(const c of m.connections)if(mapped.has(c.from)&&mapped.has(c.to))links.push({id:key,from:mapped.get(c.from),to:mapped.get(c.to),kind:m.evidenceType,label:m.title,directed:c.directed,provisional:!paper.reviewed});
  }

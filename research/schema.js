@@ -10,7 +10,7 @@ export function themeList(values){return [...new Map(values.map(canonicalTheme).
 export function validateAnalysis(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('分析结果不是有效对象。');
  const title=str(input.title,500);if(!title)throw Error('分析结果缺少论文标题。');
- const regions=arr(input.regions,60).map((r,i)=>({id:str(r.id,60)||`r${i+1}`,name:str(r.name,300),hemisphere:['L','R','both','unknown'].includes(r.hemisphere)?r.hemisphere:'unknown',species:str(r.species,100)||'未报告',level:['region','celltype','neuron'].includes(r.level)?r.level:'region',locator:str(r.locator,400)}));
+ const regions=arr(input.regions,60).map((r,i)=>({id:str(r.id,60)||`r${i+1}`,name:str(r.name,300),hemisphere:['L','R','both','unknown'].includes(r.hemisphere)?r.hemisphere:'unknown',species:str(r.species,100)||'未报告',level:['region','network','celltype','neuron'].includes(r.level)?r.level:'region',locator:str(r.locator,400)}));
  const validId=id=>/^[a-zA-Z][a-zA-Z0-9_-]{0,59}$/.test(id)&&!['__proto__','constructor','prototype'].includes(id);
  if(regions.some(r=>!r.name||!validId(r.id))||new Set(regions.map(r=>r.id)).size!==regions.length)throw Error('脑区名称缺失或编号无效、重复。');
  const ids=new Set(regions.map(r=>r.id));

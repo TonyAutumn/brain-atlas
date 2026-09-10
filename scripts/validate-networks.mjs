@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createPaper,evidenceScene,validateBackup,rematchPapers} from '../research/model.js';
+import {recordKind} from '../research/networks.js';
+import {buildEvidenceLayer} from '../anatomy/evidence-layer.js';
+const entries=JSON.parse(fs.readFileSync(new URL('../anatomy/data/manifest.json',import.meta.url))).entries.filter(e=>e.atlas!=='surface');
+const data={title:'Synthetic network test',regions:[{id:'r1',name:'default-mode network (DMN)',species:'人类',hemisphere:'both',level:'region'}],mechanisms:[{id:'m1',title:'Network reference',regions:['r1'],connections:[]}]};
+const p=createPaper(data,entries);assert.equal(recordKind(p.data.regions[0]),'network');assert.equal(p.mappings.r1.target,'network:DMN');
+const scene=evidenceScene([{paper:p,mechanism:p.data.mechanisms[0],key:'test'}],entries);assert.equal(scene.nodes[0].kind,'network');assert.equal(scene.nodes[0].entryIds.length,4);assert.equal(scene.links.length,0);
+const layer=buildEvidenceLayer(scene,entries);assert.equal(layer.colors.size,4);assert([...layer.colors.values()].every(c=>c==='#b58aff'));layer.dispose();
+p.mappings.r1.confirmed=true;assert.equal(evidenceScene([{paper:p,mechanism:p.data.mechanisms[0],key:'test'}],entries,{confirmedOnly:true}).nodes.length,0,'Network reference is not a learned anatomical localization');
+const backed=validateBackup({version:1,papers:[p],themes:[]},entries);assert.equal(backed.papers[0].mappings.r1.target,'network:DMN');
+const unmapped={...p,mappings:{r1:null}};assert.equal(rematchPapers([unmapped],entries).matched,1);
+console.log('Network classification, reference color, no fabricated edges, backup and rematching checks passed.');

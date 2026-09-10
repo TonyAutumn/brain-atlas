@@ -1,5 +1,6 @@
+import {networkOf,recordKind,kindLabel} from './networks.js';
 import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js';
-import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=match2';
+import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=net1';
 import {automaticThemes} from './theme-policy.js';
 import {readLibrary,saveLibrary} from './store.js';
 const $=id=>document.getElementById(id);
@@ -23,7 +24,7 @@ function render(){
  $('showAllMechanisms').hidden=!selectedRows;
  if(!papers.length)$('results').innerHTML=`<div class="empty"><h2>${library.papers.length?'当前没有匹配的文献':'从第一篇论文开始'}</h2><p>${library.papers.length?'可以切换主题、清空搜索，或关闭“只看已核对文献”。':'上传与这个主题有关的论文，逐篇积累行为任务、神经机制与证据。'}</p><p>同一主题下的论文会一起展示；每项结论仍保留各自的来源和限制。</p><button data-upload class="primary">上传文献</button></div>`;
  else if(view==='papers')$('results').innerHTML=papers.map(p=>`<article class="card"><div class="card-top"><span class="badge ${p.reviewed?'checked':'draft'}">${p.reviewed?'已核对':'待核对'}</span><span class="badge">${esc(p.data.studyType||'研究类型未报告')}</span></div><h3>${esc(p.data.title)}</h3><p>${esc(p.data.summary)}</p><div class="citation">${esc(p.data.authors)} ${esc(p.data.year)}</div><div class="region-tags">${p.data.themes.map(t=>`<span>${esc(t)}</span>`).join('')}</div><div class="actions"><button data-paper="${p.id}">论文与证据</button><button data-paper-map="${p.id}">查看本篇机制图</button></div></article>`).join('');
- else $('results').innerHTML=rows.length?rows.map(({key,paper:p,mechanism:m})=>`<article class="card ${selectedRows?.includes(key)?'selected':''}"><div class="card-top"><span class="badge ${['hypothesis','review','effective'].includes(m.evidenceType)?'inference':''}">${EVIDENCE[m.evidenceType]}</span><span class="badge">${ORIGINS[m.origin]}</span>${p.reviewed?'':'<span class="badge draft">待核对</span>'}</div><h3>${esc(m.title)}</h3><p>${esc(m.claim)}</p><p><b>方法：</b>${esc(m.method||'未报告')}</p><div class="region-tags">${m.regions.map(id=>p.data.regions.find(r=>r.id===id)).filter(Boolean).map(r=>`<span>${esc(r.name)} · ${esc({L:'左',R:'右',both:'双侧',unknown:'侧别未报告'}[r.hemisphere])}</span>`).join('')}</div>${m.limitations?`<p><b>限制：</b>${esc(m.limitations)}</p>`:''}<div class="citation"><button data-paper="${p.id}">${esc(p.data.title)} · ${esc(p.data.year)}</button><br>${esc(m.locator||'原文位置待核对')}</div><div class="actions"><button data-mechanism="${esc(key)}">在脑图中查看</button><button data-paper="${p.id}">查看原文证据</button></div></article>`).join(''):'<div class="empty"><h2>尚无可提取的神经机制</h2><p>这些文献已保存，可在“对应文献”查看。缺少神经证据时不会生成推测路线。</p></div>';
+ else $('results').innerHTML=rows.length?rows.map(({key,paper:p,mechanism:m})=>`<article class="card ${selectedRows?.includes(key)?'selected':''}"><div class="card-top"><span class="badge ${['hypothesis','review','effective'].includes(m.evidenceType)?'inference':''}">${EVIDENCE[m.evidenceType]}</span><span class="badge">${ORIGINS[m.origin]}</span>${p.reviewed?'':'<span class="badge draft">待核对</span>'}</div><h3>${esc(m.title)}</h3><p>${esc(m.claim)}</p><p><b>方法：</b>${esc(m.method||'未报告')}</p><div class="region-tags">${m.regions.map(id=>p.data.regions.find(r=>r.id===id)).filter(Boolean).map(r=>`<span style="border-left:3px solid ${networkOf(r)?'#b58aff':recordKind(r)==='cell'?'#e6b465':'#39b9ff'}">${kindLabel(r)} · ${esc(r.name)} · ${esc({L:'左',R:'右',both:'双侧',unknown:'侧别未报告'}[r.hemisphere])}</span>`).join('')}</div>${m.limitations?`<p><b>限制：</b>${esc(m.limitations)}</p>`:''}<div class="citation"><button data-paper="${p.id}">${esc(p.data.title)} · ${esc(p.data.year)}</button><br>${esc(m.locator||'原文位置待核对')}</div><div class="actions"><button data-mechanism="${esc(key)}">在脑图中查看</button><button data-paper="${p.id}">查看原文证据</button></div></article>`).join(''):'<div class="empty"><h2>尚无可提取的神经机制</h2><p>这些文献已保存，可在“对应文献”查看。缺少神经证据时不会生成推测路线。</p></div>';
  updateScene();
 }
 async function updateScene(){
@@ -31,7 +32,12 @@ async function updateScene(){
  spec.title=selectedRows?'当前文献机制':(activeTheme||'全部文献')+' · 机制综览';pendingScene=spec;
  $('brainTitle').textContent=spec.title;
  const pending=spec.nodes.filter(n=>n.provisional).length,unmapped=regionRefs.size-spec.nodes.length;
- $('mappingStatus').textContent=currentRows.length?`${spec.nodes.length} 处图谱对应（${pending} 处定位待核对） · ${Math.max(0,unmapped)} 处未定位 · ${spec.links.length} 条关系。未明确侧别、动物脑区、细胞或神经元不会自动投到人脑中。`:'当前没有文献机制；下方仅显示解剖参考背景。';
+ const refs=[...new Map(currentRows.flatMap(({paper,mechanism:m})=>m.regions.map(id=>({paper,r:paper.data.regions.find(r=>r.id===id)}))).filter(x=>x.r).map(x=>[x.paper.id+':'+x.r.id,x])).values()];
+ const counts={region:0,network:0,cell:0};refs.forEach(x=>counts[recordKind(x.r)]++);
+ $('mappingStatus').textContent=currentRows.length?`解剖结构 ${counts.region} 项 · 功能网络 ${counts.network} 项 · 细胞/神经元 ${counts.cell} 项。${spec.nodes.filter(n=>n.kind!=='network').length} 项解剖对应，${spec.nodes.filter(n=>n.kind==='network').length} 项网络参考；${pending} 项候选待核对。`:'当前没有文献机制。';
+ const filter=$('recordFilter').value;
+ $('recordDetails').innerHTML=refs.filter(x=>filter==='all'||recordKind(x.r)===filter).map(({paper,r})=>`<div style="border-left:3px solid ${networkOf(r)?'#b58aff':recordKind(r)==='cell'?'#e6b465':'#39b9ff'};padding:8px;margin:8px 0"><b>${kindLabel(r)} · ${esc(r.name)}</b><p>${esc(mappingExplanation(r,paper.mappings[r.id],entries))}</p>${networkOf(r)?'<a href="https://pubmed.ncbi.nlm.nih.gov/11209064/" target="_blank" rel="noopener">DMN 背景文献</a>':''}</div>`).join('');
+
  const confirmed=evidenceScene(currentRows,entries,{confirmedOnly:true});$('markLearned').disabled=!confirmed.nodes.length;
  if(ready){try{await $('brainFrame').contentWindow.brainAtlas.showEvidence(spec);}catch{message('部分三维结构尚未加载成功，可刷新后重试。');}}
 }
@@ -83,8 +89,8 @@ async function analyze(event){
 function field(label,value,key,rows=0){return `<label>${label}${rows?`<textarea data-field="${key}" rows="${rows}">${esc(value)}</textarea>`:`<input data-field="${key}" value="${esc(value)}">`}</label>`;}
 function enumOptions(values,selected){return Object.entries(values).map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');}
 function mappingRow(r,p){
- const m=p.mappings[r.id],allowed=r.level==='region'&&human(r.species);
- return `<div class="mapping-row" data-region="${esc(r.id)}"><h3>${esc(r.name)}</h3><p>${esc(r.species)} · ${{region:'脑区 / 核团',celltype:'细胞类型',neuron:'单神经元'}[r.level]} · 原文侧别：${esc(r.hemisphere)}<br>${esc(r.locator)}</p>${allowed?`<div class="row"><label>图谱对应<select data-mapping><option value="">保留未匹配</option>${options.map(o=>`<option value="${o.value}" ${m?.target===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label><label>用于显示的侧别<select data-side>${enumOptions({unknown:'未明确，不投到图中',L:'左侧',R:'右侧',both:'双侧'},m?.hemisphere||r.hemisphere)}</select></label></div><label class="check"><input type="checkbox" data-confirmed ${m?.confirmed?'checked':''}>我已核对侧别与图谱范围</label><p class="filter-note">${esc(mappingExplanation(r,m,entries))}</p><small>自动对应只是候选。大结构对应的是已收录分区集合，不能擅自把论文中的海马细化成 CA1 等亚区。</small>`:'<p class="filter-note">保留在证据列表中；当前人脑底座不显示动物脑区、细胞类型或单神经元位置。</p>'}</div>`;
+ const m=p.mappings[r.id],allowed=['region','network'].includes(r.level)&&human(r.species);
+ return `<div class="mapping-row" data-region="${esc(r.id)}"><h3>${esc(r.name)}</h3><p>${esc(r.species)} · ${kindLabel(r)} · 原文侧别：${esc(r.hemisphere)}<br>${esc(r.locator)}</p>${allowed?`<div class="row"><label>图谱对应<select data-mapping><option value="">保留未匹配</option>${options.filter(o=>networkOf(r)?o.value.startsWith('network:'):!o.value.startsWith('network:')).map(o=>`<option value="${o.value}" ${m?.target===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label><label>用于显示的侧别<select data-side>${enumOptions({unknown:'未明确，不投到图中',L:'左侧',R:'右侧',both:'双侧'},m?.hemisphere||r.hemisphere)}</select></label></div><label class="check"><input type="checkbox" data-confirmed ${m?.confirmed?'checked':''}>我已核对侧别与图谱范围</label><p class="filter-note">${esc(mappingExplanation(r,m,entries))}</p><small>自动对应只是候选。大结构对应的是已收录分区集合，不能擅自把论文中的海马细化成 CA1 等亚区。</small>`:'<p class="filter-note">保留在证据列表中；当前人脑底座不显示动物脑区、细胞类型或单神经元位置。</p>'}</div>`;
 }
 function mechanismEditor(m,p){
  const quotes={matched:'已在提取文本中找到原文；仍需核对它是否支持结论',unmatched:'摘录未在提取文本中找到，请核对原 PDF 或附图',missing:'尚无可核验的原文摘录'};
@@ -115,6 +121,7 @@ async function savePaper(event){
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 function exportBackup(){const data={version:1,themes:library.themes,papers:library.papers.map(({originalFile,...p})=>p)};download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'brain-atlas-papers-backup.json');message('已导出主题、分析与原文文本；备份不包含原始 PDF 或连接密钥。');}
 function bind(){
+ $('recordFilter').onchange=updateScene;
  document.addEventListener('click',e=>{const close=e.target.closest('[data-close]');if(close)closeDialog(close.dataset.close);});
  $('uploadDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();});
  $('uploadBtn').onclick=upload;$('settingsBtn').onclick=settings;$('uploadForm').onsubmit=analyze;$('cancelAnalysis').onclick=()=>abort?.abort();
@@ -143,7 +150,7 @@ function bind(){
  window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===$('brainFrame').contentWindow&&e.data?.type==='brain-atlas-ready'){ready=true;updateScene();}});
 }
 async function main(){
- try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
+ try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;if(library.mappingRevision!=='net1'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'net1'});$('rematchStatus').textContent=`已自动补充 ${result.matched} 项候选。功能网络、细胞与不能定位的结构可展开图下清单查看。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
  catch(e){$('topicSummary').textContent=e.message;$('uploadBtn').disabled=true;message(e.message);}
 }
 main();

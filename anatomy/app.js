@@ -3,7 +3,7 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 import {ATLAS,describe} from './labels.js';
 import {emphasis,showShell} from './visual-state.js?v=nav3';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
-import {buildEvidenceLayer} from './evidence-layer.js?v=papers1';
+import {buildEvidenceLayer} from './evidence-layer.js?v=net1';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
@@ -54,7 +54,7 @@ function updateMaterials(){
  for(const e of entries){
   const mesh=meshes.get(e.id);if(!mesh)continue;
   const style=emphasis(e,state,known.has(e.id));
-  if(evidenceLayer?.ids.has(e.id)&&state.focusKind!=='entry'){Object.assign(style,{inSelection:true,colour:'#39b9ff',opacity:.85,emissive:'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
+  if(evidenceLayer?.ids.has(e.id)&&state.focusKind!=='entry'){Object.assign(style,{inSelection:true,colour:evidenceLayer.colors.get(e.id)||'#39b9ff',opacity:.85,emissive:evidenceLayer.colors.get(e.id)||'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
   mesh.visible=state.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!state.isolate||style.inSelection);
   if(evidenceLayer)mesh.visible=(state.isolate&&state.focusKind==='entry'?e.id===state.selected:evidenceLayer.ids.has(e.id))&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M');
   const mat=mesh.material;
@@ -69,7 +69,7 @@ function updateMaterials(){
  $('selectionSwatch').style.background=group?NAV[state.group].color:'#8894a4';
  $('selectionLegend').textContent=group?NAV[state.group].label:'解剖结构';
  $('visibilityNote').textContent=state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」';
- if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色：报告的关系，紫色虚线：假说 / 模型 / 综述';}
+ if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述';}
  const opacityLabel=$('opacity3').closest('label');
  $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
  $('opacityOut').textContent=state.isolate?'隐藏':$('opacity3').value+'%';
