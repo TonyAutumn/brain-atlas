@@ -25,4 +25,6 @@
 .left .region-items{flex:1 0 210px;overflow:visible}.index-foot,.count,.index-path{flex:none}
 .group-key+ .detail-actions{margin-top:15px}.detail-path+h2{margin-top:13px}
 .detail-section .micro-note{margin-top:10px}
+.research-embed header.top,.research-embed .left,.research-embed .right{display:none!important}.research-embed .app{display:block;height:100dvh;min-height:580px}.research-embed .workspace{height:100%;min-height:580px}.research-embed .visibility-note{max-width:420px;line-height:1.7}.research-embed .mobile-detail{display:none}.research-embed .stage-foot{right:20px}
+.research-embed #hemiControls{display:none}
 @media(max-width:720px){.left{max-height:none;overflow:visible}.left .region-items{max-height:400px;overflow-y:auto;flex:auto}.anatomy-nav .primary-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.subgroup-panel .filter{grid-template-columns:repeat(3,minmax(0,1fr))}.subgroup-panel button:last-child:nth-child(odd){grid-column:auto}.nav-hint{font-size:13px}.index-path{padding-left:18px}}

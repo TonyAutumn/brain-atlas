@@ -4,12 +4,12 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>脑区探索室 · 三维解剖</title>
 <meta name="description" content="基于 Julich-Brain 与 CIT168 真实解剖图谱的三维脑区学习空间。探索皮层细胞构筑、海马亚区、丘脑与脑干核团。">
-<link rel="stylesheet" href="anatomy/app.css?v=nav3">
+<link rel="stylesheet" href="anatomy/app.css?v=papers1">
 </head>
 <body>
 <header class="top">
  <a class="brand3" href="./"><span class="mark" aria-hidden="true">◈</span><div><h1>脑区探索室</h1><small>BRAIN ATLAS / ANATOMY</small></div></a>
- <nav class="topnav" aria-label="主导航"><span class="current">三维解剖</span><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
+ <nav class="topnav" aria-label="主导航"><span class="current">三维解剖</span><a href="papers.html">主题与文献</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
 </header>
 <main class="app">
  <aside class="left" aria-label="脑区索引">
@@ -55,10 +55,10 @@
 <p><b>CIT168：</b>皮层下概率图谱，包括尾状核、壳核、苍白球内外侧部、黑质致密部与网状部、腹侧被盖区等。表面采用来源提供的平滑等值面，边界不是个体的确定边界。<a href="https://doi.org/10.1038/sdata.2018.63" target="_blank" rel="noopener">Pauli et al., 2018</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/CIT168" target="_blank" rel="noopener">数据与许可 CC BY 4.0</a></p>
 <p><b>参考外壳：</b>Surf Ice 提供的 ICBM152 2009 三维表面；以中线切分左右显示，未人为移动脑区。<a href="https://github.com/neurolabusc/surf-ice/tree/master/sample" target="_blank" rel="noopener">源模型</a>。小脑宏观分叶补充自 <a href="https://github.com/niivue/niivue/tree/main/packages/niivue/demos/images" target="_blank" rel="noopener">AAL 数据</a>。</p>
 <p>坐标使用来源 NIfTI 的空间变换，单位为毫米。各图谱的参考模板版本、个体来源和分区方法不同，因此叠加用于空间学习；不会因为几何重叠就断言两个标签等同。显示中心为网格中心，不是论文的激活峰。</p>
-<p>蓝色表示选中或已学习。这里没有显示实测神经活动、单神经元、传导方向或论文证据。区域表面平滑不提高原始定位精度。剖切为显示裁切，切口不填充为组织切片。</p>
+<p>解剖模式的蓝色表示选中或已学习。“主题与文献”中的蓝色表示论文涉及区域的图谱对应，连线只是证据关系示意，不代表实测神经活动、单神经元、纤维轨迹或完整传导时序。区域表面平滑不提高原始定位精度。剖切为显示裁切，切口不填充为组织切片。</p>
 <p><a href="anatomy/SOURCES.md" target="_blank">完整来源、处理方法与许可说明</a></p>
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开三维解剖。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.atlasReady){var n=document.getElementById('loadText');if(n)n.textContent='三维页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=nav3"></script>
+<script type="module" src="anatomy/app.js?v=papers1"></script>
 </body></html>

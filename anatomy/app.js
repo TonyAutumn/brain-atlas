@@ -3,11 +3,15 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 import {ATLAS,describe} from './labels.js';
 import {emphasis,showShell} from './visual-state.js?v=nav3';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
+import {buildEvidenceLayer} from './evidence-layer.js?v=papers1';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
 const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false};
 let entries=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
+let evidenceLayer=null,evidenceRevision=0;
+const embedded=new URLSearchParams(location.search).get('embed')==='research';
+if(embedded)document.body.classList.add('research-embed');
 const clip=new THREE.Plane(new THREE.Vector3(1,0,0),0);
 const cursor=new THREE.Vector2();
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -44,13 +48,15 @@ function renderList(){
  updateMaterials();
 }
 function updateMaterials(){
- const hasSelection=state.focusKind==='entry'&&!!state.selected||state.focusKind==='group'&&state.group!=='all';
+ const hasSelection=state.focusKind==='entry'&&!!state.selected||state.focusKind==='group'&&state.group!=='all'||state.focusKind==='evidence'&&!!evidenceLayer?.ids.size;
  if(!hasSelection){state.isolate=false;$('isolate3').checked=false;}
  $('isolate3').disabled=!hasSelection;
  for(const e of entries){
   const mesh=meshes.get(e.id);if(!mesh)continue;
   const style=emphasis(e,state,known.has(e.id));
+  if(evidenceLayer?.ids.has(e.id)&&state.focusKind!=='entry'){Object.assign(style,{inSelection:true,colour:'#39b9ff',opacity:.85,emissive:'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
   mesh.visible=state.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!state.isolate||style.inSelection);
+  if(evidenceLayer)mesh.visible=(state.isolate&&state.focusKind==='entry'?e.id===state.selected:evidenceLayer.ids.has(e.id))&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M');
   const mat=mesh.material;
   mat.color.set(style.colour);mat.emissive.set(style.emissive);
   mat.emissiveIntensity=style.emissiveIntensity;mat.opacity=style.opacity;
@@ -58,10 +64,12 @@ function updateMaterials(){
  }
  const opacity=Number($('opacity3').value)/100;
  shells.forEach(m=>{m.visible=showShell(state,m.userData.entry.hemisphere,opacity);m.material.opacity=opacity;});
+ if(evidenceLayer)evidenceLayer.group.visible=!(state.isolate&&state.focusKind==='entry');
  const group=state.group!=='all';
  $('selectionSwatch').style.background=group?NAV[state.group].color:'#8894a4';
  $('selectionLegend').textContent=group?NAV[state.group].label:'解剖结构';
  $('visibilityNote').textContent=state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」';
+ if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色：报告的关系，紫色虚线：假说 / 模型 / 综述';}
  const opacityLabel=$('opacity3').closest('label');
  $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
  $('opacityOut').textContent=state.isolate?'隐藏':$('opacity3').value+'%';
@@ -69,7 +77,7 @@ function updateMaterials(){
  if(isolateButton){isolateButton.disabled=!hasSelection;isolateButton.textContent=state.isolate?'恢复其他结构':'隐藏其他结构';isolateButton.setAttribute('aria-pressed',String(state.isolate));}
  dirty=true;
 }
-function currentUnit(){return state.focusKind==='entry'?entries.filter(e=>e.id===state.selected):visibleEntries();}
+function currentUnit(){return state.focusKind==='entry'?entries.filter(e=>e.id===state.selected):evidenceLayer?entries.filter(e=>evidenceLayer.ids.has(e.id)):visibleEntries();}
 function focusUnit(){
  const unit=currentUnit();if(!unit.length)return;
  const bounds=new THREE.Box3();
@@ -80,7 +88,7 @@ function focusUnit(){
  controls.target.copy(centre);camera.position.copy(centre).addScaledVector(direction,Math.max(45,size*1.65));controls.update();dirty=true;
 }
 function toggleIsolation(value=!state.isolate){
- if(value&&!(state.focusKind==='entry'&&state.selected||state.focusKind==='group'&&state.group!=='all')){toast('先选择一个大结构或具体脑区');return;}
+ if(value&&!(state.focusKind==='entry'&&state.selected||state.focusKind==='group'&&state.group!=='all'||evidenceLayer?.ids.size)){toast('先选择一个大结构或具体脑区');return;}
  state.isolate=value;$('isolate3').checked=value;updateMaterials();if(value)focusUnit();
 }
 function groupDetail(){
@@ -93,6 +101,7 @@ function groupDetail(){
 }
 function selectGroup(group){
  if(!NAV[group])return;
+ clearEvidence();
  state.group=group;state.selected=null;state.focusKind=group==='all'?'none':'group';
  state.query='';$('search3').value='';renderList();groupDetail();
  if(state.isolate)focusUnit();
@@ -141,6 +150,7 @@ function setupScene(){
  const key=new THREE.DirectionalLight('#ffffff',2.2);key.position.set(-180,130,240);scene.add(key);
  const fill=new THREE.DirectionalLight('#acbdd8',1.5);fill.position.set(140,-170,90);scene.add(fill);
  raycaster=new THREE.Raycaster();
+ raycaster.params.Line.threshold=1.2;
  new ResizeObserver(()=>{const r=$('canvasWrap').getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();dirty=true;}).observe($('canvasWrap'));
  setView('oblique');
  const labelPositions={labelL:[-95,-15,0],labelR:[95,-15,0],labelA:[0,87,0],labelP:[0,-123,0]};
@@ -189,7 +199,7 @@ function bindUI(){
  $('atlasSelect').onchange=()=>{state.source=$('atlasSelect').value;state.group='all';state.selected=null;state.focusKind='none';state.query='';$('search3').value='';renderList();groupDetail();toast(state.source==='cit168'?'已切换到 CIT168 的 32 个左右核团条目':'已切回 Julich 精细分区与小脑分叶');};
  $('hemiControls').onclick=e=>{if(e.target.dataset.hemi)setHemi(e.target.dataset.hemi);};
  $('viewControls').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
- $('resetView').onclick=()=>{state.selected=null;state.focusKind='none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
+ $('resetView').onclick=()=>{clearEvidence();state.selected=null;state.focusKind='none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
  $('opacity3').oninput=()=>{$('opacityOut').textContent=$('opacity3').value+'%';updateMaterials();};
  $('clipAxis').onchange=updateClip;$('clipDepth').oninput=updateClip;
  $('regionColors').onchange=()=>{state.colors=$('regionColors').checked;updateMaterials();};
@@ -203,8 +213,22 @@ function updateClip(){
  const val=Number($('clipDepth').value);$('clipOut').textContent=active?val+'mm':'—';
  clip.normal.set(axis==='x'?-1:0,axis==='y'?-1:0,axis==='z'?-1:0);clip.constant=val;
  for(const m of [...meshes.values(),...shells]){m.material.clippingPlanes=active?[clip]:[];m.material.needsUpdate=true;}
+ evidenceLayer?.group.traverse(m=>{if(m.material){m.material.clippingPlanes=active?[clip]:[];m.material.needsUpdate=true;}});
  dirty=true;
 }
+function clearEvidence(){evidenceRevision++;if(evidenceLayer){scene.remove(evidenceLayer.group);evidenceLayer.dispose();evidenceLayer=null;}}
+async function showEvidence(spec){
+ clearEvidence();const revision=evidenceRevision;
+ evidenceLayer=buildEvidenceLayer(spec,entries);scene.add(evidenceLayer.group);
+ state.group='all';state.query='';state.knownOnly=false;state.selected=null;state.focusKind='evidence';state.hemi='both';state.isolate=false;
+ $('search3').value='';$('knownOnly').setAttribute('aria-pressed','false');$('isolate3').checked=false;
+ const files=[...new Set(entries.filter(e=>evidenceLayer.ids.has(e.id)).map(e=>e.file))];
+ await Promise.all(files.map(loadFile));if(revision!==evidenceRevision)return;
+ renderList();updateClip();$('stageTitle').textContent=spec.title||'文献机制 · 待核对的解剖对应';
+ if(evidenceLayer.ids.size)focusUnit();else setView('oblique');
+ return {mapped:evidenceLayer.ids.size,connections:evidenceLayer.group.children.length};
+}
+function markEvidenceLearned(ids){for(const id of ids)if(entries.some(e=>e.id===id))known.add(id);localStorage.setItem(knownKey,JSON.stringify([...known]));renderList();}
 async function main(){
  try{
   setupScene();bindUI();
@@ -221,7 +245,8 @@ async function main(){
   async function worker(){while(queue.length){const file=queue.shift();try{await loadFile(file);}catch(e){failures++;console.warn('Atlas file unavailable',file,e.message);}done++;$('modelStatus').textContent=`解剖数据 ${Math.round(done/manifest.files.length*100)}%`;}}
   await Promise.all([worker(),worker(),worker(),worker()]);
   $('modelStatus').textContent=failures?`${failures} 组未加载 · 刷新重试`:`${entries.length} 个图谱条目`;
-  window.brainAtlas={version:manifest.version,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group};
+  window.brainAtlas={version:manifest.version,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned};
+  if(embedded)window.parent.postMessage({type:'brain-atlas-ready'},location.origin);
  }catch(e){console.error(e);$('loadNotice').classList.remove('hidden');$('loadText').textContent='三维模型加载失败：'+e.message+'。请刷新或使用最新版 Edge / Chrome。';$('loadNotice').querySelector('.loading-line')?.remove();}
 }
 main();
