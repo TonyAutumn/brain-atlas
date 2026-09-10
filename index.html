@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>脑区探索室 · 三维解剖</title>
 <meta name="description" content="基于 Julich-Brain 与 CIT168 真实解剖图谱的三维脑区学习空间。探索皮层细胞构筑、海马亚区、丘脑与脑干核团。">
-<link rel="stylesheet" href="anatomy/app.css">
+<link rel="stylesheet" href="anatomy/app.css?v=focus2">
 </head>
 <body>
 <header class="top">
@@ -32,11 +32,11 @@
    <div class="notice3" id="loadNotice"><span id="loadText">正在读取解剖模型</span><div class="loading-line"><i></i></div></div>
    <div class="orientation-label" id="labelL">L 左</div><div class="orientation-label" id="labelR">R 右</div><div class="orientation-label" id="labelA">A 前</div><div class="orientation-label" id="labelP">P 后</div>
   </div>
-  <div class="stage-foot"><div class="legend3"><span><i></i>解剖结构</span><span><i class="blue"></i>当前选择</span><span>深蓝：已学习</span></div>拖动旋转 · 滚轮缩放 · 右键平移 · 点击脑区查看</div>
+  <div class="stage-foot"><div class="legend3"><span><i id="selectionSwatch"></i><span id="selectionLegend">解剖结构</span></span><span><i class="blue"></i>当前选择</span><span>深蓝：已学习</span></div>拖动旋转 · 滚轮缩放 · 右键平移 · 点击脑区查看<div id="visibilityNote" class="visibility-note">空间背景 · 可勾选「只看当前选择」</div></div>
   <div class="control-dock">
    <label>外壳<input id="opacity3" type="range" min="0" max="100" value="18" aria-label="参考脑外壳不透明度"><output id="opacityOut">18%</output></label>
    <label>剖切<select id="clipAxis" aria-label="剖切方向"><option value="none">关闭</option><option value="x">矢状面</option><option value="y">冠状面</option><option value="z">轴状面</option></select><input id="clipDepth" type="range" min="-100" max="100" value="0" aria-label="剖切位置" disabled><output id="clipOut">—</output></label>
-   <div class="stretch"><label class="check"><input id="regionColors" type="checkbox">区域颜色</label><label class="check"><input id="isolate3" type="checkbox">只显示选中结构</label><button class="mobile-detail" id="openDetail">脑区详情</button><span class="status3" id="modelStatus">解剖数据加载中</span></div>
+   <div class="stretch"><label class="check"><input id="regionColors" type="checkbox">区域颜色</label><label class="check"><input id="isolate3" type="checkbox">只看当前选择（隐藏外壳）</label><button class="mobile-detail" id="openDetail">脑区详情</button><span class="status3" id="modelStatus">解剖数据加载中</span></div>
   </div>
   <div id="toast3" class="toast3" role="status"></div>
  </section>
@@ -52,5 +52,5 @@
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开三维解剖。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.atlasReady){var n=document.getElementById('loadText');if(n)n.textContent='三维页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js"></script>
+<script type="module" src="anatomy/app.js?v=focus2"></script>
 </body></html>

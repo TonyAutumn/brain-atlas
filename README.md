@@ -19,6 +19,8 @@ https://tonyautumn.github.io/brain-atlas/
 
 三维模块位于 `anatomy/`，全部显示资产随站点分发。首次加载约 11 MB；不依赖外部 CDN。通过 HTTPS 网址打开，需要支持 WebGL 与 DecompressionStream 的现代浏览器。三维模块不包含在旧的单文件离线版中。
 
+选择大结构时以固定颜色突出整组（如皮层紫色、海马金色、丘脑绿色），具体亚区使用亮蓝色。「隐藏其他结构」或「只看当前选择」会保留当前整组／单个亚区并隐藏参考外壳；再次关闭即可恢复背景。
+
 数据来源、许可、坐标和转换方法见 [anatomy/SOURCES.md](anatomy/SOURCES.md)。运行 `node scripts/validate-anatomy.mjs` 验证资产、网格与标签。`scripts/build-anatomy.py` 可从已下载的源图谱重新生成网格（需 NumPy/SciPy）。
 
 基础内容现在位于 `basics.html`，旧的专题、卡片、测验及笔记均保留；原有浏览器记录使用原键，不迁移或清空。后续论文证据应通过稳定的图谱 ID 关联，不把示意节点冒充单神经元。

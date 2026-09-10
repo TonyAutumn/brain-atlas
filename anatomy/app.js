@@ -1,10 +1,11 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {GROUPS,ATLAS,describe,LOCATION} from './labels.js';
+import {GROUP_COLORS,emphasis,showShell} from './visual-state.js';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
-const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,colors:false,isolate:false};
+const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false};
 let entries=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
 const clip=new THREE.Plane(new THREE.Vector3(1,0,0),0);
 const cursor=new THREE.Vector2();
@@ -23,41 +24,77 @@ function renderList(){
  updateMaterials();
 }
 function updateMaterials(){
+ const hasSelection=state.focusKind==='entry'&&!!state.selected||state.focusKind==='group'&&state.group!=='all';
+ if(!hasSelection){state.isolate=false;$('isolate3').checked=false;}
+ $('isolate3').disabled=!hasSelection;
  for(const e of entries){
   const mesh=meshes.get(e.id);if(!mesh)continue;
-  mesh.visible=matches(e)&&(!state.isolate||e.id===state.selected);
-  const selected=e.id===state.selected,learned=known.has(e.id),mat=mesh.material;
-  const base=state.colors&&e.color?new THREE.Color(`rgb(${e.color.join(',')})`):new THREE.Color(e.category==='cortex'?'#b3bdcc':'#a0adbf');
-  mat.color.copy(selected?new THREE.Color('#39b9ff'):learned?new THREE.Color('#1675b2'):base);
-  mat.emissive.set(selected?'#0877b5':learned?'#06395a':'#000000');
-  mat.emissiveIntensity=selected?.65:.32;
-  mat.opacity=selected?.96:learned?.65:state.group==='all'?(e.category==='cortex'?.095:.30):.34;
-  if(state.colors&&!selected&&!learned)mat.opacity+=.13;
-  mat.depthWrite=selected||learned;
-  mat.depthTest=!selected;
-  mesh.renderOrder=selected?10:learned?5:0;
+  const style=emphasis(e,state,known.has(e.id));
+  mesh.visible=state.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!state.isolate||style.inSelection);
+  const mat=mesh.material;
+  mat.color.set(style.colour);mat.emissive.set(style.emissive);
+  mat.emissiveIntensity=style.emissiveIntensity;mat.opacity=style.opacity;
+  mat.depthWrite=style.depthWrite;mat.depthTest=style.depthTest;mesh.renderOrder=style.order;
  }
  const opacity=Number($('opacity3').value)/100;
- shells.forEach(m=>{m.visible=(state.hemi==='both'||m.userData.entry.hemisphere===state.hemi)&&opacity>0;m.material.opacity=opacity;});
+ shells.forEach(m=>{m.visible=showShell(state,m.userData.entry.hemisphere,opacity);m.material.opacity=opacity;});
+ const group=state.group!=='all';
+ $('selectionSwatch').style.background=group?GROUP_COLORS[state.group]:'#8894a4';
+ $('selectionLegend').textContent=group?GROUPS[state.group]:'解剖结构';
+ $('visibilityNote').textContent=state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」';
+ const opacityLabel=$('opacity3').closest('label');
+ $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
+ $('opacityOut').textContent=state.isolate?'隐藏':$('opacity3').value+'%';
+ const isolateButton=$('isolateSelected');
+ if(isolateButton){isolateButton.disabled=!hasSelection;isolateButton.textContent=state.isolate?'恢复其他结构':'隐藏其他结构';isolateButton.setAttribute('aria-pressed',String(state.isolate));}
  dirty=true;
+}
+function currentUnit(){return state.focusKind==='entry'?entries.filter(e=>e.id===state.selected):visibleEntries();}
+function focusUnit(){
+ const unit=currentUnit();if(!unit.length)return;
+ const bounds=new THREE.Box3();
+ for(const e of unit){bounds.expandByPoint(new THREE.Vector3(...e.bounds[0]));bounds.expandByPoint(new THREE.Vector3(...e.bounds[1]));}
+ const centre=bounds.getCenter(new THREE.Vector3());
+ const size=bounds.getSize(new THREE.Vector3()).length();
+ const direction=camera.position.clone().sub(controls.target).normalize();
+ controls.target.copy(centre);camera.position.copy(centre).addScaledVector(direction,Math.max(45,size*1.65));controls.update();dirty=true;
+}
+function toggleIsolation(value=!state.isolate){
+ if(value&&!(state.focusKind==='entry'&&state.selected||state.focusKind==='group'&&state.group!=='all')){toast('先选择一个大结构或具体脑区');return;}
+ state.isolate=value;$('isolate3').checked=value;updateMaterials();if(value)focusUnit();
+}
+function groupDetail(){
+ const group=state.group!=='all',name=group?GROUPS[state.group]:'解剖结构',list=visibleEntries();
+ const note=state.group==='hippocampus'?'这一学习分组包含海马亚区、下托复合体及内嗅皮层等邻近区域；分组不表示它们是同一个解剖单位。':group?LOCATION[state.group]:'选择左侧的大结构，可突出显示该组；再点一个条目，查看更精细的亚区。';
+ $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">STRUCTURE OVERVIEW</span><span class="atlas-badge">${state.source==='cit168'?'CIT168':'Julich / AAL'}</span></div><h2>${name}</h2><p class="latin3">${list.length} 个当前可见条目 · ${state.hemi==='both'?'双侧':state.hemi==='L'?'左侧':'右侧'}</p><div class="group-key" style="--group-colour:${GROUP_COLORS[state.group]||'#929dab'}"><i></i><span>${group?'大结构以此颜色强调；点选亚区后呈亮蓝色。':'请选择大结构或具体亚区。'}</span></div><div class="detail-actions"><button id="focusGroup">定位整组</button><button id="isolateSelected">隐藏其他结构</button></div><hr class="detail-hr"><section class="detail-section"><h3>空间关系</h3><p>${note}</p></section><section class="detail-section"><h3>独立查看</h3><p>「隐藏其他结构」会同时隐藏参考外壳。选中大结构时保留整组，选中具体亚区时只保留该条目。再次点击恢复背景。</p></section>`;
+ $('focusGroup').onclick=focusUnit;$('isolateSelected').onclick=()=>toggleIsolation();
+ $('stageTitle').textContent=group?name+' · 整组选择':'群体参考脑 · 真实解剖表面';
+ updateMaterials();
+}
+function selectGroup(group){
+ state.group=group;state.selected=null;state.focusKind=group==='all'?'none':'group';
+ state.query='';$('search3').value='';renderList();groupDetail();
+ if(state.isolate)focusUnit();
 }
 function renderDetail(e){
  const a=ATLAS[e.atlas];
  const precise=e.name.includes('Subc')?'此标签是“下托复合体”，不能自动等同于所有论文中的 subiculum；需核对论文采用的亚区定义。':e.name.includes('GapMap')?'图谱未定义范围。':a.description;
- $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">REGION PROFILE</span><span class="atlas-badge">${a.name}</span></div><h2>${escape(e.text.title)}</h2><p class="latin3">${escape(e.name)}</p><div class="detail-section breadcrumb3">${e.text.side} · ${GROUPS[e.category]}<br>${a.type} · 标签 ${e.label}</div><div class="detail-actions"><button id="focusSelected">定位放大</button><button class="learn-btn" id="markLearned" aria-pressed="${known.has(e.id)}">${known.has(e.id)?'✓ 已学习':'标记已学习'}</button></div><hr class="detail-hr"><section class="detail-section"><h3>空间位置</h3><p>${LOCATION[e.category]}</p></section><section class="detail-section"><h3>显示中心 · MNI 毫米</h3><div class="coord-grid">${['X','Y','Z'].map((a,i)=>`<div><span>${a}</span><strong>${e.center[i].toFixed(1)}</strong></div>`).join('')}</div><p class="micro-note" style="margin-top:10px">网格中心，非激活峰。X：左负右正；Y：后负前正；Z：下负上正。</p></section><section class="detail-section"><h3>如何理解这个边界</h3><p>${precise}</p><a class="source-link" href="${a.url}" target="_blank" rel="noopener">查看图谱原始研究 ↗</a></section><section class="detail-section"><h3>文献学习</h3><p class="micro-note">本次先建立解剖底座。之后可把论文的实验条件、定位与证据关联到这个条目。当前蓝光只表示选择或学习记录。</p></section>`;
+ $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">REGION PROFILE</span><span class="atlas-badge">${a.name}</span></div><h2>${escape(e.text.title)}</h2><p class="latin3">${escape(e.name)}</p><div class="detail-section breadcrumb3">${e.text.side} · ${GROUPS[e.category]}<br>${a.type} · 标签 ${e.label}</div><div class="detail-actions"><button id="focusSelected">定位放大</button><button class="learn-btn" id="markLearned" aria-pressed="${known.has(e.id)}">${known.has(e.id)?'✓ 已学习':'标记已学习'}</button></div><button id="isolateSelected" class="isolate-action">隐藏其他结构</button><hr class="detail-hr"><section class="detail-section"><h3>空间位置</h3><p>${LOCATION[e.category]}</p></section><section class="detail-section"><h3>显示中心 · MNI 毫米</h3><div class="coord-grid">${['X','Y','Z'].map((a,i)=>`<div><span>${a}</span><strong>${e.center[i].toFixed(1)}</strong></div>`).join('')}</div><p class="micro-note" style="margin-top:10px">网格中心，非激活峰。X：左负右正；Y：后负前正；Z：下负上正。</p></section><section class="detail-section"><h3>如何理解这个边界</h3><p>${precise}</p><a class="source-link" href="${a.url}" target="_blank" rel="noopener">查看图谱原始研究 ↗</a></section><section class="detail-section"><h3>文献学习</h3><p class="micro-note">本次先建立解剖底座。之后可把论文的实验条件、定位与证据关联到这个条目。当前蓝光只表示选择或学习记录。</p></section>`;
  $('focusSelected').onclick=()=>focus(e);
+ $('isolateSelected').onclick=()=>toggleIsolation();
  $('markLearned').onclick=()=>{
   if(known.has(e.id))known.delete(e.id);else known.add(e.id);
   let saved=true;try{localStorage.setItem(knownKey,JSON.stringify([...known]));}catch{saved=false;}
   renderDetail(e);renderList();toast(saved?(known.has(e.id)?'已保存学习标记':'已取消学习标记'):'浏览器限制了保存；本次标记仅在当前页面保留');
  };
- $('stageTitle').textContent=e.text.full;
+ $('stageTitle').textContent=e.text.full;updateMaterials();
 }
 async function select(id,{zoom=false,reveal=false}={}){
  const e=entries.find(e=>e.id===id);if(!e)return;
- state.selected=id;
+ state.selected=id;state.focusKind='entry';
  if(reveal){state.source=e.atlas==='cit168'?'cit168':'julich';state.group=e.category;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
  try{await loadFile(e.file);}catch(err){toast('这个结构尚未加载成功，请刷新重试');return;}
+ if(state.selected!==id||state.focusKind!=='entry')return;
  renderList();renderDetail(e);if(zoom)focus(e);
  if(innerWidth<=1100&&window.atlasReady)$('detail3').classList.add('open');
 }
@@ -66,7 +103,7 @@ function focus(e){
  const direction=camera.position.clone().sub(controls.target).normalize();
  controls.target.copy(centre);camera.position.copy(centre).addScaledVector(direction,Math.max(45,size*2.8));controls.update();dirty=true;
 }
-function setHemi(hemi){state.hemi=hemi;$('hemiControls').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.hemi===hemi));renderList();}
+function setHemi(hemi){state.hemi=hemi;$('hemiControls').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.hemi===hemi));if(state.focusKind==='entry'&&!entries.some(e=>e.id===state.selected&&matches(e))){state.selected=null;state.focusKind=state.group==='all'?'none':'group';}renderList();if(state.focusKind!=='entry')groupDetail();}
 function setView(view){
  const c=new THREE.Vector3(0,-20,10),d=340;
  const vectors={oblique:[-1.05,-1.25,.72],left:[-1,0,0],front:[0,1,0],top:[0,-.001,1]};
@@ -124,18 +161,18 @@ async function loadFile(file){
 }
 function bindUI(){
  $('groupFilters').innerHTML=Object.entries(GROUPS).filter(([key])=>key!=='diencephalon').map(([key,name])=>`<button data-group="${key}" ${key==='all'?'class="active"':''}>${name}</button>`).join('');
- $('groupFilters').onclick=e=>{const b=e.target.closest('[data-group]');if(!b)return;state.group=b.dataset.group;renderList();};
+ $('groupFilters').onclick=e=>{const b=e.target.closest('[data-group]');if(!b)return;selectGroup(b.dataset.group);};
  $('regionItems').onclick=e=>{const b=e.target.closest('[data-id]');if(b)select(b.dataset.id);};
- $('search3').addEventListener('input',debounce(()=>{state.query=$('search3').value.trim().toLowerCase();renderList();},120));
+ $('search3').addEventListener('input',debounce(()=>{state.query=$('search3').value.trim().toLowerCase();renderList();if(state.focusKind==='group')groupDetail();},120));
  $('knownOnly').onclick=()=>{state.knownOnly=!state.knownOnly;$('knownOnly').setAttribute('aria-pressed',String(state.knownOnly));renderList();};
- $('sourceToggle').onclick=()=>{state.source=state.source==='julich'?'cit168':'julich';state.group='all';$('sourceToggle').setAttribute('aria-pressed',String(state.source==='cit168'));$('sourceToggle').textContent=state.source==='cit168'?'✓ CIT168 核团':'CIT168 核团';renderList();toast(state.source==='cit168'?'已切换到 CIT168 的 32 个左右核团条目':'已切回 Julich 精细分区与小脑分叶');};
+ $('sourceToggle').onclick=()=>{state.source=state.source==='julich'?'cit168':'julich';state.group='all';state.selected=null;state.focusKind='none';$('sourceToggle').setAttribute('aria-pressed',String(state.source==='cit168'));$('sourceToggle').textContent=state.source==='cit168'?'✓ CIT168 核团':'CIT168 核团';renderList();groupDetail();toast(state.source==='cit168'?'已切换到 CIT168 的 32 个左右核团条目':'已切回 Julich 精细分区与小脑分叶');};
  $('hemiControls').onclick=e=>{if(e.target.dataset.hemi)setHemi(e.target.dataset.hemi);};
  $('viewControls').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
- $('resetView').onclick=()=>{state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
+ $('resetView').onclick=()=>{state.selected=null;state.focusKind='none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
  $('opacity3').oninput=()=>{$('opacityOut').textContent=$('opacity3').value+'%';updateMaterials();};
  $('clipAxis').onchange=updateClip;$('clipDepth').oninput=updateClip;
  $('regionColors').onchange=()=>{state.colors=$('regionColors').checked;updateMaterials();};
- $('isolate3').onchange=()=>{state.isolate=$('isolate3').checked;updateMaterials();};
+ $('isolate3').onchange=()=>toggleIsolation($('isolate3').checked);
  $('openDetail').onclick=()=>$('detail3').classList.toggle('open');
  $('sourcesBtn').onclick=()=>$('sourcesDialog').showModal();$('closeSources').onclick=()=>$('sourcesDialog').close();
  $('sourcesDialog').onclick=e=>{if(e.target===$('sourcesDialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}};
