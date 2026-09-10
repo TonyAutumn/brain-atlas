@@ -24,10 +24,12 @@ assert.throws(()=>validateAnalysis({...fixture,regions:[{...fixture.regions[0],i
 
 const env={MOONSHOT_API_KEY:'test-key-not-real',ACCESS_TOKEN:'test-access-not-real-123456789',ALLOWED_ORIGIN:'https://tonyautumn.github.io'};
 const headers={Origin:env.ALLOWED_ORIGIN,Authorization:'Bearer '+env.ACCESS_TOKEN};
-let calls=[],failChat=false,truncate=false,invalid=false;
+let calls=[],failChat=false,truncate=false,invalid=false,redirectStatus=0;
 const realFetch=globalThis.fetch;
 globalThis.fetch=async(url,options={})=>{
  calls.push({url,options});assert.equal(options.headers.Authorization,'Bearer test-key-not-real');
+ assert.equal(options.redirect,'manual','Workers requests must handle redirects without forwarding credentials');
+ if(redirectStatus)return new Response(null,{status:redirectStatus,headers:{Location:'https://redirect-target.invalid/collect'}});
  if(url.endsWith('/models'))return Response.json({data:[{id:'kimi-k2.6'}]});
  if(url.endsWith('/files')&&options.method==='POST')return Response.json({id:'test_file'});
  if(url.endsWith('/files/test_file/content'))return new Response('Synthetic relationship. '.repeat(10));
@@ -45,6 +47,14 @@ try{
  assert.equal((await worker.fetch(new Request('https://test/health',{headers}),{})).status,503);
  assert.equal(calls.length,0,'Unauthorized/unconfigured calls must not contact Kimi');
  assert.equal((await(await worker.fetch(new Request('https://test/health',{headers}),env)).json()).ok,true);
+ for(const status of [301,302,303,307,308]){
+  calls=[];redirectStatus=status;
+  const response=await worker.fetch(new Request('https://test/health',{headers}),env);
+  assert.equal(response.status,502);assert.match((await response.json()).error,/重定向/);
+  assert.equal(calls.length,1,'Do not follow Location or retry a redirected authenticated request');
+  assert.equal(calls[0].url,'https://api.moonshot.cn/v1/models');
+ }
+ redirectStatus=0;calls=[];
  async function request(file=true){const form=new FormData();if(file)form.append('file',new Blob(['%PDF synthetic fixture'],{type:'application/pdf'}),'test.pdf');else form.append('text','Synthetic relationship. '.repeat(10));form.append('chosenTheme','濒死体验');const waits=[];const response=await worker.fetch(new Request('https://test/analyze',{method:'POST',headers,body:form}),env,{waitUntil:p=>waits.push(p)});const events=(await response.text()).trim().split('\n').map(s=>JSON.parse(s));await Promise.all(waits);return events;}
  let events=await request();assert.equal(events.at(-1).type,'result');assert.equal(events.at(-1).analysis.title,fixture.title);assert(events.some(e=>e.stage==='extract'));assert(calls.some(c=>c.options.method==='DELETE'));
  calls=[];failChat=true;events=await request();assert.equal(events.at(-1).type,'error');assert(!events.some(e=>e.type==='result'));assert(calls.some(c=>c.options.method==='DELETE'),'Clean up only the file uploaded by this request, even on failure');

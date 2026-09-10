@@ -51,7 +51,9 @@ mechanisms 每项：id(m1等), title(机制的简短名称), claim(具体发现�
 function httpError(message,status=400){return Object.assign(Error(message),{status});}
 function apiBase(env){const base=env.MOONSHOT_BASE_URL||'https://api.moonshot.cn/v1';if(!['https://api.moonshot.cn/v1','https://api.moonshot.ai/v1'].includes(base))throw httpError('服务端 Kimi 地址配置无效。',503);return base;}
 async function kimi(path,options,env,signal){
- const r=await fetch(apiBase(env)+path,{...options,redirect:'error',signal,headers:{...options?.headers,Authorization:'Bearer '+env.MOONSHOT_API_KEY}});
+ // Workers supports manual redirects; never forward the API key to a redirect target.
+ const r=await fetch(apiBase(env)+path,{...options,redirect:'manual',signal,headers:{...options?.headers,Authorization:'Bearer '+env.MOONSHOT_API_KEY}});
+ if(r.status>=300&&r.status<400)throw httpError(`Kimi 接口返回重定向（${r.status}），服务未继续跳转。请检查服务端 MOONSHOT_BASE_URL。`,502);
  if(!r.ok){const hints={401:'Kimi 密钥无效，请检查服务端密钥。',403:'Kimi 账户无权使用此接口或模型。',429:'Kimi 限流或额度不足，请检查账户后重试。',400:'Kimi 拒绝了请求，请检查模型、文件格式或内容长度。'};throw httpError(hints[r.status]||`Kimi 暂时无法完成请求（${r.status}）。`,502);}
  return r;
 }

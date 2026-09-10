@@ -116,7 +116,7 @@ function bind(){
  $('uploadBtn').onclick=upload;$('settingsBtn').onclick=settings;$('uploadForm').onsubmit=analyze;$('cancelAnalysis').onclick=()=>abort?.abort();
  $('saveSettings').onclick=()=>{try{saveSettings();}catch(e){$('connectionStatus').textContent=e.message;}};
  $('testConnection').onclick=async()=>{try{saveSettings();$('testConnection').disabled=true;$('connectionStatus').textContent='正在核对服务、Kimi 密钥与模型…';const data=await(await callService('/health',{signal:AbortSignal.timeout(30000)})).json();$('connectionStatus').textContent='已连接 Kimi，当前模型：'+data.model;$('settingsBtn').textContent='Kimi 已连接';}catch(e){$('connectionStatus').textContent=e.message;}finally{$('testConnection').disabled=false;}};
- $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制完整分析服务代码。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
+ $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=redirect2',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制完整分析服务代码，请替换 Cloudflare Worker 代码并部署。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
  $('generateToken').onclick=()=>{const bytes=crypto.getRandomValues(new Uint8Array(24));$('generatedToken').textContent=Array.from(bytes,v=>v.toString(16).padStart(2,'0')).join('');$('copyToken').hidden=false;};
  $('copyToken').onclick=async()=>{try{await navigator.clipboard.writeText($('generatedToken').textContent);message('访问码已复制；请同时保存到服务端和本页连接设置。');}catch{message('请手动选中并复制访问码。');}};
  $('themeList').onclick=e=>{const b=e.target.closest('[data-theme]');if(b){activeTheme=b.dataset.theme;selectedRows=null;render();}};
