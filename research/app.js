@@ -1,5 +1,6 @@
 import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js';
 import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,validateBackup,human} from './model.js';
+import {automaticThemes} from './theme-policy.js';
 import {readLibrary,saveLibrary} from './store.js';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -64,10 +65,13 @@ async function analyze(event){
    if(data.type==='result'){
     if(received)throw Error('服务返回了重复结果。');received=true;
     const paper=createPaper(data.analysis,entries,{source:data.source||'',fileName:file?.name||'粘贴的正文',originalFile:file||null,fingerprint,model:data.model,usage:data.usage,figureNames:data.figures||[],warnings});
+    const suggested=automaticThemes(paper.data.themes),chosen=form.get('chosenTheme');
+    paper.data.themes=themeList(chosen?[chosen,...suggested]:suggested);
+    if(!paper.data.themes.length)paper.warnings=[...(paper.warnings||[]),'未获得合适的现象或行为主题。文献已保留在“全部文献”，请核对后填写主题。'];
     const saved=await commit({...library,themes:themeList([...library.themes,...paper.data.themes]),papers:[paper,...library.papers]});
     stage=saved?'分析完成，已保存为待核对草稿。':'分析完成，但本地保存失败，请立即导出备份。';
     if(warnings.length)stage+='\n'+warnings.join('\n');
-    selectedRows=null;activeTheme=paper.data.themes[0]||activeTheme;render();
+    selectedRows=null;activeTheme=paper.data.themes[0]||'';render();
     if(saved){message('论文已加入主题，可核对定位与证据。');openPaper(paper.id);}
    }
   }
@@ -116,7 +120,7 @@ function bind(){
  $('uploadBtn').onclick=upload;$('settingsBtn').onclick=settings;$('uploadForm').onsubmit=analyze;$('cancelAnalysis').onclick=()=>abort?.abort();
  $('saveSettings').onclick=()=>{try{saveSettings();}catch(e){$('connectionStatus').textContent=e.message;}};
  $('testConnection').onclick=async()=>{try{saveSettings();$('testConnection').disabled=true;$('connectionStatus').textContent='正在核对服务、Kimi 密钥与模型…';const data=await(await callService('/health',{signal:AbortSignal.timeout(30000)})).json();$('connectionStatus').textContent='已连接 Kimi，当前模型：'+data.model;$('settingsBtn').textContent='Kimi 已连接';}catch(e){$('connectionStatus').textContent=e.message;}finally{$('testConnection').disabled=false;}};
- $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=redirect2',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制完整分析服务代码，请替换 Cloudflare Worker 代码并部署。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
+ $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=themes1',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制完整分析服务代码，请替换 Cloudflare Worker 代码并部署。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
  $('generateToken').onclick=()=>{const bytes=crypto.getRandomValues(new Uint8Array(24));$('generatedToken').textContent=Array.from(bytes,v=>v.toString(16).padStart(2,'0')).join('');$('copyToken').hidden=false;};
  $('copyToken').onclick=async()=>{try{await navigator.clipboard.writeText($('generatedToken').textContent);message('访问码已复制；请同时保存到服务端和本页连接设置。');}catch{message('请手动选中并复制访问码。');}};
  $('themeList').onclick=e=>{const b=e.target.closest('[data-theme]');if(b){activeTheme=b.dataset.theme;selectedRows=null;render();}};

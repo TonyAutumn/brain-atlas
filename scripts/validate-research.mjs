@@ -4,10 +4,13 @@ import {validateAnalysis,themeList,quoteCheck} from '../research/schema.js';
 import {createPaper,suggestMapping,resolveMapping,evidenceScene,mechanismRows,validateBackup} from '../research/model.js';
 import {buildEvidenceLayer} from '../anatomy/evidence-layer.js';
 import worker from '../services/kimi-worker.js';
+import {automaticThemes} from '../research/theme-policy.js';
+assert.deepEqual(automaticThemes(['进化神经科学','认知神经科学','fMRI','海马','预测编码','濒死体验','顿悟','恐惧消退']),['濒死体验','顿悟','恐惧消退']);
+assert.deepEqual(automaticThemes(['进化神经科学']),[]);
 
 const root=new URL('../',import.meta.url),entries=JSON.parse(fs.readFileSync(new URL('anatomy/data/manifest.json',root))).entries.filter(e=>e.atlas!=='surface');
 // Synthetic test-only evidence; no example research is shipped into the user's library.
-const fixture={title:'TEST ONLY: paper A',authors:'Test',year:'2026',species:'人类',themes:['NDE','濒死体验'],regions:[{id:'r1',name:'CA1',hemisphere:'L',species:'人类',level:'region'},{id:'r2',name:'CA3',hemisphere:'R',species:'人类',level:'region'}],mechanisms:[{id:'m1',title:'TEST mechanism',claim:'Synthetic relationship',evidenceType:'association',origin:'study',regions:['r1','r2'],connections:[{from:'r1',to:'r2',directed:true}],quote:'Synthetic relationship'}]};
+const fixture={title:'TEST ONLY: paper A',authors:'Test',year:'2026',species:'人类',themes:['NDE','濒死体验','进化神经科学'],regions:[{id:'r1',name:'CA1',hemisphere:'L',species:'人类',level:'region'},{id:'r2',name:'CA3',hemisphere:'R',species:'人类',level:'region'}],mechanisms:[{id:'m1',title:'TEST mechanism',claim:'Synthetic relationship',evidenceType:'association',origin:'study',regions:['r1','r2'],connections:[{from:'r1',to:'r2',directed:true}],quote:'Synthetic relationship'}]};
 const analysis=validateAnalysis(fixture);assert.equal(analysis.mechanisms[0].connections[0].directed,false);
 assert.deepEqual(themeList(['NDE','near-death experience','濒死体验']),['濒死体验']);
 assert.equal(quoteCheck('a  b','A\nb'),'matched');assert.equal(quoteCheck('unseen','paper'),'unmatched');
@@ -56,7 +59,7 @@ try{
  }
  redirectStatus=0;calls=[];
  async function request(file=true){const form=new FormData();if(file)form.append('file',new Blob(['%PDF synthetic fixture'],{type:'application/pdf'}),'test.pdf');else form.append('text','Synthetic relationship. '.repeat(10));form.append('chosenTheme','濒死体验');const waits=[];const response=await worker.fetch(new Request('https://test/analyze',{method:'POST',headers,body:form}),env,{waitUntil:p=>waits.push(p)});const events=(await response.text()).trim().split('\n').map(s=>JSON.parse(s));await Promise.all(waits);return events;}
- let events=await request();assert.equal(events.at(-1).type,'result');assert.equal(events.at(-1).analysis.title,fixture.title);assert(events.some(e=>e.stage==='extract'));assert(calls.some(c=>c.options.method==='DELETE'));
+ let events=await request();assert.equal(events.at(-1).type,'result');assert.equal(events.at(-1).analysis.title,fixture.title);assert.deepEqual(events.at(-1).analysis.themes,['濒死体验']);assert(events.some(e=>e.stage==='extract'));assert(calls.some(c=>c.options.method==='DELETE'));
  calls=[];failChat=true;events=await request();assert.equal(events.at(-1).type,'error');assert(!events.some(e=>e.type==='result'));assert(calls.some(c=>c.options.method==='DELETE'),'Clean up only the file uploaded by this request, even on failure');
  failChat=false;truncate=true;events=await request(false);assert.equal(events.at(-1).type,'error');truncate=false;invalid=true;events=await request(false);assert.equal(events.at(-1).type,'error');
 }finally{globalThis.fetch=realFetch;}
