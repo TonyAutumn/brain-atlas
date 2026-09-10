@@ -1,0 +1,53 @@
+{
+  "retrieved": "2026-09-10",
+  "sources": [
+    {
+      "localName": "julich-l.nii.gz",
+      "repository": "niivue/niivue-demo-images",
+      "path": "Juelich31/JulichBrainAtlas31_LH.nii.gz",
+      "gitBlobSha": "ced45b9222f4a7f3225b8f58751fc14beb27aba9"
+    },
+    {
+      "localName": "julich-r.nii.gz",
+      "repository": "niivue/niivue-demo-images",
+      "path": "Juelich31/JulichBrainAtlas31_RH.nii.gz",
+      "gitBlobSha": "32c5d2e3e5f83c11b6dd87c10d3eac030fc9d581"
+    },
+    {
+      "localName": "julich-labels.json",
+      "repository": "niivue/niivue-demo-images",
+      "path": "Juelich31/Julich.json",
+      "gitBlobSha": "996bca9f9360c0836c9141024c42f8adbd896b4b"
+    },
+    {
+      "localName": "cit168.mz3",
+      "repository": "niivue/niivue-demo-images",
+      "path": "CIT168/CIT168.mz3",
+      "gitBlobSha": "582cff509104c066c104d5bcba5957326d5a39c0"
+    },
+    {
+      "localName": "cit-labels.json",
+      "repository": "niivue/niivue-demo-images",
+      "path": "CIT168/CIT168.json",
+      "gitBlobSha": "602bf8ddbbf9c303f02f54876a78c2352ef5f108"
+    },
+    {
+      "localName": "cortex2009.mz3",
+      "repository": "neurolabusc/surf-ice",
+      "path": "sample/mni152_2009mini.mz3",
+      "gitBlobSha": "55f8a2d872b0c976c5538e5c1e533ab77af03a03"
+    },
+    {
+      "localName": "aal.nii.gz",
+      "repository": "niivue/niivue",
+      "path": "packages/niivue/demos/images/aal.nii.gz",
+      "gitBlobSha": "d84f74b2fb15607d7760d51b4d0c7c38dbd5dff7"
+    },
+    {
+      "localName": "aal-labels.json",
+      "repository": "niivue/niivue",
+      "path": "packages/niivue/demos/images/aal.json",
+      "gitBlobSha": "28ae8b60c59f74d8be411696bb30c9569d4c9485"
+    }
+  ]
+}

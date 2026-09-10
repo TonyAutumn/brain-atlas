@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const html = fs.readFileSync(path.join(root, "basics.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const data = fs.readFileSync(path.join(root, "data", "regions.js"), "utf8");
 const deepDives = fs.readFileSync(path.join(root, "data", "deep-dives.js"), "utf8");

@@ -8,6 +8,21 @@ https://tonyautumn.github.io/brain-atlas/
 
 提交到 `main` 分支后，GitHub Actions 会自动把最新版发布到同一个网址。
 
+## 三维解剖（首页）
+
+首页现为真实解剖三维空间，支持旋转、平移、缩放、半球显示、外壳透明度、矢状/冠状/轴状裁切、中英文检索、点击详情、定位放大、区域着色及浏览器本地学习记录。
+
+- Julich-Brain v3.1：400 个左右分开计数的精细分区；包含海马 CA1/CA2/CA3、齿状回、下托复合体，岛叶亚区、丘脑核团、杏仁核核群及小脑深部核团。
+- CIT168：32 个左右分开的皮层下条目，单独切换显示。
+- AAL：26 个小脑分叶条目。
+- ICBM152 2009：真实解剖参考表面。458 是可选图谱条目数，包含不同图谱的重叠结构，并非人脑的唯一脑区总数。
+
+三维模块位于 `anatomy/`，全部显示资产随站点分发。首次加载约 11 MB；不依赖外部 CDN。通过 HTTPS 网址打开，需要支持 WebGL 与 DecompressionStream 的现代浏览器。三维模块不包含在旧的单文件离线版中。
+
+数据来源、许可、坐标和转换方法见 [anatomy/SOURCES.md](anatomy/SOURCES.md)。运行 `node scripts/validate-anatomy.mjs` 验证资产、网格与标签。`scripts/build-anatomy.py` 可从已下载的源图谱重新生成网格（需 NumPy/SciPy）。
+
+基础内容现在位于 `basics.html`，旧的专题、卡片、测验及笔记均保留；原有浏览器记录使用原键，不迁移或清空。后续论文证据应通过稳定的图谱 ID 关联，不把示意节点冒充单神经元。
+
 ## 包含内容
 
 - 13 个主要脑区与两种示意视角
@@ -21,7 +36,7 @@ https://tonyautumn.github.io/brain-atlas/
 
 双击 `Brain-Atlas-Offline.html` 即可。所有样式、数据和交互均已打包在单一文件中。文件名使用英文是为了避免 Windows 批处理和压缩软件的中文编码问题。
 
-也可以打开源码目录中的 `index.html`。源码不需要本地服务器，断网时仍能运行。
+基础版也可以打开 `basics.html`。三维首页请通过在线网址访问。
 
 ## 扩展新脑区
 
@@ -37,7 +52,7 @@ https://tonyautumn.github.io/brain-atlas/
 
 进阶专题集中在 `data/deep-dives.js`。每个专题包含 `pathway`、`models`、`experiments`、`papers`、`frontiers` 和 `quiz`，后续可以按相同结构逐个加入新的脑区或神经回路。
 
-如需在脑图中显示新区域，再在 `index.html` 的 SVG 中加入带有 `data-region="你的-id"` 的图形即可。界面会自动读取颜色、选中状态和无障碍标签。
+如需在脑图中显示新区域，再在 `basics.html` 的 SVG 中加入带有 `data-region="你的-id"` 的图形即可。界面会自动读取颜色、选中状态和无障碍标签。
 
 ## 目录结构
 
