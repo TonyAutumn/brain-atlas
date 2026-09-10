@@ -1,7 +1,8 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
-import {GROUPS,ATLAS,describe,LOCATION} from './labels.js';
-import {GROUP_COLORS,emphasis,showShell} from './visual-state.js';
+import {ATLAS,describe} from './labels.js';
+import {emphasis,showShell} from './visual-state.js?v=nav3';
+import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
@@ -12,15 +13,34 @@ const cursor=new THREE.Vector2();
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const debounce=(fn,ms)=>{let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
 const sourceFits=e=>state.source==='cit168'?e.atlas==='cit168':e.atlas==='julich'||e.atlas==='aal';
-const matches=e=>sourceFits(e)&&(state.group==='all'||e.category===state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id))&&(!state.query||e.text.search.includes(state.query));
+const matches=e=>sourceFits(e)&&inGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id))&&(!state.query||e.text.search.includes(state.query));
 const visibleEntries=()=>entries.filter(matches);
 function toast(s){$('toast3').textContent=s;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast3').textContent='',3200)}
+function breadcrumbs(group){return pathFor(group).map(id=>`<button data-group="${id}" ${id===group?'aria-current="location"':''}>${NAV[id].label}</button>`).join('<span aria-hidden="true">›</span>');}
+function renderNavigation(){
+ const top=topGroup(state.group),available=entries.filter(sourceFits);
+ const count=id=>available.filter(e=>inGroup(e,id)).length;
+ const button=(id,active,label=NAV[id].label)=>`<button data-group="${id}" aria-pressed="${active}" ${active?'class="active"':''} ${count(id)?'':'disabled'} title="${count(id)?'当前图谱收录 '+count(id)+' 个条目（左右分开计数）':'当前图谱未收录；可切换图谱'}">${label}</button>`;
+ const setHTML=(id,html)=>{if($(id).innerHTML!==html)$(id).innerHTML=html;};
+ const activeId=document.activeElement?.dataset.group;
+ setHTML('groupFilters',['all',...childrenOf('all')].map(id=>button(id,top===id)).join(''));
+ $('subgroupPanel').hidden=top==='all';
+ if(top!=='all'){
+  $('subgroupLabel').textContent=top==='cortex'?'按脑叶及空间区域细分':NAV[top].label+' · 细分结构';
+  setHTML('subgroupFilters',[button(top,state.group===top,'全部'+(top==='cortex'?'皮层':'分组')),...childrenOf(top).filter(id=>id!=='unassigned'||count(id)).map(id=>button(id,state.group===id))].join(''));
+ }
+ if(activeId&&!document.activeElement?.dataset.group)$('groupFilters').parentElement.querySelector(`[data-group="${activeId}"]`)?.focus({preventScroll:true});
+ $('navHint').textContent=top==='cortex'?'仅覆盖图谱已收录的皮层分区；脑叶还包含其下白质。':top==='brainstem'?'当前仅收录部分中脑核团；脑桥与延髓尚未添加。':'先选大结构，再选下方分区；灰色入口表示当前图谱未收录。';
+ setHTML('indexPath',breadcrumbs(state.group));
+ $('search3').placeholder='在'+NAV[state.group].label+'中搜索…';
+ $('atlasSelect').value=state.source;
+}
 function renderList(){
  const list=visibleEntries().sort((a,b)=>a.text.title.localeCompare(b.text.title,'zh-CN')||a.hemisphere.localeCompare(b.hemisphere));
- $('listCount').textContent=`${list.length} 个条目 / ${entries.length} 个可选`;
+ $('listCount').textContent=`当前 ${list.length} 个条目`;
  $('learnedCount').textContent=`已学习 ${entries.filter(e=>known.has(e.id)).length}`;
  $('regionItems').innerHTML=list.length?list.map(e=>`<button class="region-item ${known.has(e.id)?'learned':''} ${e.id===state.selected?'active':''}" data-id="${e.id}" aria-pressed="${e.id===state.selected}"><span class="hem">${e.hemisphere==='M'?'中线':e.hemisphere}</span><strong>${escape(e.text.title)}</strong><small>${escape(e.name)}</small></button>`).join(''):'<p class="empty3">没有匹配的条目。可清空搜索、切换图谱或显示双侧。</p>';
- $('groupFilters').querySelectorAll('button').forEach(b=>{b.classList.toggle('active',b.dataset.group===state.group);b.setAttribute('aria-pressed',String(b.dataset.group===state.group))});
+ renderNavigation();
  updateMaterials();
 }
 function updateMaterials(){
@@ -39,8 +59,8 @@ function updateMaterials(){
  const opacity=Number($('opacity3').value)/100;
  shells.forEach(m=>{m.visible=showShell(state,m.userData.entry.hemisphere,opacity);m.material.opacity=opacity;});
  const group=state.group!=='all';
- $('selectionSwatch').style.background=group?GROUP_COLORS[state.group]:'#8894a4';
- $('selectionLegend').textContent=group?GROUPS[state.group]:'解剖结构';
+ $('selectionSwatch').style.background=group?NAV[state.group].color:'#8894a4';
+ $('selectionLegend').textContent=group?NAV[state.group].label:'解剖结构';
  $('visibilityNote').textContent=state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」';
  const opacityLabel=$('opacity3').closest('label');
  $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
@@ -64,22 +84,23 @@ function toggleIsolation(value=!state.isolate){
  state.isolate=value;$('isolate3').checked=value;updateMaterials();if(value)focusUnit();
 }
 function groupDetail(){
- const group=state.group!=='all',name=group?GROUPS[state.group]:'解剖结构',list=visibleEntries();
- const note=state.group==='hippocampus'?'这一学习分组包含海马亚区、下托复合体及内嗅皮层等邻近区域；分组不表示它们是同一个解剖单位。':group?LOCATION[state.group]:'选择左侧的大结构，可突出显示该组；再点一个条目，查看更精细的亚区。';
- $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">STRUCTURE OVERVIEW</span><span class="atlas-badge">${state.source==='cit168'?'CIT168':'Julich / AAL'}</span></div><h2>${name}</h2><p class="latin3">${list.length} 个当前可见条目 · ${state.hemi==='both'?'双侧':state.hemi==='L'?'左侧':'右侧'}</p><div class="group-key" style="--group-colour:${GROUP_COLORS[state.group]||'#929dab'}"><i></i><span>${group?'大结构以此颜色强调；点选亚区后呈亮蓝色。':'请选择大结构或具体亚区。'}</span></div><div class="detail-actions"><button id="focusGroup">定位整组</button><button id="isolateSelected">隐藏其他结构</button></div><hr class="detail-hr"><section class="detail-section"><h3>空间关系</h3><p>${note}</p></section><section class="detail-section"><h3>独立查看</h3><p>「隐藏其他结构」会同时隐藏参考外壳。选中大结构时保留整组，选中具体亚区时只保留该条目。再次点击恢复背景。</p></section>`;
+ const group=state.group!=='all',info=NAV[state.group],list=visibleEntries();
+ const cortical=topGroup(state.group)==='cortex';
+ $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">STRUCTURE OVERVIEW</span><span class="atlas-badge">${state.source==='cit168'?'CIT168':'Julich / AAL'}</span></div><nav class="detail-path" aria-label="结构归属">${breadcrumbs(state.group)}</nav><h2>${info.label}</h2><p class="latin3">${list.length} 个当前可见条目 · ${state.hemi==='both'?'双侧':state.hemi==='L'?'左侧':'右侧'}</p><div class="group-key" style="--group-colour:${info.color}"><i></i><span>${group?'整组以此颜色强调；点选具体分区后呈亮蓝色。':'请选择大结构或具体分区。'}</span></div><div class="detail-actions"><button id="focusGroup" ${list.length?'':'disabled'}>定位整组</button><button id="isolateSelected">隐藏其他结构</button></div><hr class="detail-hr"><section class="detail-section"><h3>这一组包含什么</h3><p>${info.note}</p>${cortical?'<p class="micro-note">高亮范围是当前图谱已收录分区的集合，不是完整脑叶体积。脑回、细胞构筑区与脑叶边界并非一一对应。</p>':''}</section><section class="detail-section"><h3>继续细分</h3><p>在左侧选择下一级分组或具体条目。详情上方的路径可以返回任何一级；「隐藏其他结构」只保留当前整组或单个分区。</p></section>`;
  $('focusGroup').onclick=focusUnit;$('isolateSelected').onclick=()=>toggleIsolation();
- $('stageTitle').textContent=group?name+' · 整组选择':'群体参考脑 · 真实解剖表面';
+ $('stageTitle').textContent=group?info.label+' · 已收录分区':'群体参考脑 · 真实解剖表面';
  updateMaterials();
 }
 function selectGroup(group){
+ if(!NAV[group])return;
  state.group=group;state.selected=null;state.focusKind=group==='all'?'none':'group';
  state.query='';$('search3').value='';renderList();groupDetail();
  if(state.isolate)focusUnit();
 }
 function renderDetail(e){
- const a=ATLAS[e.atlas];
+ const a=ATLAS[e.atlas],location=NAV[e.nav];
  const precise=e.name.includes('Subc')?'此标签是“下托复合体”，不能自动等同于所有论文中的 subiculum；需核对论文采用的亚区定义。':e.name.includes('GapMap')?'图谱未定义范围。':a.description;
- $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">REGION PROFILE</span><span class="atlas-badge">${a.name}</span></div><h2>${escape(e.text.title)}</h2><p class="latin3">${escape(e.name)}</p><div class="detail-section breadcrumb3">${e.text.side} · ${GROUPS[e.category]}<br>${a.type} · 标签 ${e.label}</div><div class="detail-actions"><button id="focusSelected">定位放大</button><button class="learn-btn" id="markLearned" aria-pressed="${known.has(e.id)}">${known.has(e.id)?'✓ 已学习':'标记已学习'}</button></div><button id="isolateSelected" class="isolate-action">隐藏其他结构</button><hr class="detail-hr"><section class="detail-section"><h3>空间位置</h3><p>${LOCATION[e.category]}</p></section><section class="detail-section"><h3>显示中心 · MNI 毫米</h3><div class="coord-grid">${['X','Y','Z'].map((a,i)=>`<div><span>${a}</span><strong>${e.center[i].toFixed(1)}</strong></div>`).join('')}</div><p class="micro-note" style="margin-top:10px">网格中心，非激活峰。X：左负右正；Y：后负前正；Z：下负上正。</p></section><section class="detail-section"><h3>如何理解这个边界</h3><p>${precise}</p><a class="source-link" href="${a.url}" target="_blank" rel="noopener">查看图谱原始研究 ↗</a></section><section class="detail-section"><h3>文献学习</h3><p class="micro-note">本次先建立解剖底座。之后可把论文的实验条件、定位与证据关联到这个条目。当前蓝光只表示选择或学习记录。</p></section>`;
+ $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">REGION PROFILE</span><span class="atlas-badge">${a.name}</span></div><nav class="detail-path" aria-label="脑区归属">${breadcrumbs(e.nav)}</nav><h2>${escape(e.text.title)}</h2><p class="latin3">${escape(e.name)}</p><div class="detail-section breadcrumb3">${e.text.side} · ${location.label}<br>${a.type} · 标签 ${e.label}</div><div class="detail-actions"><button id="focusSelected">定位放大</button><button class="learn-btn" id="markLearned" aria-pressed="${known.has(e.id)}">${known.has(e.id)?'✓ 已学习':'标记已学习'}</button></div><button id="isolateSelected" class="isolate-action">隐藏其他结构</button><hr class="detail-hr"><section class="detail-section"><h3>空间位置</h3><p>${location.note}</p></section><section class="detail-section"><h3>显示中心 · MNI 毫米</h3><div class="coord-grid">${['X','Y','Z'].map((a,i)=>`<div><span>${a}</span><strong>${e.center[i].toFixed(1)}</strong></div>`).join('')}</div><p class="micro-note" style="margin-top:10px">网格中心，非激活峰。X：左负右正；Y：后负前正；Z：下负上正。</p></section><section class="detail-section"><h3>如何理解这个边界</h3><p>${precise}</p><a class="source-link" href="${a.url}" target="_blank" rel="noopener">查看图谱原始研究 ↗</a></section><section class="detail-section"><h3>文献学习</h3><p class="micro-note">本次先建立解剖底座。之后可把论文的实验条件、定位与证据关联到这个条目。当前蓝光只表示选择或学习记录。</p></section>`;
  $('focusSelected').onclick=()=>focus(e);
  $('isolateSelected').onclick=()=>toggleIsolation();
  $('markLearned').onclick=()=>{
@@ -92,7 +113,7 @@ function renderDetail(e){
 async function select(id,{zoom=false,reveal=false}={}){
  const e=entries.find(e=>e.id===id);if(!e)return;
  state.selected=id;state.focusKind='entry';
- if(reveal){state.source=e.atlas==='cit168'?'cit168':'julich';state.group=e.category;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
+ if(reveal){state.source=e.atlas==='cit168'?'cit168':'julich';state.group=e.nav;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
  try{await loadFile(e.file);}catch(err){toast('这个结构尚未加载成功，请刷新重试');return;}
  if(state.selected!==id||state.focusKind!=='entry')return;
  renderList();renderDetail(e);if(zoom)focus(e);
@@ -160,12 +181,12 @@ async function loadFile(file){
  })();loadedFiles.set(file,p);try{return await p;}catch(e){loadedFiles.delete(file);throw e;}
 }
 function bindUI(){
- $('groupFilters').innerHTML=Object.entries(GROUPS).filter(([key])=>key!=='diencephalon').map(([key,name])=>`<button data-group="${key}" ${key==='all'?'class="active"':''}>${name}</button>`).join('');
- $('groupFilters').onclick=e=>{const b=e.target.closest('[data-group]');if(!b)return;selectGroup(b.dataset.group);};
+ const navigate=e=>{const b=e.target.closest('[data-group]');if(b&&!b.disabled)selectGroup(b.dataset.group);};
+ $('groupFilters').onclick=navigate;$('subgroupFilters').onclick=navigate;$('indexPath').onclick=navigate;$('detail3').addEventListener('click',navigate);
  $('regionItems').onclick=e=>{const b=e.target.closest('[data-id]');if(b)select(b.dataset.id);};
  $('search3').addEventListener('input',debounce(()=>{state.query=$('search3').value.trim().toLowerCase();renderList();if(state.focusKind==='group')groupDetail();},120));
- $('knownOnly').onclick=()=>{state.knownOnly=!state.knownOnly;$('knownOnly').setAttribute('aria-pressed',String(state.knownOnly));renderList();};
- $('sourceToggle').onclick=()=>{state.source=state.source==='julich'?'cit168':'julich';state.group='all';state.selected=null;state.focusKind='none';$('sourceToggle').setAttribute('aria-pressed',String(state.source==='cit168'));$('sourceToggle').textContent=state.source==='cit168'?'✓ CIT168 核团':'CIT168 核团';renderList();groupDetail();toast(state.source==='cit168'?'已切换到 CIT168 的 32 个左右核团条目':'已切回 Julich 精细分区与小脑分叶');};
+ $('knownOnly').onclick=()=>{state.knownOnly=!state.knownOnly;$('knownOnly').setAttribute('aria-pressed',String(state.knownOnly));renderList();if(state.focusKind!=='entry')groupDetail();};
+ $('atlasSelect').onchange=()=>{state.source=$('atlasSelect').value;state.group='all';state.selected=null;state.focusKind='none';state.query='';$('search3').value='';renderList();groupDetail();toast(state.source==='cit168'?'已切换到 CIT168 的 32 个左右核团条目':'已切回 Julich 精细分区与小脑分叶');};
  $('hemiControls').onclick=e=>{if(e.target.dataset.hemi)setHemi(e.target.dataset.hemi);};
  $('viewControls').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
  $('resetView').onclick=()=>{state.selected=null;state.focusKind='none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
@@ -188,19 +209,19 @@ async function main(){
  try{
   setupScene();bindUI();
   const r=await fetch(new URL('data/manifest.json',import.meta.url));if(!r.ok)throw Error('索引读取失败');manifest=await r.json();
-  entries=manifest.entries.filter(e=>e.atlas!=='surface');for(const e of entries)e.text=describe(e);
+  entries=manifest.entries.filter(e=>e.atlas!=='surface');for(const e of entries){e.nav=navigationFor(e);e.text=describe(e);e.text.search+=' '+navigationText(e).toLowerCase();}
   renderList();
   const initial=entries.find(e=>e.id==='julich-L-172')||entries[0];
   const shellFile=manifest.files.find(f=>f.name.startsWith('shell')).name;
   await loadFile(shellFile);
-  await select(initial.id);
+  await select(initial.id,{reveal:true});
   $('loadNotice').classList.add('hidden');window.atlasReady=true;
   let done=loadedFiles.size;let failures=0;
   const queue=manifest.files.map(f=>f.name).filter(f=>!loadedFiles.has(f));
   async function worker(){while(queue.length){const file=queue.shift();try{await loadFile(file);}catch(e){failures++;console.warn('Atlas file unavailable',file,e.message);}done++;$('modelStatus').textContent=`解剖数据 ${Math.round(done/manifest.files.length*100)}%`;}}
   await Promise.all([worker(),worker(),worker(),worker()]);
   $('modelStatus').textContent=failures?`${failures} 组未加载 · 刷新重试`:`${entries.length} 个图谱条目`;
-  window.brainAtlas={version:manifest.version,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known]};
+  window.brainAtlas={version:manifest.version,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group};
  }catch(e){console.error(e);$('loadNotice').classList.remove('hidden');$('loadText').textContent='三维模型加载失败：'+e.message+'。请刷新或使用最新版 Edge / Chrome。';$('loadNotice').querySelector('.loading-line')?.remove();}
 }
 main();
