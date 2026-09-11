@@ -9,12 +9,13 @@
 <body>
 <header class="top">
  <a class="brand3" href="./"><span class="mark" aria-hidden="true">◈</span><div><h1>脑区探索室</h1><small>BRAIN ATLAS / ANATOMY</small></div></a>
- <nav class="topnav" aria-label="主导航"><span class="current">三维解剖</span><a href="papers.html">主题与文献</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
+ <nav class="topnav" aria-label="主导航"><span class="current">三维解剖</span><a href="papers.html">主题与文献</a><a href="papers.html?record=network#recordPanel">功能网络</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
 </header>
 <main class="app">
  <aside class="left" aria-label="脑区索引">
   <div class="index-head"><span class="eyebrow">ANATOMICAL INDEX</span><h2>探索脑的内部</h2>
-   <label class="atlas-picker" for="atlasSelect">当前图谱<select id="atlasSelect"><option value="julich">Julich 精细分区 + AAL 小脑</option><option value="cit168">CIT168 皮层下核团</option></select></label>
+   <label class="atlas-picker" for="atlasSelect">当前图谱<select id="atlasSelect"><option value="julich">主要脑区与小脑</option><option value="cit168">深部核团补充图谱</option></select></label>
+   <p class="nav-hint">主要图谱：Julich + AAL；深部补充：CIT168。两套图谱部分重叠。</p><p><a href="papers.html?record=network#recordPanel">查看功能网络与文献 →</a></p>
    <nav class="anatomy-nav" aria-label="解剖层级导航">
     <div class="nav-label">按结构浏览</div>
     <div class="filter primary-groups" id="groupFilters"></div>

@@ -36,9 +36,11 @@ async function updateScene(){
  const counts={region:0,network:0,cell:0};refs.forEach(x=>counts[recordKind(x.r)]++);
  $('mappingStatus').textContent=currentRows.length?`解剖结构 ${counts.region} 项 · 功能网络 ${counts.network} 项 · 细胞/神经元 ${counts.cell} 项。${spec.nodes.filter(n=>n.kind!=='network').length} 项解剖对应，${spec.nodes.filter(n=>n.kind==='network').length} 项网络参考；${pending} 项候选待核对。`:'当前没有文献机制。';
  const filter=$('recordFilter').value;
- $('recordDetails').innerHTML=refs.filter(x=>filter==='all'||recordKind(x.r)===filter).map(({paper,r})=>`<div style="border-left:3px solid ${networkOf(r)?'#b58aff':recordKind(r)==='cell'?'#e6b465':'#39b9ff'};padding:8px;margin:8px 0"><b>${kindLabel(r)} · ${esc(r.name)}</b><p>${esc(mappingExplanation(r,paper.mappings[r.id],entries))}</p>${networkOf(r)?'<a href="https://pubmed.ncbi.nlm.nih.gov/11209064/" target="_blank" rel="noopener">DMN 背景文献</a>':''}</div>`).join('');
+ document.querySelectorAll('#recordTabs [data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.kind===filter)));
+ if(filter!=='all'){spec.nodes=spec.nodes.filter(n=>n.kind===filter);const visible=new Set(spec.nodes.map(n=>n.id));spec.links=spec.links.filter(l=>visible.has(l.from)&&visible.has(l.to));}
+ $('recordDetails').innerHTML=refs.filter(x=>filter==='all'||recordKind(x.r)===filter).map(({paper,r})=>`<div style="border-left:3px solid ${networkOf(r)?'#b58aff':recordKind(r)==='cell'?'#e6b465':'#39b9ff'};padding:8px;margin:8px 0"><b>${kindLabel(r)} · ${esc(r.name)}</b><p>${esc(mappingExplanation(r,paper.mappings[r.id],entries))}</p>${networkOf(r)?'<a href="https://pubmed.ncbi.nlm.nih.gov/11209064/" target="_blank" rel="noopener">DMN 背景文献</a>':''}</div>`).join('')||'<p>当前范围没有此类记录。可切换到“全部文献”、关闭“只看已核对文献”，或上传涉及此类机制的论文。</p>';
 
- const confirmed=evidenceScene(currentRows,entries,{confirmedOnly:true});$('markLearned').disabled=!confirmed.nodes.length;
+ const confirmed=evidenceScene(currentRows,entries,{confirmedOnly:true});$('markLearned').disabled=!confirmed.nodes.length||!['all','region'].includes(filter);
  if(ready){try{await $('brainFrame').contentWindow.brainAtlas.showEvidence(spec);}catch{message('部分三维结构尚未加载成功，可刷新后重试。');}}
 }
 function upload(){if(activeTheme)$('uploadTheme').value=activeTheme;showDialog('uploadDialog');if(!service||!token)$('uploadStatus').textContent='请先在顶部“连接 Kimi”配置分析服务。选择文件本身不会上传。';}
@@ -121,7 +123,9 @@ async function savePaper(event){
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 function exportBackup(){const data={version:1,themes:library.themes,papers:library.papers.map(({originalFile,...p})=>p)};download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'brain-atlas-papers-backup.json');message('已导出主题、分析与原文文本；备份不包含原始 PDF 或连接密钥。');}
 function bind(){
+ $('recordFilter').value=['region','network','cell'].includes(new URLSearchParams(location.search).get('record'))?new URLSearchParams(location.search).get('record'):'all';
  $('recordFilter').onchange=updateScene;
+ $('recordTabs').onclick=e=>{const b=e.target.closest('[data-kind]');if(b){$('recordFilter').value=b.dataset.kind;updateScene();}};
  document.addEventListener('click',e=>{const close=e.target.closest('[data-close]');if(close)closeDialog(close.dataset.close);});
  $('uploadDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();});
  $('uploadBtn').onclick=upload;$('settingsBtn').onclick=settings;$('uploadForm').onsubmit=analyze;$('cancelAnalysis').onclick=()=>abort?.abort();
@@ -146,7 +150,7 @@ function bind(){
  };
  $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('backupFile').click();
  $('backupFile').onchange=async()=>{const f=$('backupFile').files[0];if(!f)return;try{if(f.size>80*1024*1024)throw Error('备份文件超过 80 MB。');const data=validateBackup(JSON.parse(await f.text()),entries),existing=new Set(library.papers.map(p=>p.id)),added=data.papers.filter(p=>!existing.has(p.id));const saved=await commit({...library,themes:themeList([...library.themes,...data.themes]),papers:[...library.papers,...added]});if(saved)message(`已导入 ${added.length} 篇文献；相同编号的现有文献未被覆盖。`);}catch(e){message(e.message);}finally{$('backupFile').value='';}};
- $('markLearned').onclick=()=>{try{const spec=evidenceScene(currentRows,entries,{confirmedOnly:true}),ids=[...new Set(spec.nodes.flatMap(n=>n.entryIds))];if(!ids.length)return;const key='brain-atlas-anatomy-known-v1',known=new Set(JSON.parse(localStorage.getItem(key)||'[]'));ids.forEach(id=>known.add(id));localStorage.setItem(key,JSON.stringify([...known]));if(ready)$('brainFrame').contentWindow.brainAtlas.markLearned(ids);message(`已保存 ${ids.length} 个图谱条目的学习标记；仅包含已核对定位。`);}catch{message('学习标记未能保存，请检查浏览器存储权限。');}};
+ $('markLearned').onclick=()=>{if(!['all','region'].includes($('recordFilter').value))return;try{const spec=evidenceScene(currentRows,entries,{confirmedOnly:true}),ids=[...new Set(spec.nodes.flatMap(n=>n.entryIds))];if(!ids.length)return;const key='brain-atlas-anatomy-known-v1',known=new Set(JSON.parse(localStorage.getItem(key)||'[]'));ids.forEach(id=>known.add(id));localStorage.setItem(key,JSON.stringify([...known]));if(ready)$('brainFrame').contentWindow.brainAtlas.markLearned(ids);message(`已保存 ${ids.length} 个图谱条目的学习标记；仅包含已核对定位。`);}catch{message('学习标记未能保存，请检查浏览器存储权限。');}};
  window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===$('brainFrame').contentWindow&&e.data?.type==='brain-atlas-ready'){ready=true;updateScene();}});
 }
 async function main(){
