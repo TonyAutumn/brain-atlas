@@ -1,4 +1,5 @@
 import {cleanEnrichment} from './enrichment-schema.js';
+import {cleanMapping,cleanMappingHistory} from './mapping-state.js';
 import {DMN,networkOf,recordKind} from './networks.js';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
 import {NAV,inGroup} from '../anatomy/navigation.js?v=nav3';
@@ -39,13 +40,21 @@ export function mappingExplanation(region,mapping,entries){
  if(/raphe|coeruleus|pedunculopontine|dorsal tegmental/i.test(region.name))return '当前底座未收录该核团，保留机制记录；补充侧别也无法生成其真实几何。';
  if(!human(region.species))return '物种未确认为人类；不投射到人脑底座。';
  if(!mapping){if(region.hemisphere==='unknown')return '原文侧别未明确，不能自动猜测双侧；核对后可选择显示侧别。';return '名称存在歧义、尚无对应规则或当前图谱未收录；不会以附近脑区代替。';}
+ if(!resolveMapping(region,mapping,entries).length)return '已有对应已保存：'+mapping.target+'。当前侧别或图谱范围暂不能显示，记录不会因此被清空。';
  const rule=RULES.find(r=>'set:'+r[0]===mapping.target);
  const detail=rule?(rule[3]||'根据中英文学名或缩写识别为已收录结构。'):mapping.target.startsWith('group:')?'大结构对应已收录分区集合，不表示每个亚区都在论文中被激活。':'名称与图谱标签对应，不代表受试者实际激活边界。';
  return (mapping.confirmed?'已人工核对。':'自动候选，尚未人工核对。')+detail+' 显示 '+resolveMapping(region,mapping,entries).length+' 个图谱条目。';
 }
 export function rematchPapers(papers,entries){
  let matched=0,remaining=0;
- const updated=papers.map(p=>{const mappings={...p.mappings};for(const r of p.data.regions){if(mappings[r.id]?.target)continue;const m=suggestMapping(r,entries);if(m&&resolveMapping(r,m,entries).length){mappings[r.id]=m;matched++;}else remaining++;}return {...p,mappings};});
+ const updated=papers.map(p=>{const mappings={...p.mappings};for(const r of p.data.regions){
+  if(mappings[r.id]?.target)continue;
+  const old=[...(p.mappingHistory||[])].reverse().map(h=>cleanMapping(h.mappings?.[r.id])).find(m=>m&&resolveMapping(r,m,entries).length);
+  const enrichment=cleanEnrichment(p.enrichments?.[r.id]);
+  const candidates=[r.name,enrichment?.canonicalName,...(enrichment?.aliases||[])].filter(Boolean).map(name=>suggestMapping({...r,name},entries)).filter(m=>m&&resolveMapping(r,m,entries).length);
+  const m=old||([...new Set(candidates.map(m=>m.target))].length===1?candidates[0]:null);
+  if(m){mappings[r.id]=m;matched++;}else remaining++;
+ }return {...p,mappings};});
  return {papers:updated,matched,remaining};
 }
 export function human(species){return /^(human|humans|homo sapiens|人|人类|成人|健康成人|人类被试)$/i.test((species||'').trim());}
@@ -69,6 +78,8 @@ export function createPaper(analysis,entries,extra={}){
  return {id,data,mappings,reviewed:false,learned:false,createdAt:new Date().toISOString(),...extra};
 }
 export function mechanismRows(papers){return papers.flatMap(paper=>paper.data.mechanisms.map(mechanism=>({key:paper.id+':'+mechanism.id,paper,mechanism})));}
+// Include records without a mechanism link in the overview, without inventing edges.
+export function overviewRows(papers){return papers.flatMap(paper=>[...mechanismRows([paper]),{key:paper.id+':records',paper,mechanism:{regions:paper.data.regions.map(r=>r.id),connections:[]}}]);}
 export function evidenceScene(rows,entries,{confirmedOnly=false}={}){
  const nodes=[],links=[];
  for(const {key,paper,mechanism:m}of rows){
@@ -89,8 +100,8 @@ export function validateBackup(raw,entries){
  const papers=raw.papers.map(p=>{
   if(typeof p.id!=='string'||!/^[a-zA-Z0-9-]{1,80}$/.test(p.id))throw Error('文献编号无效。');
   const data=validateAnalysis(p.data),mappings={};
-  for(const r of data.regions){const m=p.mappings?.[r.id];mappings[r.id]=m&&resolveMapping(r,m,entries).length?{target:m.target,hemisphere:m.hemisphere,confirmed:m.confirmed===true}:null;}
-  return {id:p.id,data,mappings,enrichments:Object.fromEntries(data.regions.map(r=>[r.id,cleanEnrichment(p.enrichments?.[r.id])]).filter(([,v])=>v)),hiddenMarkers:Array.isArray(p.hiddenMarkers)?p.hiddenMarkers.filter(id=>data.regions.some(r=>r.id===id)):[],reviewed:p.reviewed===true,learned:p.learned===true,createdAt:typeof p.createdAt==='string'?p.createdAt:new Date().toISOString(),source:typeof p.source==='string'?p.source.slice(0,180000):'',fileName:typeof p.fileName==='string'?p.fileName.slice(0,300):'',model:typeof p.model==='string'?p.model.slice(0,100):'',figureNames:Array.isArray(p.figureNames)?p.figureNames.filter(v=>typeof v==='string').slice(0,3).map(v=>v.slice(0,300)):[],warnings:Array.isArray(p.warnings)?p.warnings.filter(v=>typeof v==='string').slice(0,10).map(v=>v.slice(0,1000)):[],fingerprint:typeof p.fingerprint==='string'?p.fingerprint.slice(0,128):'',usage:p.usage&&typeof p.usage.total_tokens==='number'?{total_tokens:p.usage.total_tokens}:null};
+  for(const r of data.regions)mappings[r.id]=cleanMapping(p.mappings?.[r.id]);
+  return {id:p.id,data,mappings,mappingHistory:cleanMappingHistory(p.mappingHistory,data.regions.map(r=>r.id)),enrichments:Object.fromEntries(data.regions.map(r=>[r.id,cleanEnrichment(p.enrichments?.[r.id])]).filter(([,v])=>v)),hiddenMarkers:Array.isArray(p.hiddenMarkers)?p.hiddenMarkers.filter(id=>data.regions.some(r=>r.id===id)):[],reviewed:p.reviewed===true,learned:p.learned===true,createdAt:typeof p.createdAt==='string'?p.createdAt:new Date().toISOString(),source:typeof p.source==='string'?p.source.slice(0,180000):'',fileName:typeof p.fileName==='string'?p.fileName.slice(0,300):'',model:typeof p.model==='string'?p.model.slice(0,100):'',figureNames:Array.isArray(p.figureNames)?p.figureNames.filter(v=>typeof v==='string').slice(0,3).map(v=>v.slice(0,300)):[],warnings:Array.isArray(p.warnings)?p.warnings.filter(v=>typeof v==='string').slice(0,10).map(v=>v.slice(0,1000)):[],fingerprint:typeof p.fingerprint==='string'?p.fingerprint.slice(0,128):'',usage:p.usage&&typeof p.usage.total_tokens==='number'?{total_tokens:p.usage.total_tokens}:null};
  });
  if(new Set(papers.map(p=>p.id)).size!==papers.length)throw Error('备份包含重复文献编号。');
  return {version:1,themes:themeList([...(Array.isArray(raw.themes)?raw.themes:[]),...papers.flatMap(p=>p.data.themes)]),papers};

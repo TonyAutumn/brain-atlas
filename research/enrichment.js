@@ -1,7 +1,26 @@
 import {cleanEnrichment} from './enrichment-schema.js';
-import {suggestMapping,resolveMapping,human} from './model.js?v=lookup1';
+import {suggestMapping,resolveMapping,human} from './model.js?v=stable2';
+export function mergeEnrichment(previous,raw){
+ const old=cleanEnrichment(previous),next=cleanEnrichment(raw);if(!old)return next;if(!next)return old;
+ // Source IDs are local to one lookup. Relabel collisions before combining evidence.
+ const sources=[...old.sources],ids=new Map();
+ for(const source of next.sources){
+  const duplicate=sources.find(s=>s.url===source.url&&s.text===source.text&&s.type===source.type);
+  if(duplicate){ids.set(source.id,duplicate.id);continue;}
+  let id=source.id,n=1;while(sources.some(s=>s.id===id))id='lookup-'+n+++'-'+source.id.slice(0,40);
+  ids.set(source.id,id);sources.push({...source,id});
+ }
+ const incomingReview=next.review?{...next.review,sourceId:ids.get(next.review.sourceId)}:null;
+ const review=old.review?.parentName&&!incomingReview?.parentName?old.review:incomingReview||old.review;
+ const points=[...new Map([...old.points,...next.points.map(p=>({...p,sourceId:ids.get(p.sourceId)}))].map(p=>[[p.space,...p.position,p.label].join('|'),p])).values()].slice(0,8);
+ const required=new Set([review?.sourceId,...points.map(p=>p.sourceId)]);
+ const retained=old.points.length&&!next.points.length||old.review?.parentName&&!incomingReview?.parentName;
+ return cleanEnrichment({...next,canonicalName:next.canonicalName||old.canonicalName,aliases:[...new Set([...old.aliases,...next.aliases])],review,points,
+  sources:[...sources.filter(s=>required.has(s.id)),...sources.filter(s=>!required.has(s.id))].slice(0,12),
+  warnings:[...(retained?['本次检索未替换已有定位；保留此前来源支持的参考点或细胞示意（'+(old.checkedAt||'日期未记录')+'）。']:[]),...next.warnings]});
+}
 export function applyEnrichment(paper,rid,raw,entries){
- const region=paper.data.regions.find(r=>r.id===rid),enrichment=cleanEnrichment(raw);if(!region||!enrichment)return paper;
+ const region=paper.data.regions.find(r=>r.id===rid),enrichment=mergeEnrichment(paper.enrichments?.[rid],raw);if(!region||!enrichment)return paper;
  const mappings={...paper.mappings};
  if(!mappings[rid]?.target){
   const candidates=[enrichment.canonicalName,...enrichment.aliases].filter(Boolean).map(name=>suggestMapping({...region,name},entries)).filter(Boolean);

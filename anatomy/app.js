@@ -4,12 +4,13 @@ import {ATLAS,describe} from './labels.js';
 import {emphasis,showShell} from './visual-state.js?v=nav3';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
 import {buildEvidenceLayer} from './evidence-layer.js?v=lookup1';
+import {createSceneSwitch} from './scene-switch.js';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
 const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false};
 let entries=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
-let evidenceLayer=null,evidenceRevision=0;
+let evidenceLayer=null,evidenceSwitch=null;
 const embedded=new URLSearchParams(location.search).get('embed')==='research';
 if(embedded)document.body.classList.add('research-embed');
 const clip=new THREE.Plane(new THREE.Vector3(1,0,0),0);
@@ -54,7 +55,7 @@ function updateMaterials(){
  for(const e of entries){
   const mesh=meshes.get(e.id);if(!mesh)continue;
   const style=emphasis(e,state,known.has(e.id));
-  if(evidenceLayer?.ids.has(e.id)&&state.focusKind!=='entry'){Object.assign(style,{inSelection:true,colour:evidenceLayer.colors.get(e.id)||'#39b9ff',opacity:.85,emissive:evidenceLayer.colors.get(e.id)||'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
+  if(evidenceLayer?.ids.has(e.id)&&!(state.focusKind==='entry'&&state.selected===e.id)){Object.assign(style,{inSelection:true,colour:evidenceLayer.colors.get(e.id)||'#39b9ff',opacity:.85,emissive:evidenceLayer.colors.get(e.id)||'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
   mesh.visible=state.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!state.isolate||style.inSelection);
   if(evidenceLayer)mesh.visible=(state.isolate&&state.focusKind==='entry'?e.id===state.selected:evidenceLayer.ids.has(e.id))&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M');
   const mat=mesh.material;
@@ -164,6 +165,7 @@ function setupScene(){
  canvas.addEventListener('pointerleave',()=>$('tooltip3').textContent='');
  canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','Home'].includes(e.key)){e.preventDefault();if(e.key==='Home')setView('oblique');else if(e.key==='+'||e.key==='-'){camera.position.sub(controls.target).multiplyScalar(e.key==='+'?.85:1.15).add(controls.target);}else{const offset=camera.position.clone().sub(controls.target),axis=e.key.includes('Left')||e.key.includes('Right')?new THREE.Vector3(0,0,1):new THREE.Vector3(1,0,0);offset.applyAxisAngle(axis,['ArrowLeft','ArrowUp'].includes(e.key)?.1:-.1);camera.position.copy(controls.target).add(offset);}controls.update();dirty=true;}});
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();$('loadNotice').classList.remove('hidden');$('loadText').textContent='图形上下文暂时丢失，请刷新恢复。';});
+ canvas.addEventListener('webglcontextrestored',()=>{$('loadNotice').classList.add('hidden');updateMaterials();updateClip();dirty=true;});
 }
 function pick(ev){
  const r=$('brainCanvas').getBoundingClientRect();cursor.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(cursor,camera);
@@ -201,7 +203,7 @@ function bindUI(){
  $('atlasSelect').onchange=()=>{state.source=$('atlasSelect').value;state.group='all';state.selected=null;state.focusKind='none';state.query='';$('search3').value='';renderList();groupDetail();toast(state.source==='cit168'?'已切换到 CIT168 的 32 个左右核团条目':'已切回 Julich 精细分区与小脑分叶');};
  $('hemiControls').onclick=e=>{if(e.target.dataset.hemi)setHemi(e.target.dataset.hemi);};
  $('viewControls').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
- $('resetView').onclick=()=>{clearEvidence();state.selected=null;state.focusKind='none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
+ $('resetView').onclick=()=>{if(!embedded)clearEvidence();state.selected=null;state.focusKind=evidenceLayer?'evidence':'none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');$('search3').value='';$('isolate3').checked=false;$('clipAxis').value='none';updateClip();$('opacity3').value=18;$('opacityOut').textContent='18%';setHemi('both');setView('oblique');};
  $('opacity3').oninput=()=>{$('opacityOut').textContent=$('opacity3').value+'%';updateMaterials();};
  $('clipAxis').onchange=updateClip;$('clipDepth').oninput=updateClip;
  $('regionColors').onchange=()=>{state.colors=$('regionColors').checked;updateMaterials();};
@@ -218,17 +220,28 @@ function updateClip(){
  evidenceLayer?.group.traverse(m=>{if(m.material){m.material.clippingPlanes=active?[clip]:[];m.material.needsUpdate=true;}});
  dirty=true;
 }
-function clearEvidence(){evidenceRevision++;if(evidenceLayer){scene.remove(evidenceLayer.group);evidenceLayer.dispose();evidenceLayer=null;}}
-async function showEvidence(spec){
- clearEvidence();const revision=evidenceRevision;
- evidenceLayer=buildEvidenceLayer(spec,entries);scene.add(evidenceLayer.group);
- state.group='all';state.query='';state.knownOnly=false;state.selected=null;state.focusKind='evidence';state.hemi='both';state.isolate=false;
- $('search3').value='';$('knownOnly').setAttribute('aria-pressed','false');$('isolate3').checked=false;
- const files=[...new Set(entries.filter(e=>evidenceLayer.ids.has(e.id)).map(e=>e.file))];
- await Promise.all(files.map(loadFile));if(revision!==evidenceRevision)return;
- renderList();updateClip();$('stageTitle').textContent=spec.title||'文献机制 · 待核对的解剖对应';
- if(evidenceLayer.ids.size||evidenceLayer.markers.length)focusUnit();else setView('oblique');
- return {mapped:evidenceLayer.ids.size,connections:(spec.links||[]).length,markers:evidenceLayer.markers.length};
+function clearEvidence(){evidenceSwitch?.cancel();if(evidenceLayer){scene.remove(evidenceLayer.group);evidenceLayer.dispose();evidenceLayer=null;}}
+async function showEvidence(spec,options={}){
+ if(!evidenceSwitch)evidenceSwitch=createSceneSwitch({
+  async prepare(spec){
+   const next=buildEvidenceLayer(spec,entries);
+   const files=[...new Set(entries.filter(e=>next.ids.has(e.id)).map(e=>e.file))];
+   try{await Promise.all(files.map(loadFile));return next;}catch(error){next.dispose();throw error;}
+  },
+  discard:next=>next.dispose(),
+  install(next,spec,{refocus=true}){
+   const previous=evidenceLayer,keepSelection=!refocus&&state.focusKind==='entry'&&next.ids.has(state.selected);
+   scene.add(next.group);evidenceLayer=next;if(previous){scene.remove(previous.group);previous.dispose();}
+   state.group='all';state.query='';state.knownOnly=false;
+   if(!keepSelection){state.selected=null;state.focusKind='evidence';}
+   if(refocus||!previous){state.hemi='both';state.isolate=false;$('clipAxis').value='none';$('hemiControls').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.hemi==='both'));}
+   $('search3').value='';$('knownOnly').setAttribute('aria-pressed','false');$('isolate3').checked=state.isolate;
+   renderList();updateClip();$('stageTitle').textContent=spec.title||'文献机制 · 待核对的解剖对应';
+   if(refocus||!previous){if(next.ids.size||next.markers.length)focusUnit();else setView('oblique');}
+   return {mapped:next.ids.size,connections:(spec.links||[]).length,markers:next.markers.length};
+  }
+ });
+ return evidenceSwitch.show(spec,options);
 }
 function markEvidenceLearned(ids){for(const id of ids)if(entries.some(e=>e.id===id))known.add(id);localStorage.setItem(knownKey,JSON.stringify([...known]));renderList();}
 async function main(){
