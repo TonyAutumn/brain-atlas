@@ -1,3 +1,4 @@
+import {cleanEnrichment} from './enrichment-schema.js';
 import {DMN,networkOf,recordKind} from './networks.js';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
 import {NAV,inGroup} from '../anatomy/navigation.js?v=nav3';
@@ -89,7 +90,7 @@ export function validateBackup(raw,entries){
   if(typeof p.id!=='string'||!/^[a-zA-Z0-9-]{1,80}$/.test(p.id))throw Error('文献编号无效。');
   const data=validateAnalysis(p.data),mappings={};
   for(const r of data.regions){const m=p.mappings?.[r.id];mappings[r.id]=m&&resolveMapping(r,m,entries).length?{target:m.target,hemisphere:m.hemisphere,confirmed:m.confirmed===true}:null;}
-  return {id:p.id,data,mappings,reviewed:p.reviewed===true,learned:p.learned===true,createdAt:typeof p.createdAt==='string'?p.createdAt:new Date().toISOString(),source:typeof p.source==='string'?p.source.slice(0,180000):'',fileName:typeof p.fileName==='string'?p.fileName.slice(0,300):'',model:typeof p.model==='string'?p.model.slice(0,100):'',figureNames:Array.isArray(p.figureNames)?p.figureNames.filter(v=>typeof v==='string').slice(0,3).map(v=>v.slice(0,300)):[],warnings:Array.isArray(p.warnings)?p.warnings.filter(v=>typeof v==='string').slice(0,10).map(v=>v.slice(0,1000)):[],fingerprint:typeof p.fingerprint==='string'?p.fingerprint.slice(0,128):'',usage:p.usage&&typeof p.usage.total_tokens==='number'?{total_tokens:p.usage.total_tokens}:null};
+  return {id:p.id,data,mappings,enrichments:Object.fromEntries(data.regions.map(r=>[r.id,cleanEnrichment(p.enrichments?.[r.id])]).filter(([,v])=>v)),hiddenMarkers:Array.isArray(p.hiddenMarkers)?p.hiddenMarkers.filter(id=>data.regions.some(r=>r.id===id)):[],reviewed:p.reviewed===true,learned:p.learned===true,createdAt:typeof p.createdAt==='string'?p.createdAt:new Date().toISOString(),source:typeof p.source==='string'?p.source.slice(0,180000):'',fileName:typeof p.fileName==='string'?p.fileName.slice(0,300):'',model:typeof p.model==='string'?p.model.slice(0,100):'',figureNames:Array.isArray(p.figureNames)?p.figureNames.filter(v=>typeof v==='string').slice(0,3).map(v=>v.slice(0,300)):[],warnings:Array.isArray(p.warnings)?p.warnings.filter(v=>typeof v==='string').slice(0,10).map(v=>v.slice(0,1000)):[],fingerprint:typeof p.fingerprint==='string'?p.fingerprint.slice(0,128):'',usage:p.usage&&typeof p.usage.total_tokens==='number'?{total_tokens:p.usage.total_tokens}:null};
  });
  if(new Set(papers.map(p=>p.id)).size!==papers.length)throw Error('备份包含重复文献编号。');
  return {version:1,themes:themeList([...(Array.isArray(raw.themes)?raw.themes:[]),...papers.flatMap(p=>p.data.themes)]),papers};

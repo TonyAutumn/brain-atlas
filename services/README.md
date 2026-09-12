@@ -45,3 +45,16 @@
 - [JSON Mode](https://platform.kimi.com/docs/guide/use-json-mode-feature-of-kimi-api)
 - [Kimi K2.6 参数](https://platform.kimi.com/docs/guide/kimi-k2-6-quickstart)
 - [Cloudflare 控制台部署](https://developers.cloudflare.com/workers/get-started/dashboard/)
+
+
+## 自动联网补全（lookup1）
+
+更新 Worker 后 `/health` 返回 `capabilities: ["enrich-v1"]`。`POST /enrich` 接受 multipart `regions`（1–4 项 JSON）和 `source`（既有提取文本）。前端在论文保存后自动调用，也提供已有论文批量入口、重试和取消。原论文与逐项完成结果分别保存；失败不回滚原文。
+
+来源为固定 HTTPS 接口：EMBL-EBI OLS4（UBERON / CL）、Europe PMC 摘要、siibra API（Julich v3.1 与 HarvardOxford thr25）。访问公共来源时不携带 Kimi 密钥，也不跟随重定向或请求模型提供的网址。服务只从实际响应取得来源链接和图谱坐标；Kimi 仅复核来源内容，返回的摘录须原样存在于该来源。没有读取论文全文的检索结果标为摘要。
+
+siibra `hasAnnotation.bestViewPoint` 被保存为外部图谱显示参考点，限定 MNI152 ICBM 2009c nonlinear asymmetric、RAS、mm。它不是论文激活峰、核团完整体积或单神经元位置。本版不执行坐标空间转换或下载新网格。细胞仅在纯人类记录、侧别明确、引用明确含 human 与所属结构时生成每侧一个示意标记；鼠和混合物种记录不投射为人脑位置。
+
+结果保存在浏览器 IndexedDB 的 `paper.enrichments`，JSON 备份包含来源、日期、摘录和参考点。已完成条目不重复检索；新论文可复用之前的确切术语匹配，但不继承另一篇的推断、坐标或细胞证据。新的任务需要网页保持打开。
+
+验证：`node scripts/validate-enrichment.mjs` 覆盖模拟检索、鉴权、摘录核验、坐标空间、逐条流式保存、失败、别名复用、备份和示意点。真实公共接口已读取得到响应；付费 Kimi 与用户部署的 Worker 需要配置后验证。

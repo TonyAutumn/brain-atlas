@@ -3,7 +3,7 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 import {ATLAS,describe} from './labels.js';
 import {emphasis,showShell} from './visual-state.js?v=nav3';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
-import {buildEvidenceLayer} from './evidence-layer.js?v=net1';
+import {buildEvidenceLayer} from './evidence-layer.js?v=lookup1';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
@@ -69,7 +69,7 @@ function updateMaterials(){
  $('selectionSwatch').style.background=group?NAV[state.group].color:'#8894a4';
  $('selectionLegend').textContent=group?NAV[state.group].label:'解剖结构';
  $('visibilityNote').textContent=state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」';
- if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述';}
+ if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
  const opacityLabel=$('opacity3').closest('label');
  $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
  $('opacityOut').textContent=state.isolate?'隐藏':$('opacity3').value+'%';
@@ -79,9 +79,10 @@ function updateMaterials(){
 }
 function currentUnit(){return state.focusKind==='entry'?entries.filter(e=>e.id===state.selected):evidenceLayer?entries.filter(e=>evidenceLayer.ids.has(e.id)):visibleEntries();}
 function focusUnit(){
- const unit=currentUnit();if(!unit.length)return;
+ const unit=currentUnit();if(!unit.length&&!evidenceLayer?.markers.length)return;
  const bounds=new THREE.Box3();
  for(const e of unit){bounds.expandByPoint(new THREE.Vector3(...e.bounds[0]));bounds.expandByPoint(new THREE.Vector3(...e.bounds[1]));}
+ if(evidenceLayer?.markers.length&&state.focusKind!=='entry')bounds.union(evidenceLayer.pointBounds);
  const centre=bounds.getCenter(new THREE.Vector3());
  const size=bounds.getSize(new THREE.Vector3()).length();
  const direction=camera.position.clone().sub(controls.target).normalize();
@@ -158,14 +159,15 @@ function setupScene(){
  tick();
  let down=null;
  canvas.addEventListener('pointerdown',e=>down={x:e.clientX,y:e.clientY,time:performance.now()});
- canvas.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<5&&performance.now()-down.time<700){const hit=pick(e);if(hit)select(hit.userData.entry.id);}down=null;});
- canvas.addEventListener('pointermove',debounce(e=>{if(e.buttons)return;const hit=pick(e);const tip=$('tooltip3');if(hit){tip.textContent=hit.userData.entry.text.full;const r=canvas.getBoundingClientRect();tip.style.left=Math.min(e.clientX-r.left+15,r.width-240)+'px';tip.style.top=(e.clientY-r.top+15)+'px';canvas.style.cursor='pointer';}else{tip.textContent='';canvas.style.cursor='grab';}},55));
+ canvas.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<5&&performance.now()-down.time<700){const hit=pick(e);if(hit?.userData.marker){const m=hit.userData.marker;toast(m.name+'：'+m.description);if(window.parent!==window)window.parent.postMessage({type:'brain-atlas-marker',paperId:m.paperId},location.origin);}else if(hit)select(hit.userData.entry.id);}down=null;});
+ canvas.addEventListener('pointermove',debounce(e=>{if(e.buttons)return;const hit=pick(e);const tip=$('tooltip3');if(hit){tip.textContent=hit.userData.marker?hit.userData.marker.name+' · '+hit.userData.marker.description:hit.userData.entry.text.full;const r=canvas.getBoundingClientRect();tip.style.left=Math.min(e.clientX-r.left+15,r.width-240)+'px';tip.style.top=(e.clientY-r.top+15)+'px';canvas.style.cursor='pointer';}else{tip.textContent='';canvas.style.cursor='grab';}},55));
  canvas.addEventListener('pointerleave',()=>$('tooltip3').textContent='');
  canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','Home'].includes(e.key)){e.preventDefault();if(e.key==='Home')setView('oblique');else if(e.key==='+'||e.key==='-'){camera.position.sub(controls.target).multiplyScalar(e.key==='+'?.85:1.15).add(controls.target);}else{const offset=camera.position.clone().sub(controls.target),axis=e.key.includes('Left')||e.key.includes('Right')?new THREE.Vector3(0,0,1):new THREE.Vector3(1,0,0);offset.applyAxisAngle(axis,['ArrowLeft','ArrowUp'].includes(e.key)?.1:-.1);camera.position.copy(controls.target).add(offset);}controls.update();dirty=true;}});
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();$('loadNotice').classList.remove('hidden');$('loadText').textContent='图形上下文暂时丢失，请刷新恢复。';});
 }
 function pick(ev){
  const r=$('brainCanvas').getBoundingClientRect();cursor.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(cursor,camera);
+ const pointHits=raycaster.intersectObjects((evidenceLayer?.group.visible?evidenceLayer.markers:[])||[],false);const pointHit=pointHits.find(h=>$('clipAxis').value==='none'||clip.distanceToPoint(h.point)>=0);if(pointHit)return pointHit.object;
  const hits=raycaster.intersectObjects([...meshes.values()].filter(m=>m.visible),false);
  return hits.find(h=>$('clipAxis').value==='none'||clip.distanceToPoint(h.point)>=0)?.object;
 }
@@ -225,8 +227,8 @@ async function showEvidence(spec){
  const files=[...new Set(entries.filter(e=>evidenceLayer.ids.has(e.id)).map(e=>e.file))];
  await Promise.all(files.map(loadFile));if(revision!==evidenceRevision)return;
  renderList();updateClip();$('stageTitle').textContent=spec.title||'文献机制 · 待核对的解剖对应';
- if(evidenceLayer.ids.size)focusUnit();else setView('oblique');
- return {mapped:evidenceLayer.ids.size,connections:evidenceLayer.group.children.length};
+ if(evidenceLayer.ids.size||evidenceLayer.markers.length)focusUnit();else setView('oblique');
+ return {mapped:evidenceLayer.ids.size,connections:(spec.links||[]).length,markers:evidenceLayer.markers.length};
 }
 function markEvidenceLearned(ids){for(const id of ids)if(entries.some(e=>e.id===id))known.add(id);localStorage.setItem(knownKey,JSON.stringify([...known]));renderList();}
 async function main(){
