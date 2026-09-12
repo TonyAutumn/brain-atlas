@@ -21,6 +21,7 @@ const sourceFits=e=>state.source==='cit168'?e.atlas==='cit168':e.atlas==='julich
 const matches=e=>sourceFits(e)&&inGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id))&&(!state.query||e.text.search.includes(state.query));
 const visibleEntries=()=>entries.filter(matches);
 function toast(s){$('toast3').textContent=s;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast3').textContent='',3200)}
+function reportSceneError(message){window.brainAtlasError=message;if(embedded)window.parent.postMessage({type:'brain-atlas-error',message},location.origin);}
 function breadcrumbs(group){return pathFor(group).map(id=>`<button data-group="${id}" ${id===group?'aria-current="location"':''}>${NAV[id].label}</button>`).join('<span aria-hidden="true">›</span>');}
 function renderNavigation(){
  const top=topGroup(state.group),available=entries.filter(sourceFits);
@@ -164,8 +165,8 @@ function setupScene(){
  canvas.addEventListener('pointermove',debounce(e=>{if(e.buttons)return;const hit=pick(e);const tip=$('tooltip3');if(hit){tip.textContent=hit.userData.marker?hit.userData.marker.name+' · '+hit.userData.marker.description:hit.userData.entry.text.full;const r=canvas.getBoundingClientRect();tip.style.left=Math.min(e.clientX-r.left+15,r.width-240)+'px';tip.style.top=(e.clientY-r.top+15)+'px';canvas.style.cursor='pointer';}else{tip.textContent='';canvas.style.cursor='grab';}},55));
  canvas.addEventListener('pointerleave',()=>$('tooltip3').textContent='');
  canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','Home'].includes(e.key)){e.preventDefault();if(e.key==='Home')setView('oblique');else if(e.key==='+'||e.key==='-'){camera.position.sub(controls.target).multiplyScalar(e.key==='+'?.85:1.15).add(controls.target);}else{const offset=camera.position.clone().sub(controls.target),axis=e.key.includes('Left')||e.key.includes('Right')?new THREE.Vector3(0,0,1):new THREE.Vector3(1,0,0);offset.applyAxisAngle(axis,['ArrowLeft','ArrowUp'].includes(e.key)?.1:-.1);camera.position.copy(controls.target).add(offset);}controls.update();dirty=true;}});
- canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();$('loadNotice').classList.remove('hidden');$('loadText').textContent='图形上下文暂时丢失，请刷新恢复。';});
- canvas.addEventListener('webglcontextrestored',()=>{$('loadNotice').classList.add('hidden');updateMaterials();updateClip();dirty=true;});
+ canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();$('loadNotice').classList.remove('hidden');$('loadText').textContent='三维显示暂时中断，正在等待浏览器恢复；已有记录保留。';reportSceneError($('loadText').textContent);});
+ canvas.addEventListener('webglcontextrestored',()=>{window.brainAtlasError='';$('loadNotice').classList.add('hidden');updateMaterials();updateClip();dirty=true;if(embedded&&window.brainAtlas)window.parent.postMessage({type:'brain-atlas-ready'},location.origin);});
 }
 function pick(ev){
  const r=$('brainCanvas').getBoundingClientRect();cursor.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(cursor,camera);
@@ -262,6 +263,6 @@ async function main(){
   $('modelStatus').textContent=failures?`${failures} 组未加载 · 刷新重试`:`${entries.length} 个图谱条目`;
   window.brainAtlas={version:manifest.version,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned};
   if(embedded)window.parent.postMessage({type:'brain-atlas-ready'},location.origin);
- }catch(e){console.error(e);$('loadNotice').classList.remove('hidden');$('loadText').textContent='三维模型加载失败：'+e.message+'。请刷新或使用最新版 Edge / Chrome。';$('loadNotice').querySelector('.loading-line')?.remove();}
+ }catch(e){console.error(e);$('loadNotice').classList.remove('hidden');$('loadText').textContent=/WebGL|context/i.test(e.message)?'当前浏览器未能启动三维图形显示。请检查浏览器图形加速，或使用支持 WebGL 的浏览器。匹配记录仍保存在文献库。':'三维模型加载失败：'+e.message+'。可重试加载；匹配记录仍保存在文献库。';reportSceneError($('loadText').textContent);$('loadNotice').querySelector('.loading-line')?.remove();}
 }
 main();
