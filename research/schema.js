@@ -17,10 +17,10 @@ export function validateAnalysis(input){
  const mechanisms=arr(input.mechanisms,30).map((m,i)=>{
   const evidenceType=Object.hasOwn(EVIDENCE,m.evidenceType)?m.evidenceType:'hypothesis';
   const refs=arr(m.regions,60).filter(id=>ids.has(id));
-  const connections=arr(m.connections,60).map(c=>({from:str(c.from,60),to:str(c.to,60),directed:c.directed===true&&['causal','anatomical','effective'].includes(evidenceType)}));
+  const connections=arr(m.connections,60).map(c=>({from:str(c.from,60),to:str(c.to,60),directed:c.directed===true&&['causal','anatomical','effective'].includes(evidenceType),quote:str(c.quote,1200),locator:str(c.locator,500),directionEvidence:c.directionEvidence===true}));
   if(connections.some(c=>!ids.has(c.from)||!ids.has(c.to)||c.from===c.to))throw Error('连接引用了不存在或重复的端点。');
   for(const c of connections)for(const id of [c.from,c.to])if(!refs.includes(id))refs.push(id);
-  return {id:str(m.id,60)||`m${i+1}`,title:str(m.title,200)||'未命名机制',claim:str(m.claim,3000),method:str(m.method,1000),evidenceType,origin:Object.hasOwn(ORIGINS,m.origin)?m.origin:'interpretation',regions:refs,connections,locator:str(m.locator,500),quote:str(m.quote,1200),limitations:str(m.limitations,2000)};
+  return {id:str(m.id,60)||`m${i+1}`,title:str(m.title,200)||'未命名机制',behavior:str(m.behavior,200),finding:str(m.finding,400),sample:str(m.sample,300),claim:str(m.claim,3000),method:str(m.method,1000),evidenceType,origin:Object.hasOwn(ORIGINS,m.origin)?m.origin:'interpretation',regions:refs,connections,locator:str(m.locator,500),quote:str(m.quote,1200),limitations:str(m.limitations,2000)};
  });
  if(mechanisms.some(m=>!validId(m.id))||new Set(mechanisms.map(m=>m.id)).size!==mechanisms.length)throw Error('机制编号无效或重复。');
  return {title,authors:str(input.authors,1000),year:str(String(input.year||''),20),doi:str(input.doi,250),studyType:str(input.studyType,200),species:str(input.species,200),task:str(input.task,3000),summary:str(input.summary,4000),themes:themeList(arr(input.themes,12)),limitations:arr(input.limitations,20).map(v=>str(v,1000)),regions,mechanisms};

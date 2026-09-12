@@ -1,0 +1,11 @@
+import {EVIDENCE,ORIGINS} from './schema.js?v=evidence1';
+export function evidenceCard(row,selected,esc){
+ const {key,paper,mechanism:m}=row,regions=m.regions.map(id=>paper.data.regions.find(r=>r.id===id)).filter(Boolean);
+ const brief=s=>String(s||'').length>180?String(s).slice(0,180)+'…':s;
+ const finding=m.finding||m.claim.replace(/[，；;](?:支持|证实|证明)[^。]{0,50}(?:假说|理论)[^。]*/g,'');
+ return `<article class="card evidence-card ${selected?'selected':''}"><div class="card-top"><span class="badge">${EVIDENCE[m.evidenceType]}</span><span class="badge">${m.connections.length?'脑区关系':regions.length===1?'单脑区定位':'多区定位 · 未连线'}</span></div><h3>${esc(m.behavior||m.title)}</h3><div class="evidence-locations">${regions.map(r=>`<span>${esc({L:'左',R:'右',both:'双侧',unknown:'侧别待核对'}[paper.mappings[r.id]?.hemisphere||r.hemisphere])} · ${esc(r.name)}</span>`).join('')}</div><p class="evidence-finding">${esc(brief(finding))}</p><div class="citation"><button data-paper="${paper.id}">${esc(paper.data.title)} · ${esc(paper.data.year)}</button><br>${ORIGINS[m.origin]} · ${esc(m.locator)}</div><div class="actions"><button class="primary" data-mechanism="${esc(key)}">在脑图中查看</button></div><details class="evidence-proof"><summary>实验与原文证据</summary><p><b>方法：</b>${esc(m.method)}</p>${m.sample?`<p><b>样本：</b>${esc(m.sample)}</p>`:''}<blockquote>${esc(m.quote)}</blockquote><p>${m.connections.length?`${m.connections.length} 条关系分别附有原文依据；连线为示意。`:'这项结果支持脑区定位，没有足够依据绘制脑区间传导路线。'}</p>${m.origin==='cited'?'<p>本条由当前论文转述；研究结论与定位范围仍应回到所引用的原始研究核对。</p>':''}${m.limitations?`<p><b>限制：</b>${esc(m.limitations)}</p>`:''}${row.omitted.length||row.edgeWarnings.length?`<p>已省略：${esc([...row.omitted,...new Set(row.edgeWarnings)].join('；'))}</p>`:''}<button data-paper="${paper.id}">查看或核对记录</button></details></article>`;
+}
+export function excludedRows(rows,esc){
+ const labels={background:'背景与假说',evidence:'证据或定位范围待核对',location:'有证据，待补定位',duplicate:'重复记录'};
+ return Object.entries(labels).map(([status,label])=>{const group=rows.filter(r=>r.status===status);return group.length?`<details><summary>${label} · ${group.length} 条</summary>${group.map(r=>`<div class="excluded-row"><strong>${esc(r.original.title)}</strong><p>${esc(r.reason)}</p><button data-paper="${r.paper.id}">核对原记录</button></div>`).join('')}</details>`:'';}).join('');
+}

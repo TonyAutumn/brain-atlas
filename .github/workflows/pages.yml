@@ -31,6 +31,7 @@ jobs:
 
       - name: Verify mapping preservation and paper workflow
         run: |
+          node scripts/validate-evidence-policy.mjs
           node scripts/validate-persistence.mjs
           node scripts/validate-research.mjs
           node scripts/validate-enrichment.mjs

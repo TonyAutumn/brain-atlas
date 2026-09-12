@@ -3,7 +3,7 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 import {ATLAS,describe} from './labels.js';
 import {emphasis,showShell} from './visual-state.js?v=nav3';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
-import {buildEvidenceLayer} from './evidence-layer.js?v=lookup1';
+import {buildEvidenceLayer} from './evidence-layer.js?v=evidence1';
 import {createSceneSwitch} from './scene-switch.js';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';

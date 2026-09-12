@@ -4,7 +4,7 @@ import {DMN,networkOf,recordKind} from './networks.js';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
 import {NAV,inGroup} from '../anatomy/navigation.js?v=nav3';
 import {describe} from '../anatomy/labels.js';
-import {validateAnalysis,canonicalTheme,themeList} from './schema.js';
+import {validateAnalysis,canonicalTheme,themeList} from './schema.js?v=evidence1';
 export {canonicalTheme,themeList};
 export const normalize=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 const aliases={
@@ -82,14 +82,14 @@ export function mechanismRows(papers){return papers.flatMap(paper=>paper.data.me
 export function overviewRows(papers){return papers.flatMap(paper=>[...mechanismRows([paper]),{key:paper.id+':records',paper,mechanism:{regions:paper.data.regions.map(r=>r.id),connections:[]}}]);}
 export function evidenceScene(rows,entries,{confirmedOnly=false}={}){
  const nodes=[],links=[];
- for(const {key,paper,mechanism:m}of rows){
+ for(const {key,paper,mechanism:m,pointRecords=[]}of rows){
   const mapped=new Map();
   for(const rid of m.regions){
    const region=paper.data.regions.find(r=>r.id===rid),mapping=paper.mappings[rid];
    if(!region||confirmedOnly&&(!mapping?.confirmed||recordKind(region)==='network'))continue;
-   const parcels=resolveMapping(region,mapping,entries);if(!parcels.length)continue;
+   const parcels=resolveMapping(region,mapping,entries);if(!parcels.length&&(confirmedOnly||!pointRecords.includes(rid)))continue;
    const id=paper.id+':'+rid;mapped.set(rid,id);
-   if(!nodes.some(n=>n.id===id))nodes.push({id,name:region.name,entryIds:parcels.map(e=>e.id),provisional:!mapping.confirmed,kind:recordKind(region),color:networkOf(region)?.color});
+   if(!nodes.some(n=>n.id===id))nodes.push({id,name:region.name,entryIds:parcels.map(e=>e.id),reference:!parcels.length,provisional:!mapping?.confirmed,kind:recordKind(region),color:networkOf(region)?.color});
   }
   for(const c of m.connections)if(mapped.has(c.from)&&mapped.has(c.to))links.push({id:key,from:mapped.get(c.from),to:mapped.get(c.to),kind:m.evidenceType,label:m.title,directed:c.directed,provisional:!paper.reviewed});
  }
