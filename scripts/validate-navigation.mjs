@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import {NAV,navigationFor,inGroup,pathFor,childrenOf,navigationText} from '../anatomy/navigation.js';
+import {NAV,navigationFor,inGroup,pathFor,childrenOf,navigationText,hierarchyFor,mappingGroups} from '../anatomy/navigation.js';
 import {emphasis,showShell} from '../anatomy/visual-state.js';
 
 const root=new URL('../',import.meta.url);
@@ -11,18 +11,22 @@ for(const e of entries){
  assert(NAV[e.nav],`Missing navigation: ${e.name}`);
  assert.notEqual(e.nav,'unassigned',`Review new source label: ${e.name}`);
  assert.equal(top.filter(id=>inGroup(e,id)).length,1,`Overlapping/missing parent: ${e.name}`);
- assert.equal(pathFor(e.nav).length,3,`Incomplete path: ${e.name}`);
+ assert(pathFor(e.nav).length>=4,`Incomplete path: ${e.name}`);
+ assert(pathFor(e.nav).length<=7,`Unwieldy path: ${e.name}`);
+ const hierarchy=hierarchyFor(e);
+ assert.equal(hierarchy.at(-1).id,e.id,`Missing atlas leaf: ${e.name}`);
+ assert.equal(hierarchy.at(-2).id,e.nav,`Wrong direct parent: ${e.name}`);
 }
 // Anatomical anchors and boundaries from the source labels, across both sides.
 const anchors={
- 'Area 4a (PreCG)':'frontal','Area 3b (PostCG)':'parietal',
- 'Area Te 1.0 (HESCHL)':'temporal','Area hOc1 (V1, 17, CalcS)':'occipital',
- 'Area Ia1 (Insula)':'insula','Area p32 (pACC)':'cingulate',
- 'Area TPJ (STG, SMG)':'transition','Area FG1 (FusG)':'transition',
- 'Area hPO1 (POS)':'transition','CA1 (Hippocampus)':'hippocampus',
- 'STN (Subthalamus)':'subthalamus','ZI (Thalamus, zona incerta)':'subthalamus',
- 'SNC (Midbrain, Substantia Nigra pars compacta)':'midbrain',
- 'Ch 4 (Basal Forebrain)':'forebrain'
+ 'Area 4a (PreCG)':'frontal_motor','Area 3b (PostCG)':'parietal_somato',
+ 'Area Te 1.0 (HESCHL)':'temporal_auditory','Area hOc1 (V1, 17, CalcS)':'occipital_early',
+ 'Area Ia1 (Insula)':'insula_agranular','Area p32 (pACC)':'cingulate_anterior',
+ 'Area TPJ (STG, SMG)':'transition_tpj','Area FG1 (FusG)':'transition_ventral',
+ 'Area hPO1 (POS)':'transition_parietooccipital','CA1 (Hippocampus)':'hippocampal_fields',
+ 'STN (Subthalamus)':'subthalamic_nucleus','ZI (Thalamus, zona incerta)':'zona_incerta',
+ 'SNC (Midbrain, Substantia Nigra pars compacta)':'substantia_nigra',
+ 'Ch 4 (Basal Forebrain)':'basal_forebrain_cholinergic'
 };
 for(const [name,group]of Object.entries(anchors)){
  const pair=entries.filter(e=>e.name===name);assert.equal(pair.length,2,name);
@@ -44,6 +48,14 @@ assert.equal(emphasis(subiculum,state,true).colour,'#1675b2');
 assert(!showShell(state,'L',.18));assert(!showShell(state,'R',.18));
 state.isolate=false;assert(showShell(state,'L',.18));
 assert(navigationText(motor).includes('额叶'));
+const vp=entries.filter(e=>/Ventral Pallidum/.test(e.name));
+assert.equal(vp.length,4);
+for(const e of vp){
+ assert.equal(e.nav,'ventral_pallidum');
+ for(const group of ['cerebrum','deep','basal','ventral_basal_ganglia','ventral_pallidum'])assert(inGroup(e,group),`VP missing ${group}`);
+ assert(navigationText(e).includes('皮层下灰质 › 基底神经节 › 腹侧基底神经节 › 腹侧苍白球'));
+}
+assert(mappingGroups().includes('ventral_pallidum'));
 const cit=entries.filter(e=>e.atlas==='cit168');
 assert.equal(cit.filter(e=>inGroup(e,'cortex')).length,0);
 assert.equal(cit.filter(e=>inGroup(e,'diencephalon')).length,6);

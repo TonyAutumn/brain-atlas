@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {ATLAS,describe} from './labels.js';
-import {emphasis,showShell} from './visual-state.js?v=nav3';
-import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText} from './navigation.js?v=nav3';
+import {emphasis,showShell} from './visual-state.js?v=hierarchy1';
+import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText,hierarchyFor} from './navigation.js?v=hierarchy1';
 import {buildEvidenceLayer} from './evidence-layer.js?v=evidence1';
 import {createSceneSwitch} from './scene-switch.js';
 const $=id=>document.getElementById(id);
@@ -23,6 +23,7 @@ const visibleEntries=()=>entries.filter(matches);
 function toast(s){$('toast3').textContent=s;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast3').textContent='',3200)}
 function reportSceneError(message){window.brainAtlasError=message;if(embedded)window.parent.postMessage({type:'brain-atlas-error',message},location.origin);}
 function breadcrumbs(group){return pathFor(group).map(id=>`<button data-group="${id}" ${id===group?'aria-current="location"':''}>${NAV[id].label}</button>`).join('<span aria-hidden="true">›</span>');}
+function entryBreadcrumbs(e){return hierarchyFor(e).map((n,i,a)=>i===a.length-1?`<span class="current-parcel">${escape(n.label)}</span>`:`<button data-group="${n.id}">${escape(n.label)}</button>`).join('<span aria-hidden="true">›</span>');}
 function renderNavigation(){
  const top=topGroup(state.group),available=entries.filter(sourceFits);
  const count=id=>available.filter(e=>inGroup(e,id)).length;
@@ -30,13 +31,16 @@ function renderNavigation(){
  const setHTML=(id,html)=>{if($(id).innerHTML!==html)$(id).innerHTML=html;};
  const activeId=document.activeElement?.dataset.group;
  setHTML('groupFilters',['all',...childrenOf('all')].map(id=>button(id,top===id)).join(''));
- $('subgroupPanel').hidden=top==='all';
- if(top!=='all'){
-  $('subgroupLabel').textContent=top==='cortex'?'按脑叶及空间区域细分':NAV[top].label+' · 细分结构';
-  setHTML('subgroupFilters',[button(top,state.group===top,'全部'+(top==='cortex'?'皮层':'分组')),...childrenOf(top).filter(id=>id!=='unassigned'||count(id)).map(id=>button(id,state.group===id))].join(''));
+ const ownChildren=childrenOf(state.group).filter(id=>id!=='unassigned'||count(id));
+ const branch=ownChildren.length?state.group:NAV[state.group]?.parent;
+ const branchChildren=branch?childrenOf(branch).filter(id=>id!=='unassigned'||count(id)):[];
+ $('subgroupPanel').hidden=state.group==='all';
+ if(state.group!=='all'){
+  $('subgroupLabel').textContent=NAV[branch].label+' · '+NAV[branch].kind+' · 选择下一级';
+  setHTML('subgroupFilters',[button(branch,state.group===branch,'全部 '+NAV[branch].label),...branchChildren.map(id=>button(id,state.group===id))].join(''));
  }
  if(activeId&&!document.activeElement?.dataset.group)$('groupFilters').parentElement.querySelector(`[data-group="${activeId}"]`)?.focus({preventScroll:true});
- $('navHint').textContent=top==='cortex'?'仅覆盖图谱已收录的皮层分区；脑叶还包含其下白质。':top==='brainstem'?'当前仅收录部分中脑核团；脑桥与延髓尚未添加。':'先选大结构，再选下方分区；灰色入口表示当前图谱未收录。';
+ $('navHint').textContent=top==='brainstem'?'当前仅收录部分中脑核团；脑桥与延髓尚未添加。':'逐级进入解剖树；上方路径可返回任意一级。灰色入口表示当前图谱未收录。';
  setHTML('indexPath',breadcrumbs(state.group));
  $('search3').placeholder='在'+NAV[state.group].label+'中搜索…';
  $('atlasSelect').value=state.source;
@@ -96,7 +100,7 @@ function toggleIsolation(value=!state.isolate){
 }
 function groupDetail(){
  const group=state.group!=='all',info=NAV[state.group],list=visibleEntries();
- const cortical=topGroup(state.group)==='cortex';
+ const cortical=pathFor(state.group).includes('cortex');
  $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">STRUCTURE OVERVIEW</span><span class="atlas-badge">${state.source==='cit168'?'CIT168':'Julich / AAL'}</span></div><nav class="detail-path" aria-label="结构归属">${breadcrumbs(state.group)}</nav><h2>${info.label}</h2><p class="latin3">${list.length} 个当前可见条目 · ${state.hemi==='both'?'双侧':state.hemi==='L'?'左侧':'右侧'}</p><div class="group-key" style="--group-colour:${info.color}"><i></i><span>${group?'整组以此颜色强调；点选具体分区后呈亮蓝色。':'请选择大结构或具体分区。'}</span></div><div class="detail-actions"><button id="focusGroup" ${list.length?'':'disabled'}>定位整组</button><button id="isolateSelected">隐藏其他结构</button></div><hr class="detail-hr"><section class="detail-section"><h3>这一组包含什么</h3><p>${info.note}</p>${cortical?'<p class="micro-note">高亮范围是当前图谱已收录分区的集合，不是完整脑叶体积。脑回、细胞构筑区与脑叶边界并非一一对应。</p>':''}</section><section class="detail-section"><h3>继续细分</h3><p>在左侧选择下一级分组或具体条目。详情上方的路径可以返回任何一级；「隐藏其他结构」只保留当前整组或单个分区。</p></section>`;
  $('focusGroup').onclick=focusUnit;$('isolateSelected').onclick=()=>toggleIsolation();
  $('stageTitle').textContent=group?info.label+' · 已收录分区':'群体参考脑 · 真实解剖表面';
@@ -111,8 +115,10 @@ function selectGroup(group){
 }
 function renderDetail(e){
  const a=ATLAS[e.atlas],location=NAV[e.nav];
+ const hierarchy=hierarchyFor(e),parent=hierarchy.at(-2);
+ const hierarchyRows=hierarchy.slice(1).map((n,i)=>`<li class="hierarchy-step"><span>${i+1}</span><div><small>${escape(n.kind||'图谱分区')}</small><strong>${escape(n.label)}</strong></div></li>`).join('');
  const precise=e.name.includes('Subc')?'此标签是“下托复合体”，不能自动等同于所有论文中的 subiculum；需核对论文采用的亚区定义。':e.name.includes('GapMap')?'图谱未定义范围。':a.description;
- $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">REGION PROFILE</span><span class="atlas-badge">${a.name}</span></div><nav class="detail-path" aria-label="脑区归属">${breadcrumbs(e.nav)}</nav><h2>${escape(e.text.title)}</h2><p class="latin3">${escape(e.name)}</p><div class="detail-section breadcrumb3">${e.text.side} · ${location.label}<br>${a.type} · 标签 ${e.label}</div><div class="detail-actions"><button id="focusSelected">定位放大</button><button class="learn-btn" id="markLearned" aria-pressed="${known.has(e.id)}">${known.has(e.id)?'✓ 已学习':'标记已学习'}</button></div><button id="isolateSelected" class="isolate-action">隐藏其他结构</button><hr class="detail-hr"><section class="detail-section"><h3>空间位置</h3><p>${location.note}</p></section><section class="detail-section"><h3>显示中心 · MNI 毫米</h3><div class="coord-grid">${['X','Y','Z'].map((a,i)=>`<div><span>${a}</span><strong>${e.center[i].toFixed(1)}</strong></div>`).join('')}</div><p class="micro-note" style="margin-top:10px">网格中心，非激活峰。X：左负右正；Y：后负前正；Z：下负上正。</p></section><section class="detail-section"><h3>如何理解这个边界</h3><p>${precise}</p><a class="source-link" href="${a.url}" target="_blank" rel="noopener">查看图谱原始研究 ↗</a></section><section class="detail-section"><h3>文献学习</h3><p class="micro-note">本次先建立解剖底座。之后可把论文的实验条件、定位与证据关联到这个条目。当前蓝光只表示选择或学习记录。</p></section>`;
+ $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">REGION PROFILE</span><span class="atlas-badge">${a.name}</span></div><nav class="detail-path" aria-label="脑区完整归属">${entryBreadcrumbs(e)}</nav><h2>${escape(e.text.title)}</h2><p class="latin3">${escape(e.name)}</p><div class="direct-parent"><span>直接上级 · ${escape(parent.kind)}</span><strong>${escape(parent.label)}</strong></div><div class="detail-section breadcrumb3">${e.text.side} · ${location.label}<br>${a.type} · 标签 ${e.label}</div><div class="detail-actions"><button id="focusSelected">定位放大</button><button class="learn-btn" id="markLearned" aria-pressed="${known.has(e.id)}">${known.has(e.id)?'✓ 已学习':'标记已学习'}</button></div><button id="isolateSelected" class="isolate-action">隐藏其他结构</button><hr class="detail-hr"><section class="detail-section"><h3>解剖从属</h3><ol class="hierarchy-list">${hierarchyRows}</ol><p class="micro-note">这是解剖导航路径，不表示信息传导顺序或功能因果关系。</p></section><section class="detail-section"><h3>这一结构是什么</h3><p>${location.note}</p></section><section class="detail-section"><h3>显示中心 · MNI 毫米</h3><div class="coord-grid">${['X','Y','Z'].map((a,i)=>`<div><span>${a}</span><strong>${e.center[i].toFixed(1)}</strong></div>`).join('')}</div><p class="micro-note" style="margin-top:10px">网格中心，非激活峰。X：左负右正；Y：后负前正；Z：下负上正。</p></section><section class="detail-section"><h3>如何理解这个边界</h3><p>${precise}</p><a class="source-link" href="${a.url}" target="_blank" rel="noopener">查看图谱原始研究 ↗</a></section>`;
  $('focusSelected').onclick=()=>focus(e);
  $('isolateSelected').onclick=()=>toggleIsolation();
  $('markLearned').onclick=()=>{

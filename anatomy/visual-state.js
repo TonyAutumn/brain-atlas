@@ -1,5 +1,5 @@
 // Semantic emphasis is independent of atlas-provided region colours.
-import {NAV,inGroup} from './navigation.js?v=nav3';
+import {NAV,inGroup} from './navigation.js?v=hierarchy1';
 export const GROUP_COLORS={cortex:'#b99aff',hippocampus:'#ffc36b',amygdala:'#f78fae',thalamus:'#a6dd79',basal:'#63d5b8',midbrain:'#ffad78',diencephalon:'#e4cc70',cerebellum:'#92a9ff'};
 export function emphasis(entry,state,learned=false){
  const selected=state.focusKind==='entry'&&entry.id===state.selected;

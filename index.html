@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>脑区探索室 · 三维解剖</title>
 <meta name="description" content="基于 Julich-Brain 与 CIT168 真实解剖图谱的三维脑区学习空间。探索皮层细胞构筑、海马亚区、丘脑与脑干核团。">
-<link rel="stylesheet" href="anatomy/app.css?v=papers1">
+<link rel="stylesheet" href="anatomy/app.css?v=hierarchy1">
 </head>
 <body>
 <header class="top">
@@ -51,7 +51,7 @@
  <aside class="right" id="detail3" aria-label="当前脑区详情" aria-live="polite"><span class="eyebrow">REGION PROFILE</span><h2>从一个位置开始</h2><p class="latin3">点击脑区或左侧名称，查看空间位置与图谱定义。</p></aside>
 </main>
 <dialog id="sourcesDialog"><button id="closeSources">关闭</button><h2>解剖数据与显示范围</h2>
-<p><b>导航层级：</b>大结构 → 脑叶或核团分组 → 图谱分区。皮层按脑叶浏览；扣带皮层和交界及跨叶区域另列。导航是学习索引，不是新的分区图谱。整组高亮只覆盖当前图谱已收录的分区，不等于完整脑叶、完整结构或白质体积。脑干目前只收录部分中脑核团。</p>
+<p><b>导航层级：</b>从全脑沿解剖树逐级进入宏观结构、脑叶或结构系统、亚系统、核团，最后到图谱分区。每个详情会显示完整从属与直接上级。导航是学习索引，不表示功能网络或信息传导顺序；整组高亮只覆盖当前图谱已收录的分区。</p>
 <p><b>Julich-Brain v3.1：</b>组织学细胞构筑图谱的离散分区，包含精细皮层、海马、杏仁核、丘脑和其他核团。保留原始标签；未定义的 GapMap 不作为正式脑区。显示网格由 1 mm 分区图提取并轻度平滑。<a href="https://doi.org/10.1126/science.abb4588" target="_blank" rel="noopener">Amunts et al., 2020</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/Juelich31" target="_blank" rel="noopener">数据与许可 CC BY-NC-SA</a></p>
 <p><b>CIT168：</b>皮层下概率图谱，包括尾状核、壳核、苍白球内外侧部、黑质致密部与网状部、腹侧被盖区等。表面采用来源提供的平滑等值面，边界不是个体的确定边界。<a href="https://doi.org/10.1038/sdata.2018.63" target="_blank" rel="noopener">Pauli et al., 2018</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/CIT168" target="_blank" rel="noopener">数据与许可 CC BY 4.0</a></p>
 <p><b>参考外壳：</b>Surf Ice 提供的 ICBM152 2009 三维表面；以中线切分左右显示，未人为移动脑区。<a href="https://github.com/neurolabusc/surf-ice/tree/master/sample" target="_blank" rel="noopener">源模型</a>。小脑宏观分叶补充自 <a href="https://github.com/niivue/niivue/tree/main/packages/niivue/demos/images" target="_blank" rel="noopener">AAL 数据</a>。</p>
@@ -61,5 +61,5 @@
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开三维解剖。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.atlasReady){var n=document.getElementById('loadText');if(n)n.textContent='三维页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=evidence1"></script>
+<script type="module" src="anatomy/app.js?v=hierarchy1"></script>
 </body></html>

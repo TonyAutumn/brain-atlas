@@ -2,7 +2,7 @@ import {cleanEnrichment} from './enrichment-schema.js';
 import {cleanMapping,cleanMappingHistory} from './mapping-state.js';
 import {DMN,networkOf,recordKind} from './networks.js';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
-import {NAV,inGroup} from '../anatomy/navigation.js?v=nav3';
+import {NAV,inGroup,mappingGroups} from '../anatomy/navigation.js?v=hierarchy1';
 import {describe} from '../anatomy/labels.js';
 import {validateAnalysis,canonicalTheme,themeList} from './schema.js?v=evidence1';
 export {canonicalTheme,themeList};
@@ -12,7 +12,7 @@ const aliases={
 };
 export function mappingOptions(entries){
  const options=RULES.filter(rule=>entries.some(e=>rule[2].includes(atlasCode(e)))).map(rule=>({value:'set:'+rule[0],label:rule[1].at(-1)+' · '+rule[0]+'（候选范围）'}));
- for(const id of Object.keys(NAV).filter(id=>!['all','unassigned','medial','deep','brainstem'].includes(id)))options.push({value:'group:'+id,label:NAV[id].label+'（已收录范围）'});
+ for(const id of mappingGroups())options.push({value:'group:'+id,label:NAV[id].label+'（已收录范围）'});
  options.unshift({value:'network:DMN',label:'DMN · 功能网络（仅角回参考位置）'});
  const seen=new Set();
  for(const e of entries){const key=e.atlas+'|'+e.name.replace(/^[LR] /,'').trim();if(seen.has(key))continue;seen.add(key);options.push({value:'parcel:'+e.id,label:describe(e).title+' · '+e.atlas});}
