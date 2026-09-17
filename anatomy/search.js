@@ -4,6 +4,9 @@ import {RULES,atlasCode} from '../research/mapping-rules.js';
 import {parcelAliases} from './structure-catalog.js';
 export const normalizeSearch=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
 const compact=s=>s.replaceAll(' ','');
+// A group can combine distinct structures (e.g. LGN and MGN); do not give
+// every child all of that group's abbreviations. Only inherit unambiguous names.
+const ALIAS_GROUPS=new Set(['substantia_nigra','red_nucleus','ventral_tegmental','subthalamic_nucleus','zona_incerta','nucleus_accumbens','ventral_pallidum','putamen','caudate','parabrachial_pigmented']);
 function score(query,fields){
  const q=normalizeSearch(query),qc=compact(q);if(!qc)return 0;
  const short=/^[a-z0-9]{1,3}$/.test(qc);
@@ -22,8 +25,8 @@ function score(query,fields){
 export function createSearchIndex(entries){
  const concepts=Object.entries(NAV).filter(([id])=>id!=='all'&&!['unassigned','midbrain_other','amygdala_other'].includes(id)).map(([id,n])=>({kind:'concept',id,label:n.label,fields:[n.label,n.english,...n.aliases],path:pathFor(id).map(p=>NAV[p].label).join(' › '),parcels:entries.filter(e=>inGroup(e,id)).map(e=>e.id)}));
  const parcels=entries.filter(e=>e.atlas!=='surface').map(e=>{
-  const nav=NAV[e.nav||navigationFor(e)],text=describe(e);
-  return {kind:'parcel',id:e.id,label:text.title,atlas:e.atlas,hemisphere:e.hemisphere,fields:[e.name,e.name.replace(/^[LR] /,'').trim(),text.title,String(e.label??''),...RULES.filter(r=>r[2].includes(atlasCode(e))).flatMap(r=>r[1]),...parcelAliases(e),nav?.label,nav?.english,...(nav?.aliases||[])],path:pathFor(e.nav||navigationFor(e)).map(p=>NAV[p].label).join(' › ')};
+  const group=e.nav||navigationFor(e),nav=NAV[group],text=describe(e);
+  return {kind:'parcel',id:e.id,label:text.title,atlas:e.atlas,hemisphere:e.hemisphere,fields:[e.name,e.name.replace(/^[LR] /,'').trim(),text.title,String(e.label??''),...RULES.filter(r=>r[2].includes(atlasCode(e))).flatMap(r=>r[1]),...parcelAliases(e),nav?.label,nav?.english,...(ALIAS_GROUPS.has(group)?nav.aliases:[])],path:pathFor(e.nav||navigationFor(e)).map(p=>NAV[p].label).join(' › ')};
  });
  return [...concepts,...parcels];
 }

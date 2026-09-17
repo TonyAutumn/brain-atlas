@@ -38,5 +38,10 @@ for(const id of ['cit-19','cit-20'])assert.equal(navigationFor(entries.find(e=>e
 assert.equal(navigationFor({name:'Unrecognized test-only label',category:'midbrain',atlas:'test',label:999}),'midbrain_other');
 assert.equal(entries.filter(e=>inGroup(e,'ventral_tegmental')).length,2,'Only actual VTA parcels belong to VTA');
 for(const q of ['SNr','SNc','GPe','GPi','NRp','NRm'])assert(search(q).some(h=>h.kind==='parcel'),q);
+for(const [q,labels] of [['LGN',[92]],['MGN',[16]]]){
+ const found=search(q).filter(h=>h.kind==='parcel').map(h=>h.id).sort();
+ assert.deepEqual(found,entries.filter(e=>e.atlas==='julich'&&labels.includes(e.label)).map(e=>e.id).sort(),q+' must not inherit sibling aliases');
+}
+assert(!search('MD').some(h=>h.kind==='parcel'&&/julich-[LR]-138$/.test(h.id)),'MD is not the medioventral thalamic parcel');
 // The catalogue is not an evidence validator: existing species/side/provenance gates remain separate.
 console.log(`Discovery checks passed: ${entries.length} entries from ${manifest.version}, ${Object.keys(NAV).length-1} hierarchy nodes, bilingual aliases, independent global search, geometry-free concepts, canonical source labels and unchanged IDs.`);

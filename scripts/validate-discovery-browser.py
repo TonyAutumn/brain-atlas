@@ -80,6 +80,7 @@ def run() -> None:
             assert set(page.evaluate("JSON.parse(localStorage.getItem('brain-atlas-anatomy-known-v1'))")).issuperset({"julich-L-172", "cit-22"})
             if os.environ.get("REQUIRE_WEBGL") == "1":
                 page.wait_for_function("window.atlasReady === true", timeout=60000)
+                page.wait_for_function("document.getElementById('modelStatus').textContent.includes('458 个模型条目')", timeout=60000)
                 page.evaluate("window.brainAtlas.select('cit-21')")
                 expect(page.locator("#isolate3")).to_be_enabled()
                 page.locator("#isolate3").check()
