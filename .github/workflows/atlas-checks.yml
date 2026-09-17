@@ -28,3 +28,5 @@ jobs:
         run: python scripts/validate-discovery-browser.py
       - name: Exercise structure notes and upward links
         run: python scripts/validate-notes-browser.py
+      - name: Exercise real geometry associations and negative controls
+        run: python scripts/validate-geometry-browser.py

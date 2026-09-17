@@ -1,12 +1,13 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {ATLAS,describe} from './labels.js';
-import {emphasis,showShell} from './visual-state.js?v=search1';
+import {emphasis,showShell} from './visual-state.js?v=geometry1';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText,hierarchyFor} from './navigation.js?v=search1';
 import {buildEvidenceLayer} from './evidence-layer.js?v=evidence1';
 import {createSceneSwitch} from './scene-switch.js';
-import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js';
+import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=geometry1';
 import {CATALOG_VERSION,SOURCES} from './structure-catalog.js';
+import {inGeometryGroup,GEOMETRY_LINK_VERSION} from './geometry-links.js?v=geometry1';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
@@ -20,8 +21,8 @@ const cursor=new THREE.Vector2();
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const debounce=(fn,ms)=>{let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
 const sourceFits=e=>state.source==='cit168'?e.atlas==='cit168':e.atlas==='julich'||e.atlas==='aal';
-// Rendering filters are not search filters. Typing does not hide the previous scene.
-const matches=e=>sourceFits(e)&&inGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id));
+// Rendering associations are not anatomical ancestry or search filters.
+const matches=e=>sourceFits(e)&&inGeometryGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id));
 const visibleEntries=()=>entries.filter(matches);
 const usableChildren=id=>childrenOf(id).filter(child=>!['unassigned','midbrain_other','amygdala_other'].includes(child)||entries.some(e=>inGroup(e,child)));
 function toast(s){$('toast3').textContent=s;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast3').textContent='',3200)}
@@ -32,7 +33,7 @@ function renderNavigation(){
  const top=topGroup(state.group);
  const button=(id,active,label=NAV[id].label)=>{
   const coverage=conceptCoverage(id,entries);
-  return `<button data-group="${id}" aria-pressed="${active}" ${active?'class="active"':''} title="${coverage.hasGeometry?'已有关联分区；点击自动选择可用图谱':'仅层级：可查看从属关系，暂无模型'}">${escape(label)}${coverage.hasGeometry?'':' <small>仅层级</small>'}</button>`;
+  return `<button data-group="${id}" aria-pressed="${active}" ${active?'class="active"':''} title="${escape(coverage.note)}">${escape(label)}${coverage.partial?' <small>部分模型</small>':coverage.hasGeometry?'':' <small>仅层级</small>'}</button>`;
  };
  const setHTML=(id,html)=>{if($(id).innerHTML!==html)$(id).innerHTML=html;};
  const activeId=document.activeElement?.dataset.group;
@@ -46,7 +47,7 @@ function renderNavigation(){
   setHTML('subgroupFilters',[button(branch,state.group===branch,'全部 '+NAV[branch].label),...branchChildren.map(id=>button(id,state.group===id))].join(''));
  }
  if(activeId&&!document.activeElement?.dataset.group)$('groupFilters').parentElement.querySelector(`[data-group="${activeId}"]`)?.focus({preventScroll:true});
- $('navHint').textContent='名称、英文或缩写均可搜索；“仅层级”也能点开查看从属关系。';
+ $('navHint').textContent='名称、英文或缩写均可搜索；“部分模型”只显示已收录分区，“仅层级”也能点开。';
  setHTML('indexPath',breadcrumbs(state.group));
  $('search3').placeholder='搜索全库：VTA、顶盖、tegmentum…';
  $('atlasSelect').value=state.source;
@@ -58,7 +59,7 @@ function renderList(){
  if(state.query){
   const hits=searchAtlas(state.query,searchIndex),concepts=hits.filter(h=>h.kind==='concept').length;
   $('listCount').textContent=`${concepts} 个结构 · ${hits.length-concepts} 个模型条目`;
-  $('regionItems').innerHTML='<p class="search-note">全库结果，包含全部图谱，不受当前分组、侧别或已学习筛选限制。点击后自动显示。</p>'+(hits.length?hits.map(hit=>hit.kind==='parcel'?entryButton(entries.find(e=>e.id===hit.id)):`<button class="region-item concept-item" data-group="${hit.id}"><span class="hem">层级</span><strong>${escape(hit.label)}</strong><small>${escape(NAV[hit.id].english)} · ${hit.parcels.length?'有关联模型':'仅层级 · 暂无模型'}</small><small class="search-path">${escape(hit.path)}</small></button>`).join(''):'<p class="empty3">全库中没有这个名称。可尝试中文名、英文全名或常用缩写；词库仍在补充。</p>');
+  $('regionItems').innerHTML='<p class="search-note">全库结果，包含全部图谱，不受当前分组、侧别或已学习筛选限制。点击后自动显示。</p>'+(hits.length?hits.map(hit=>hit.kind==='parcel'?entryButton(entries.find(e=>e.id===hit.id)):`<button class="region-item concept-item" data-group="${hit.id}"><span class="hem">${escape(hit.coverageLabel)}</span><strong>${escape(hit.label)}</strong><small>${escape(NAV[hit.id].english)} · ${hit.partial?'部分模型 · 非完整边界':hit.parcels.length?'有关联模型':'仅层级 · 暂无模型'}</small><small class="search-path">${escape(hit.path)}</small></button>`).join(''):'<p class="empty3">全库中没有这个名称。可尝试中文名、英文全名或常用缩写；词库仍在补充。</p>');
  }else{
   const list=visibleEntries().sort((a,b)=>a.text.title.localeCompare(b.text.title,'zh-CN')||a.hemisphere.localeCompare(b.hemisphere));
   $('listCount').textContent=`当前 ${list.length} 个模型条目`;
@@ -87,7 +88,8 @@ function updateMaterials(){
  const group=state.group!=='all';
  $('selectionSwatch').style.background=group?NAV[state.group].color:'#8894a4';
  $('selectionLegend').textContent=group?NAV[state.group].label:'解剖结构';
- $('visibilityNote').textContent=state.focusKind==='group'&&!conceptCoverage(state.group,entries).hasGeometry?'仅层级知识：不绘制虚构模型、坐标或边界。':state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」';
+ const coverage=state.focusKind==='group'?conceptCoverage(state.group,entries):null;
+ $('visibilityNote').textContent=coverage&&!coverage.hasGeometry?'仅层级知识：不绘制虚构模型、坐标或边界。':(coverage?.partial?'部分模型 · 非完整结构边界。':'')+(state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」');
  if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
  const opacityLabel=$('opacity3').closest('label');
  $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
@@ -114,12 +116,13 @@ function toggleIsolation(value=!state.isolate){
 function groupDetail(){
  const group=state.group!=='all',info=NAV[state.group],list=visibleEntries(),coverage=conceptCoverage(state.group,entries);
  const parent=NAV[info.parent],children=usableChildren(state.group),related=info.related.filter(id=>NAV[id]);
- const links=ids=>ids.map(id=>`<button class="structure-link" data-group="${id}">${escape(NAV[id].label)} <small>${conceptCoverage(id,entries).hasGeometry?'有关联模型':'仅层级'}</small></button>`).join('');
+ const links=ids=>ids.map(id=>`<button class="structure-link" data-group="${id}">${escape(NAV[id].label)} <small>${conceptCoverage(id,entries).label}</small></button>`).join('');
  const path=pathFor(state.group).slice(1).map((id,i)=>`<li class="hierarchy-step"><span>${i+1}</span><div><small>${escape(NAV[id].kind)}</small><strong>${escape(NAV[id].label)}</strong></div></li>`).join('');
- const references=info.references.map(id=>SOURCES[id]).filter(Boolean).map(s=>`<a class="source-link" href="${escape(s.url)}" target="_blank" rel="noopener">${escape(s.title)} ↗</a>`).join('');
- $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">STRUCTURE OVERVIEW</span><span class="atlas-badge">${coverage.hasGeometry?'层级与图谱':'仅层级 · 暂无模型'}</span></div><nav class="detail-path" aria-label="结构归属">${breadcrumbs(state.group)}</nav><h2>${escape(info.label)}</h2><p class="latin3">${escape(info.english)}</p>${parent?`<div class="direct-parent"><span>直接上级 · ${escape(parent.kind)}</span><strong>${escape(parent.label)}</strong></div>`:''}<section class="detail-section"><h3>这是什么</h3><p>${escape(info.note)}</p>${info.aliases.length?`<p class="micro-note">检索词：${info.aliases.map(escape).join(' / ')}</p>`:''}</section>${path?`<section class="detail-section"><h3>完整从属关系</h3><ol class="hierarchy-list">${path}</ol></section>`:''}<section class="detail-section"><h3>下属结构</h3>${children.length?links(children):'<p>层级库暂无进一步细分。可在左侧查看已收录的图谱条目。</p>'}</section>${related.length?`<section class="detail-section"><h3>相关位置与术语（不是同义词）</h3>${links(related)}</section>`:''}<section class="detail-section"><h3>三维显示范围</h3><p>${coverage.hasGeometry?`全库有 ${coverage.parcels.length} 个关联模型条目，当前显示 ${list.length} 个。大结构的子分区集合不等于完整体积。`:'目前只提供名称与从属关系，不以附近结构或虚构坐标代替。'}</p></section><div class="detail-actions"><button id="focusGroup" ${scene&&list.length?'':'disabled'}>定位已收录分区</button><button id="isolateSelected">隐藏其他结构</button></div><section class="detail-section"><h3>来源与定义</h3>${references}<p class="micro-note">这是学习导航，不表示传导顺序或功能因果；跨界定位分组和相关位置已单独注明。层级库不是完整的人脑本体。</p></section>`;
+ const references=[...info.references.map(id=>SOURCES[id]).filter(Boolean),...coverage.references].map(s=>`<a class="source-link" href="${escape(s.url)}" target="_blank" rel="noopener">${escape(s.title)} ↗</a>`).join('');
+ const modelLinks=coverage.hasGeometry?`<details id="linkedModelDetails" class="detail-section"><summary>已关联模型（${coverage.parcels.length} 个条目 · 全部图谱）</summary><p class="micro-note">左右与图谱分别计数。点击任一条目会自动切换来源；不将多套图谱的重叠表面当成一个边界。</p>${coverage.parcels.map(entryButton).join('')}</details>`:'';
+ $('detail3').innerHTML=`<div class="detail-label"><span class="eyebrow">STRUCTURE OVERVIEW</span><span class="atlas-badge">${coverage.hasGeometry?coverage.label:'仅层级 · 暂无模型'}</span></div><nav class="detail-path" aria-label="结构归属">${breadcrumbs(state.group)}</nav><h2>${escape(info.label)}</h2><p class="latin3">${escape(info.english)}</p>${parent?`<div class="direct-parent"><span>直接上级 · ${escape(parent.kind)}</span><strong>${escape(parent.label)}</strong></div>`:''}<section class="detail-section"><h3>这是什么</h3><p>${escape(info.note)}</p>${info.aliases.length?`<p class="micro-note">检索词：${info.aliases.map(escape).join(' / ')}</p>`:''}</section>${path?`<section class="detail-section"><h3>完整从属关系</h3><ol class="hierarchy-list">${path}</ol></section>`:''}<section class="detail-section"><h3>下属结构</h3>${children.length?links(children):'<p>层级库暂无进一步细分。可在左侧查看已收录的图谱条目。</p>'}</section>${related.length?`<section class="detail-section"><h3>相关位置与术语（不是同义词）</h3>${links(related)}</section>`:''}<section class="detail-section"><h3>三维显示范围</h3><p>${coverage.hasGeometry?`全库有 ${coverage.parcels.length} 个关联模型条目，当前显示 ${list.length} 个。大结构的子分区集合不等于完整体积。`:'目前只提供名称与从属关系，不以附近结构或虚构坐标代替。'}</p><p id="geometryCoverageNote" class="micro-note">${escape(coverage.note)}</p></section><div class="detail-actions"><button id="focusGroup" ${scene&&list.length?'':'disabled'}>定位已收录分区</button><button id="isolateSelected">隐藏其他结构</button></div>${modelLinks}<section class="detail-section"><h3>来源与定义</h3>${references}<a class="source-link" href="anatomy/GEOMETRY-AUDIT.md" target="_blank" rel="noopener">模型关联核对说明 ↗</a><p class="micro-note">这是学习导航，不表示传导顺序或功能因果；跨界定位分组和相关位置已单独注明。层级库不是完整的人脑本体。</p></section>`;
  $('focusGroup').onclick=focusUnit;$('isolateSelected').onclick=()=>toggleIsolation();
- $('stageTitle').textContent=group?info.label+(coverage.hasGeometry?' · 已收录分区':' · 仅层级知识'):'群体参考脑 · 真实解剖表面';
+ $('stageTitle').textContent=group?info.label+(coverage.hasGeometry?' · '+coverage.label:' · 仅层级知识'):'群体参考脑 · 真实解剖表面';
  updateMaterials();
 }
 async function selectGroup(group){
@@ -129,10 +132,11 @@ async function selectGroup(group){
  state.query='';state.knownOnly=false;state.hemi='both';$('search3').value='';$('knownOnly').setAttribute('aria-pressed','false');
  $('hemiControls').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.hemi==='both'));
  const coverage=conceptCoverage(group,entries);
- if(coverage.hasGeometry&&!coverage.parcels.some(sourceFits))state.source=coverage.sources.includes('julich')||coverage.sources.includes('aal')?'julich':'cit168';
+ if(coverage.preferredSource&&coverage.sources.includes(coverage.preferredSource))state.source=coverage.preferredSource;
+ else if(coverage.hasGeometry&&!coverage.parcels.some(sourceFits))state.source=coverage.sources.includes('julich')||coverage.sources.includes('aal')?'julich':'cit168';
  renderList();groupDetail();if(innerWidth<=1100&&!embedded)$('detail3').classList.add('open');
  if(scene&&group!=='all'){
-  try{await Promise.all([...new Set(visibleEntries().map(e=>e.file))].map(loadFile));if(state.group===group&&state.isolate)focusUnit();}
+  try{await Promise.all([...new Set(visibleEntries().map(e=>e.file))].map(loadFile));if(state.group===group&&state.focusKind==='group'&&(state.isolate||coverage.includeGroups.length))focusUnit();}
   catch{toast('部分模型未加载；从属关系仍可查看。');}
  }
 }
@@ -226,10 +230,11 @@ async function loadFile(file){
 }
 function bindUI(){
  const navigate=e=>{const b=e.target.closest('[data-group]');if(b&&!b.disabled)selectGroup(b.dataset.group);};
- $('groupFilters').onclick=navigate;$('subgroupFilters').onclick=navigate;$('indexPath').onclick=navigate;$('detail3').addEventListener('click',navigate);
- $('regionItems').onclick=e=>{const b=e.target.closest('[data-id]');if(b){clearEvidence();select(b.dataset.id,{reveal:true,zoom:true});}else navigate(e);};
+ $('groupFilters').onclick=navigate;$('subgroupFilters').onclick=navigate;$('indexPath').onclick=navigate;
+ const openResult=e=>{const b=e.target.closest('[data-id]');if(b){clearEvidence();select(b.dataset.id,{reveal:true,zoom:true});}else navigate(e);};
+ $('regionItems').onclick=openResult;$('detail3').addEventListener('click',openResult);
  $('search3').addEventListener('input',debounce(()=>{state.query=$('search3').value.trim();renderList();},120));
- $('knownOnly').onclick=()=>{state.knownOnly=!state.knownOnly;$('knownOnly').setAttribute('aria-pressed',String(state.knownOnly));renderList();if(state.focusKind!=='entry')groupDetail();};
+ $('knownOnly').onclick=()=>{state.knownOnly=!state.knownOnly;$('knownOnly').setAttribute('aria-pressed','false');$('knownOnly').setAttribute('aria-pressed',String(state.knownOnly));renderList();if(state.focusKind!=='entry')groupDetail();};
  $('atlasSelect').onchange=()=>{state.source=$('atlasSelect').value;state.group='all';state.selected=null;state.focusKind='none';renderList();groupDetail();toast('已切换三维显示图谱；搜索仍覆盖全库。');};
  $('hemiControls').onclick=e=>{if(e.target.dataset.hemi)setHemi(e.target.dataset.hemi);};
  $('viewControls').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
@@ -281,7 +286,9 @@ async function main(){
   entries=manifest.entries.filter(e=>e.atlas!=='surface');for(const e of entries){e.nav=navigationFor(e);e.text=describe(e);e.text.search+=' '+navigationText(e).toLowerCase();}
   searchIndex=createSearchIndex(entries);renderList();groupDetail();
   // Expose the catalogue before loading geometry. A failed model cannot remove knowledge.
-  window.brainAtlas={version:manifest.version,catalogVersion:CATALOG_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null};
+  window.brainAtlas={version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
+   getModelCoverage:id=>{const {parcels,...coverage}=conceptCoverage(id,entries);return {...coverage,entryIds:parcels.map(e=>e.id)};},
+   getVisibleModelIds:()=>[...meshes.values()].filter(m=>m.visible).map(m=>m.userData.entry.id)};
   window.catalogReady=true;
   try{setupScene();}catch(e){scene=null;camera=null;console.warn('3D unavailable',e);$('loadText').textContent='三维图形暂不可用；左侧仍可搜索并查看从属关系。';$('modelStatus').textContent='层级库可用 · 三维暂不可用';$('loadNotice').querySelector('.loading-line')?.remove();groupDetail();reportSceneError($('loadText').textContent);return;}
   const shellFile=manifest.files.find(f=>f.name.startsWith('shell'))?.name;

@@ -6,6 +6,7 @@
 <meta name="description" content="搜索脑结构的中文、英文和缩写，查看完整从属关系及 Julich-Brain、CIT168 参考模型。没有模型的结构也可学习。">
 <link rel="stylesheet" href="anatomy/app.css?v=hierarchy1">
 <link rel="stylesheet" href="anatomy/discovery.css?v=search1">
+<link rel="stylesheet" href="anatomy/geometry-links.css?v=geometry1">
 <link rel="stylesheet" href="notes/notes.css?v=notes1">
 </head>
 <body>
@@ -54,6 +55,7 @@
 </main>
 <dialog id="sourcesDialog"><button id="closeSources">关闭</button><h2>解剖数据与显示范围</h2>
 <p><b>全库检索：</b>搜索覆盖所有已收录图谱和独立的结构层级词库，不受当前显示图谱、分组、侧别或已学习筛选限制。“仅层级”不是不存在，而是当前没有关联三维模型。<a href="anatomy/DISCOVERY.md" target="_blank" rel="noopener">词库来源与更新说明</a></p>
+<p><b>部分模型：</b>大结构或跨分区总称可关联已收录子结构；这不代表完整边界。详情可展开“已关联模型”查看全部来源和左右侧条目。<a href="anatomy/GEOMETRY-AUDIT.md" target="_blank" rel="noopener">关联核对与未覆盖范围</a></p>
 <p><b>导航层级：</b>从全脑沿解剖树逐级进入宏观结构、脑叶或结构系统、亚系统、核团，最后到图谱分区。每个详情会显示完整从属与直接上级。导航是学习索引，不表示功能网络或信息传导顺序；整组高亮只覆盖当前图谱已收录的分区。</p>
 <p><b>Julich-Brain v3.1：</b>组织学细胞构筑图谱的离散分区，包含精细皮层、海马、杏仁核、丘脑和其他核团。保留原始标签；未定义的 GapMap 不作为正式脑区。显示网格由 1 mm 分区图提取并轻度平滑。<a href="https://doi.org/10.1126/science.abb4588" target="_blank" rel="noopener">Amunts et al., 2020</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/Juelich31" target="_blank" rel="noopener">数据与许可 CC BY-NC-SA</a></p>
 <p><b>CIT168：</b>皮层下概率图谱，包括尾状核、壳核、苍白球内外侧部、黑质致密部与网状部、腹侧被盖区等。表面采用来源提供的平滑等值面，边界不是个体的确定边界。<a href="https://doi.org/10.1038/sdata.2018.63" target="_blank" rel="noopener">Pauli et al., 2018</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/CIT168" target="_blank" rel="noopener">数据与许可 CC BY 4.0</a></p>
@@ -64,6 +66,6 @@
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开解剖与层级。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.catalogReady){var n=document.getElementById('loadText');if(n)n.textContent='页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=search1"></script>
+<script type="module" src="anatomy/app.js?v=geometry1"></script>
 <script type="module" src="notes/atlas-integration.js?v=notes1"></script>
 </body></html>

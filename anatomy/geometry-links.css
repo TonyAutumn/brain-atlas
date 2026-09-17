@@ -1,0 +1,7 @@
+/* A collapsed provenance list keeps the everyday structure view compact. */
+#linkedModelDetails{border:1px solid var(--line);border-radius:7px;padding:10px;}
+#linkedModelDetails summary{cursor:pointer;color:var(--ink);font-size:14px;line-height:1.7;}
+#linkedModelDetails summary:focus-visible{outline:2px solid var(--blue);outline-offset:4px;}
+#linkedModelDetails .micro-note{margin:10px 0;}
+#linkedModelDetails .region-item{padding:9px 5px;}
+#geometryCoverageNote{margin-top:9px;}

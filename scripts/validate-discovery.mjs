@@ -22,7 +22,10 @@ for(const q of ['VTA','vta','ＶＴＡ','ventral tegmental area','ventral-tegmen
  assert.deepEqual(hits.filter(h=>h.kind==='parcel').map(h=>h.id).sort(),['cit-21','cit-22'],q);
 }
 for(const [q,id] of [['tectum','tectum'],['顶盖','tectum'],['四叠体','tectum'],['tegmentum','tegmentum'],['被盖','tegmentum'],['midbrain tegmentum','midbrain_tegmentum'],['脑桥','pons'],['LC','locus_coeruleus'],['PAG','periaqueductal_gray'],['DRN','dorsal_raphe'],['PPTg','pedunculopontine']])assert(search(q).some(h=>h.kind==='concept'&&h.id===id),q);
-for(const id of ['tectum','superior_colliculus','inferior_colliculus','tegmentum','pons','locus_coeruleus','medulla'])assert.equal(conceptCoverage(id,entries).hasGeometry,false,id);
+for(const id of ['tectum','superior_colliculus','inferior_colliculus','pons','locus_coeruleus','medulla'])assert.equal(conceptCoverage(id,entries).hasGeometry,false,id);
+// The general tegmentum now exposes existing subregion meshes, never a fabricated whole or a VTA synonym.
+assert.equal(conceptCoverage('tegmentum',entries).hasGeometry,true);
+assert.equal(conceptCoverage('tegmentum',entries).partial,true);
 assert.equal(search('tegmentum')[0].id,'tegmentum');
 assert(!search('tegmentum').some(h=>h.kind==='parcel'&&['cit-21','cit-22'].includes(h.id)),'Tegmentum is not a VTA alias');
 assert.equal(search('IC')[0].id,'inferior_colliculus');
