@@ -4,6 +4,7 @@ import {NAV,navigationFor,inGroup,pathFor} from '../anatomy/navigation.js';
 import {conceptCoverage,createSearchIndex,searchAtlas} from '../anatomy/search.js';
 import {GEOMETRY_RELATIONS,inGeometryGroup} from '../anatomy/geometry-links.js';
 import {emphasis} from '../anatomy/visual-state.js';
+import {displayState} from '../anatomy/render-mode.js';
 const root=new URL('../',import.meta.url);
 const manifest=JSON.parse(fs.readFileSync(new URL('anatomy/data/manifest.json',root)));
 const entries=manifest.entries.filter(e=>e.atlas!=='surface');
@@ -55,6 +56,15 @@ assert.deepEqual(linkedAfter.filter(id=>!linkedBefore.includes(id)).sort(),['cer
 assert.equal(linkedBefore.length,84);assert.equal(linkedAfter.length,86);
 const app=fs.readFileSync(new URL('anatomy/app.js',root),'utf8');
 assert(app.includes('sourceFits(e)&&inGeometryGroup(e,state.group)'));
-assert(app.includes("evidenceLayer.group.visible=!(state.isolate&&state.focusKind==='entry')"),'Preserve existing evidence visibility behavior');
+assert(app.includes("evidenceLayer.group.visible=!(display.isolate&&state.focusKind==='entry')"),'Evidence visibility must use the effective isolation state');
+// Default/transparent modes retain the legacy evidence behavior for every manual state.
+for(const focusKind of ['entry','group','evidence'])for(const isolate of [false,true])for(const renderMode of [undefined,'transparent']){
+ const state={focusKind,isolate,renderMode},display=displayState(state,true);
+ assert.equal(!(display.isolate&&focusKind==='entry'),!(isolate&&focusKind==='entry'),'Preserve transparent evidence visibility');
+}
+// Solid entry inspection hides schematic overlays; the complete evidence view keeps them.
+assert(displayState({focusKind:'entry',renderMode:'solid',isolate:false},true).isolate);
+const evidence=displayState({focusKind:'evidence',renderMode:'solid',isolate:false},true);
+assert(evidence.isolate&&evidence.focusKind!=='entry','Solid evidence hides its shell but retains the evidence layer');
 for(const file of ['anatomy/geometry-links.js','anatomy/GEOMETRY-AUDIT.md','scripts/validate-geometry-browser.py'])assert(fs.existsSync(new URL(file,root)),file);
 console.log(`Geometry links verified: ${entries.length} unchanged models; ${concepts.length} concepts; ${linkedBefore.length} -> ${linkedAfter.length} linked; ${missing.length-2} anatomical concepts without meshes plus 2 empty review groups. Explicit partial associations only; ancestry, search aliases and evidence visibility preserved.`);
