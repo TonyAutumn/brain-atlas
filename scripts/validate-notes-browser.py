@@ -58,11 +58,11 @@ try:
   note.locator('#duplicateNote').click();expect(note.locator('#saveStatus')).to_contain_text('已保存到此浏览器')
   assert parse_qs(urlparse(note.url).query)['note'][0]!=original_id
   expect(note.locator('#noteBody')).to_have_value('本标签页未保存冲突版本')
-  # A simulated synchronous quota failure must retain editor data, then support retry.
-  note.evaluate("window.savedPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(){throw new DOMException('test quota','QuotaExceededError')}")
+  # Wrap mutation in a function that returns no callable: do not invoke the installed throwing stub.
+  note.evaluate("() => {window.savedPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(){throw new DOMException('test quota','QuotaExceededError')};}")
   note.locator('#noteBody').fill('配额失败后仍保留');note.locator('#saveNote').click();expect(note.locator('#saveStatus')).to_contain_text('尚未保存')
   expect(note.locator('#noteBody')).to_have_value('配额失败后仍保留')
-  note.evaluate('IDBObjectStore.prototype.put=window.savedPut');note.locator('#saveNote').click();expect(note.locator('#saveStatus')).to_contain_text('已保存到此浏览器')
+  note.evaluate('() => {IDBObjectStore.prototype.put=window.savedPut;}');note.locator('#saveNote').click();expect(note.locator('#saveStatus')).to_contain_text('已保存到此浏览器')
   # Raster data are included in the backup and restored in an independent browser context.
   with note.expect_download() as dl: note.locator('#exportAll').click()
   raw=pathlib.Path(dl.value.path()).read_text();backup=json.loads(raw);assert len(backup['notes'])==2
