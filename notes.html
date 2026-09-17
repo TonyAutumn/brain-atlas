@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>结构笔记 · 脑区探索室</title>
+<link rel="stylesheet" href="notes/notes.css?v=notes1">
+</head>
+<body class="notebook-page">
+<header class="notes-top"><a href="index.html">← 解剖与层级</a><h1>结构笔记</h1><a href="notes.html">全部笔记</a></header>
+<p class="privacy-note">笔记和图片只保存在当前浏览器，不上传 GitHub 或 Kimi。链接用于打开本地笔记；更换设备或清除网站数据前，请导出含图片的备份。</p>
+<main class="notebook-layout">
+<aside class="notes-sidebar">
+<label for="structurePick">所属结构</label><select id="structurePick"><option value="">全部结构 · 选择结构后可新建</option></select>
+<button id="newNote" disabled>新建笔记</button>
+<label for="filterNotes">搜索笔记</label><input id="filterNotes" type="search" placeholder="搜索标题或正文">
+<p id="noteCount" class="muted"></p><nav id="noteList" aria-label="笔记列表"></nav>
+<div class="backup-actions"><button id="exportAll">导出全部笔记（含图片）</button><button id="exportStructure" disabled>导出当前结构</button><label class="file-button" for="importInput">导入笔记备份</label><input id="importInput" type="file" accept="application/json,.json" hidden></div>
+<p id="listError" class="error-message" role="status"></p>
+</aside>
+<section class="notes-workspace">
+<p id="pageStatus" role="status" aria-live="polite">正在打开笔记库…</p>
+<div id="emptyEditor"><h2>为结构留下自己的理解</h2><p>从脑结构详情点击“新建笔记”，或在左侧选择一个结构。没有三维模型的结构也能记录文字和图片。</p></div>
+<div id="editor" hidden>
+<nav id="noteAncestry" class="note-ancestry" aria-label="笔记结构完整从属关系"></nav>
+<div class="editor-context"><a id="backToStructure" href="index.html">返回对应结构</a><span id="structureName"></span></div>
+<div class="editor-actions"><button id="saveNote">保存</button><button id="copyNoteLink">复制笔记链接</button><button id="duplicateNote">另存副本</button><button id="reloadNote">重新载入</button><button id="deleteNote" class="danger">删除笔记</button></div>
+<p id="saveStatus" role="status" aria-live="polite"></p>
+<div id="saveError" class="error-message" hidden>未保存的改动仍在编辑器中。可点击“保存”重试，或“另存副本”；导出也会保留未保存草稿。</div>
+<div id="linkBox" hidden><label for="linkText">笔记链接（仅在有对应本地数据的浏览器可打开）</label><input id="linkText" readonly></div>
+<label for="noteTitle">标题</label><input id="noteTitle" maxlength="200" placeholder="未命名笔记">
+<label for="noteBody">正文</label><textarea id="noteBody" rows="14" maxlength="500000" placeholder="写下你的理解、疑问、文献摘录……可直接粘贴截图。"></textarea>
+<div class="image-toolbar"><label for="imageInput" class="file-button">添加图片</label><input id="imageInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden><span>可粘贴或拖入图片；每张 ≤10 MB，每篇最多 20 张。</span></div>
+<div id="noteImages" class="note-images"></div>
+<p class="muted">输入后自动保存，也可按 Ctrl＋S。图片总量每篇不超过 50 MB；正文按纯文字保存，不执行 HTML。</p>
+</div>
+</section>
+</main>
+<dialog id="imageDialog"><button id="closeImage">关闭大图</button><img id="largeImage" alt="笔记图片预览"><p id="largeCaption"></p></dialog>
+<noscript>请启用 JavaScript 后使用结构笔记。</noscript>
+<script type="module" src="notes/app.js?v=notes1"></script>
+</body></html>

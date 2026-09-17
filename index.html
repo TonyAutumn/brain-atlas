@@ -6,11 +6,12 @@
 <meta name="description" content="搜索脑结构的中文、英文和缩写，查看完整从属关系及 Julich-Brain、CIT168 参考模型。没有模型的结构也可学习。">
 <link rel="stylesheet" href="anatomy/app.css?v=hierarchy1">
 <link rel="stylesheet" href="anatomy/discovery.css?v=search1">
+<link rel="stylesheet" href="notes/notes.css?v=notes1">
 </head>
 <body>
 <header class="top">
  <a class="brand3" href="./"><span class="mark" aria-hidden="true">◈</span><div><h1>脑区探索室</h1><small>BRAIN ATLAS / ANATOMY</small></div></a>
- <nav class="topnav" aria-label="主导航"><span class="current">解剖与层级</span><a href="papers.html">主题与文献</a><a href="papers.html?record=network#recordPanel">功能网络</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
+ <nav class="topnav" aria-label="主导航"><span class="current">解剖与层级</span><a href="notes.html">笔记</a><a href="papers.html">主题与文献</a><a href="papers.html?record=network#recordPanel">功能网络</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
 </header>
 <main class="app">
  <aside class="left" aria-label="脑区索引">
@@ -39,7 +40,7 @@
   <div class="annotation"><span class="eyebrow">ICBM152 / MNI REFERENCE SPACE</span><p id="stageTitle">群体参考脑 · 真实解剖表面</p></div>
   <div class="canvas-wrap" id="canvasWrap"><canvas id="brainCanvas" aria-label="可旋转和缩放的三维大脑模型" tabindex="0"></canvas><div id="tooltip3" class="tooltip3"></div>
    <div class="notice3" id="loadNotice"><span id="loadText">正在读取解剖模型</span><div class="loading-line"><i></i></div></div>
-   <div class="orientation-label" id="labelL">L 左</div><div class="orientation-label" id="labelR">R 右</div><div class="orientation-label" id="labelA">A 前</div><div class="orientation-label" id="labelP">P 后</div>
+   <div class="orientation-label" id="labelL">L 左</div><div class="orientation-label" id="labelA">A 前</div><div class="orientation-label" id="labelR">R 右</div><div class="orientation-label" id="labelP">P 后</div>
   </div>
   <div class="stage-foot"><div class="legend3"><span><i id="selectionSwatch"></i><span id="selectionLegend">解剖结构</span></span><span><i class="blue"></i>当前选择</span><span>深蓝：已学习</span></div>拖动旋转 · 滚轮缩放 · 右键平移 · 点击脑区查看<div id="visibilityNote" class="visibility-note">空间背景 · 可勾选「只看当前选择」</div></div>
   <div class="control-dock">
@@ -64,4 +65,5 @@
 <noscript><p>请启用 JavaScript，并通过网站网址打开解剖与层级。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.catalogReady){var n=document.getElementById('loadText');if(n)n.textContent='页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
 <script type="module" src="anatomy/app.js?v=search1"></script>
+<script type="module" src="notes/atlas-integration.js?v=notes1"></script>
 </body></html>
