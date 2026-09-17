@@ -29,13 +29,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Verify mapping preservation and paper workflow
+      - name: Verify anatomy, search, mappings and paper workflow
         run: |
-          node scripts/validate-evidence-policy.mjs
-          node scripts/validate-persistence.mjs
-          node scripts/validate-research.mjs
-          node scripts/validate-enrichment.mjs
-          node scripts/validate-networks.mjs
+          set -eu
+          for script in scripts/validate-*.mjs; do node "$script"; done
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

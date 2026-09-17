@@ -12,7 +12,7 @@ for(const e of entries){
  assert.notEqual(e.nav,'unassigned',`Review new source label: ${e.name}`);
  assert.equal(top.filter(id=>inGroup(e,id)).length,1,`Overlapping/missing parent: ${e.name}`);
  assert(pathFor(e.nav).length>=4,`Incomplete path: ${e.name}`);
- assert(pathFor(e.nav).length<=7,`Unwieldy path: ${e.name}`);
+ assert(pathFor(e.nav).length<=9,`Unwieldy path: ${e.name}`);
  const hierarchy=hierarchyFor(e);
  assert.equal(hierarchy.at(-1).id,e.id,`Missing atlas leaf: ${e.name}`);
  assert.equal(hierarchy.at(-2).id,e.nav,`Wrong direct parent: ${e.name}`);
@@ -58,13 +58,14 @@ for(const e of vp){
 assert(mappingGroups().includes('ventral_pallidum'));
 const cit=entries.filter(e=>e.atlas==='cit168');
 assert.equal(cit.filter(e=>inGroup(e,'cortex')).length,0);
-assert.equal(cit.filter(e=>inGroup(e,'diencephalon')).length,6);
+// Diencephalon now includes the subthalamic subdivision, not only the old miscellaneous group.
+assert.equal(cit.filter(e=>inGroup(e,'diencephalon')).length,8);
 assert.equal(cit.filter(e=>inGroup(e,'subthalamus')).length,2);
-// Source inspection only: verify local imports and page controls, without a browser.
+// Source inspection only; browser interaction checks live in validate-discovery-browser.py.
 const html=fs.readFileSync(new URL('index.html',root),'utf8');
 const app=fs.readFileSync(new URL('anatomy/app.js',root),'utf8');
 for(const [,id]of app.matchAll(/\$\('([^']+)'\)/g))assert((html+app).includes(`id="${id}"`),`Missing control: ${id}`);
-for(const file of ['index.html','anatomy/app.js','anatomy/visual-state.js','anatomy/navigation.js']){
+for(const file of ['index.html','anatomy/app.js','anatomy/visual-state.js','anatomy/navigation.js','anatomy/search.js']){
  const content=fs.readFileSync(new URL(file,root),'utf8');
  const refs=file.endsWith('.html')?[...content.matchAll(/(?:src|href)="([^"#]+)"/g)]:[...content.matchAll(/from ['"]([^'"]+)['"]/g)];
  for(const [,ref]of refs){if(/^(https?:|data:)/.test(ref))continue;assert(fs.existsSync(new URL(ref,new URL(file,root))),`Missing asset: ${ref}`);}

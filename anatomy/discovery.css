@@ -1,0 +1,10 @@
+/* Search stays global; geometry-free concepts remain ordinary clickable entries. */
+.search-note{font-size:12px;line-height:1.7;color:var(--muted);padding:8px 10px 12px;grid-column:1/-1}
+.concept-item{border-color:var(--line);background:var(--surface)}
+.concept-item .hem{color:var(--blue)}
+.search-path{font-size:11px!important;overflow-wrap:anywhere}
+.structure-link{display:block;text-align:left;width:100%;margin:6px 0;white-space:normal;line-height:1.6}
+.structure-link small{display:block;color:var(--muted);font-size:11px}
+.filter button small{font-size:10px;color:var(--muted)}
+.count{gap:10px;flex-wrap:wrap}.detail-actions button{white-space:normal}
+@media(max-width:720px){.region-items .search-note,.region-items .empty3{grid-column:1/-1}}

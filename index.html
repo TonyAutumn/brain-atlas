@@ -2,33 +2,34 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>脑区探索室 · 三维解剖</title>
-<meta name="description" content="基于 Julich-Brain 与 CIT168 真实解剖图谱的三维脑区学习空间。探索皮层细胞构筑、海马亚区、丘脑与脑干核团。">
+<title>脑区探索室 · 解剖与层级</title>
+<meta name="description" content="搜索脑结构的中文、英文和缩写，查看完整从属关系及 Julich-Brain、CIT168 参考模型。没有模型的结构也可学习。">
 <link rel="stylesheet" href="anatomy/app.css?v=hierarchy1">
+<link rel="stylesheet" href="anatomy/discovery.css?v=search1">
 </head>
 <body>
 <header class="top">
  <a class="brand3" href="./"><span class="mark" aria-hidden="true">◈</span><div><h1>脑区探索室</h1><small>BRAIN ATLAS / ANATOMY</small></div></a>
- <nav class="topnav" aria-label="主导航"><span class="current">三维解剖</span><a href="papers.html">主题与文献</a><a href="papers.html?record=network#recordPanel">功能网络</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
+ <nav class="topnav" aria-label="主导航"><span class="current">解剖与层级</span><a href="papers.html">主题与文献</a><a href="papers.html?record=network#recordPanel">功能网络</a><a href="basics.html">基础与专题</a><button id="sourcesBtn">图谱来源</button></nav>
 </header>
 <main class="app">
  <aside class="left" aria-label="脑区索引">
   <div class="index-head"><span class="eyebrow">ANATOMICAL INDEX</span><h2>探索脑的内部</h2>
-   <label class="atlas-picker" for="atlasSelect">当前图谱<select id="atlasSelect"><option value="julich">主要脑区与小脑</option><option value="cit168">深部核团补充图谱</option></select></label>
-   <p class="nav-hint">主要图谱：Julich + AAL；深部补充：CIT168。两套图谱部分重叠。</p><p><a href="papers.html?record=network#recordPanel">查看功能网络与文献 →</a></p>
+   <input class="search3" id="search3" type="search" placeholder="搜索全库：VTA、顶盖、tegmentum…" aria-label="搜索全库的中文名、英文名或缩写，不受图谱和当前分组限制" autocomplete="off">
+   <p class="nav-hint">直接输入名称即可。有关联模型的自动切换图谱；没有模型的也能查看从属关系。</p>
    <nav class="anatomy-nav" aria-label="解剖层级导航">
     <div class="nav-label">按结构浏览</div>
     <div class="filter primary-groups" id="groupFilters"></div>
     <div id="subgroupPanel" class="subgroup-panel" hidden><div class="nav-label" id="subgroupLabel">细分位置</div><div class="filter" id="subgroupFilters"></div></div>
-    <p class="nav-hint" id="navHint">选择大结构，再展开精细分区。</p>
+    <p class="nav-hint" id="navHint">名称、英文或缩写均可搜索；“仅层级”也能点开。</p>
    </nav>
-   <input class="search3" id="search3" type="search" placeholder="搜索名称、缩写…" aria-label="搜索当前范围内的中英文脑区名称" autocomplete="off">
+   <label class="atlas-picker" for="atlasSelect">三维显示图谱<select id="atlasSelect"><option value="julich">主要脑区与小脑</option><option value="cit168">深部核团补充图谱</option></select></label>
    <div class="filter"><button id="knownOnly" aria-pressed="false">只看已学习</button></div>
   </div>
   <nav class="index-path" id="indexPath" aria-label="当前浏览范围"></nav>
   <div class="count"><span id="listCount">正在加载图谱…</span><span id="learnedCount">已学习 0</span></div>
   <div class="region-items" id="regionItems"></div>
-  <div class="index-foot">左右分开计数 · 已学习状态保存在此浏览器</div>
+  <div class="index-foot">层级独立于模型 · 学习记录保存在此浏览器</div>
  </aside>
  <section class="workspace" aria-label="三维解剖工作区">
   <div class="toolbar">
@@ -48,9 +49,10 @@
   </div>
   <div id="toast3" class="toast3" role="status"></div>
  </section>
- <aside class="right" id="detail3" aria-label="当前脑区详情" aria-live="polite"><span class="eyebrow">REGION PROFILE</span><h2>从一个位置开始</h2><p class="latin3">点击脑区或左侧名称，查看空间位置与图谱定义。</p></aside>
+ <aside class="right" id="detail3" aria-label="当前脑区详情" aria-live="polite"><span class="eyebrow">REGION PROFILE</span><h2>从一个名称开始</h2><p class="latin3">搜索中文、英文或缩写，查看结构的上下级关系。有模型时可继续定位。</p></aside>
 </main>
 <dialog id="sourcesDialog"><button id="closeSources">关闭</button><h2>解剖数据与显示范围</h2>
+<p><b>全库检索：</b>搜索覆盖所有已收录图谱和独立的结构层级词库，不受当前显示图谱、分组、侧别或已学习筛选限制。“仅层级”不是不存在，而是当前没有关联三维模型。<a href="anatomy/DISCOVERY.md" target="_blank" rel="noopener">词库来源与更新说明</a></p>
 <p><b>导航层级：</b>从全脑沿解剖树逐级进入宏观结构、脑叶或结构系统、亚系统、核团，最后到图谱分区。每个详情会显示完整从属与直接上级。导航是学习索引，不表示功能网络或信息传导顺序；整组高亮只覆盖当前图谱已收录的分区。</p>
 <p><b>Julich-Brain v3.1：</b>组织学细胞构筑图谱的离散分区，包含精细皮层、海马、杏仁核、丘脑和其他核团。保留原始标签；未定义的 GapMap 不作为正式脑区。显示网格由 1 mm 分区图提取并轻度平滑。<a href="https://doi.org/10.1126/science.abb4588" target="_blank" rel="noopener">Amunts et al., 2020</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/Juelich31" target="_blank" rel="noopener">数据与许可 CC BY-NC-SA</a></p>
 <p><b>CIT168：</b>皮层下概率图谱，包括尾状核、壳核、苍白球内外侧部、黑质致密部与网状部、腹侧被盖区等。表面采用来源提供的平滑等值面，边界不是个体的确定边界。<a href="https://doi.org/10.1038/sdata.2018.63" target="_blank" rel="noopener">Pauli et al., 2018</a> · <a href="https://github.com/niivue/niivue-demo-images/tree/main/CIT168" target="_blank" rel="noopener">数据与许可 CC BY 4.0</a></p>
@@ -59,7 +61,7 @@
 <p>解剖模式的蓝色表示选中或已学习。“主题与文献”中的蓝色表示论文涉及区域的图谱对应，连线只是证据关系示意，不代表实测神经活动、单神经元、纤维轨迹或完整传导时序。区域表面平滑不提高原始定位精度。剖切为显示裁切，切口不填充为组织切片。</p>
 <p><a href="anatomy/SOURCES.md" target="_blank">完整来源、处理方法与许可说明</a></p>
 </dialog>
-<noscript><p>请启用 JavaScript，并通过网站网址打开三维解剖。</p></noscript>
-<script>window.addEventListener('error',function(e){if(!window.atlasReady){var n=document.getElementById('loadText');if(n)n.textContent='三维页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=hierarchy1"></script>
+<noscript><p>请启用 JavaScript，并通过网站网址打开解剖与层级。</p></noscript>
+<script>window.addEventListener('error',function(e){if(!window.catalogReady){var n=document.getElementById('loadText');if(n)n.textContent='页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
+<script type="module" src="anatomy/app.js?v=search1"></script>
 </body></html>
