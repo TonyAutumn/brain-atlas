@@ -11,7 +11,7 @@ function message(s,error=false){$('pageStatus').textContent=s;$('pageStatus').cl
 function status(s,error=false){$('saveStatus').textContent=s;$('saveStatus').classList.toggle('error-message',error);$('saveError').hidden=!error;}
 function structure(key,fallback=''){
  const [kind,id]=String(key||'').split(':');
- if(kind==='group'&&NAV[id])return {key,label:NAV[id].label,path:pathFor(id)};
+ if(kind==='group'&&Object.hasOwn(NAV,id))return {key,label:NAV[id].label,path:pathFor(id)};
  const e=kind==='parcel'&&entries.get(id);if(e)return {key,label:describe(e).full+' · '+ATLAS[e.atlas].name,path:pathFor(navigationFor(e))};
  return {key,label:fallback||key||'全部结构',path:[]};
 }
@@ -74,7 +74,7 @@ async function changeScope(){
 async function addImages(files){
  if(!current||!files.length)return;if(imageWork){message('图片正在处理，请完成后再添加。');return;}
  const target=current.id;message('正在读取图片…');
- imageWork=(async()=>{try{
+ imageWork=(async()=>{await Promise.resolve();try{
   if(current.images.length+files.length>LIMITS.images)throw Error('每篇笔记最多 20 张图片。');
   const added=[];for(const file of files){const blob=await checkImage(file,file.name||'截图');const probe=new Image(),url=URL.createObjectURL(blob);try{probe.src=url;await probe.decode();if(probe.naturalWidth*probe.naturalHeight>40000000)throw Error('图片分辨率超过 4000 万像素，请缩小后再添加。');}finally{URL.revokeObjectURL(url);}added.push({id:crypto.randomUUID(),name:(file.name||'粘贴截图.png').slice(0,300),caption:'',blob});}
   if(current?.id!==target)return;
@@ -86,7 +86,7 @@ async function exportBackup(onlyStructure=false){
  const ok=await flush();let notes,readFailed=false;
  try{notes=await listNotes(onlyStructure?scope:null);}catch(e){if(!current)throw e;notes=[];readFailed=true;message('存储暂时不可读，此次只能导出当前编辑器草稿。',true);}
  if((!ok||readFailed)&&current){const draft=cleanNote({...current,id:crypto.randomUUID(),revision:0,title:(current.title||'未命名笔记').slice(0,188)+'（未保存草稿）'});notes.push(draft);}
- const raw=await packNotes(notes);downloadJSON(raw,'Brain-Atlas-Notes-'+new Date().toISOString().slice(0,10)+'.json');message(`已生成 ${notes.length} 篇笔记的含图片备份。`);
+ const raw=await packNotes(notes);downloadJSON(raw,'Brain-Atlas-Notes-'+new Date().toISOString().slice(0,10)+'.json');message(readFailed?`本地库读取失败，此次仅导出当前草稿（${notes.length} 篇），不是全库备份。`:`已生成 ${notes.length} 篇笔记的含图片备份。`,readFailed);
 }
 async function importBackup(file){
  if(!file)return;if(file.size>LIMITS.backup)throw Error('备份文件不能超过 160 MB。');if(!await flush())return;
@@ -111,6 +111,7 @@ function bind(){
  $('importInput').onchange=e=>{const file=e.target.files[0];e.target.value='';run(()=>importBackup(file));};
  $('exportAll').onclick=()=>run(()=>exportBackup());$('exportStructure').onclick=()=>run(()=>exportBackup(true));
  $('closeImage').onclick=()=>$('imageDialog').close();
+ for(const label of document.querySelectorAll('label.file-button')){label.tabIndex=0;label.setAttribute('role','button');label.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();$(label.htmlFor).click();}};}
  $('editor').addEventListener('paste',e=>{const files=[...(e.clipboardData?.items||[])].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);if(!files.length)return;e.preventDefault();const text=e.clipboardData.getData('text/plain');if(text&&e.target===$('noteBody')){$('noteBody').setRangeText(text,$('noteBody').selectionStart,$('noteBody').selectionEnd,'end');edit();}run(()=>addImages(files));});
  document.addEventListener('dragover',e=>{if(e.dataTransfer?.types.includes('Files'))e.preventDefault();});
  document.addEventListener('drop',e=>{if(!e.dataTransfer?.files.length)return;e.preventDefault();if(current)run(()=>addImages([...e.dataTransfer.files]));else message('请先新建或打开一篇笔记。',true);});
@@ -129,7 +130,7 @@ async function main(){
  scope=validKey(params.get('structure'))?params.get('structure'):null;
  if(scope&&![...$('structurePick').options].some(o=>o.value===scope)){const o=el('option',scope+'（当前词库未找到）');o.value=scope;$('structurePick').append(o);}
  $('structurePick').value=scope||'';$('newNote').disabled=!scope;$('exportStructure').disabled=!scope;
- await refreshList();window.notesReady=true;message('笔记库已打开，内容只保存在此浏览器。');
+ await refreshList();window.notesReady=true;document.body.dataset.notesReady='true';message($('listError').textContent?'本地存储暂不可用，请保留编辑器内容并导出草稿。':'笔记库已打开，内容只保存在此浏览器。',!!$('listError').textContent);
  if(params.get('note'))await openNote(params.get('note'));
  else if(params.get('new')==='1'&&scope)await newNote();
 }

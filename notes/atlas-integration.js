@@ -40,7 +40,7 @@ async function refreshNotes(){
 async function applyAddress(){
  const key=new URL(location.href).searchParams.get('structure');if(!validKey(key))return;
  const [kind,id]=key.split(':'),api=window.brainAtlas;
- if(kind==='group'&&api.getStructure(id))await api.selectGroup(id);
+ if(kind==='group'&&typeof api.getStructure(id)?.label==='string')await api.selectGroup(id);
  else if(kind==='parcel'&&api.getEntry(id))await api.select(id);
  else return;
  enhance();
