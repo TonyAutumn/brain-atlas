@@ -8,10 +8,11 @@ import {createSceneSwitch} from './scene-switch.js';
 import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=geometry1';
 import {CATALOG_VERSION,SOURCES} from './structure-catalog.js';
 import {inGeometryGroup,GEOMETRY_LINK_VERSION} from './geometry-links.js?v=geometry1';
+import {displayState,isSolid,applySurfaceMode,isOccludedByShell,RENDER_MODE_VERSION} from './render-mode.js?v=solid1';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
-const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false};
+const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false,renderMode:'transparent'};
 let entries=[],searchIndex=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
 let evidenceLayer=null,evidenceSwitch=null;
 const embedded=new URLSearchParams(location.search).get('embed')==='research';
@@ -69,34 +70,61 @@ function renderList(){
 }
 function hasGeometrySelection(){return state.focusKind==='entry'&&!!state.selected||state.focusKind==='group'&&state.group!=='all'&&visibleEntries().length>0||state.focusKind==='evidence'&&!!evidenceLayer?.ids.size;}
 function updateMaterials(){
- const hasSelection=!!scene&&hasGeometrySelection();
- if(!hasSelection){state.isolate=false;$('isolate3').checked=false;}
- $('isolate3').disabled=!hasSelection;
+ const hasSelection=!!scene&&!!hasGeometrySelection();
+ if(!hasSelection)state.isolate=false;
+ const display=displayState(state,hasSelection),solid=isSolid(state);
+ $('solidMode').disabled=!scene;$('solidMode').setAttribute('aria-pressed',String(solid));
+ $('solidMode').textContent=solid?'实体模型：开':'实体模型：关';
+ $('solidMode').title=solid?'点击恢复透明显示；保留原透明度':'切换为不透明实体；选中结构后自动隐藏其它部分';
+ $('showWholeBrain').disabled=!entries.length;
+ $('isolate3').disabled=!hasSelection;$('isolate3').checked=display.isolate;
+ $('isolate3').title=display.automaticIsolation?'实体模式自动隔离；取消勾选可返回全脑':'仅显示当前选择';
  for(const e of entries){
   const mesh=meshes.get(e.id);if(!mesh)continue;
-  const style=emphasis(e,state,known.has(e.id));
+  const style=emphasis(e,display,known.has(e.id));
   if(evidenceLayer?.ids.has(e.id)&&!(state.focusKind==='entry'&&state.selected===e.id)){Object.assign(style,{inSelection:true,colour:evidenceLayer.colors.get(e.id)||'#39b9ff',opacity:.85,emissive:evidenceLayer.colors.get(e.id)||'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
-  mesh.visible=state.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!state.isolate||style.inSelection);
-  if(evidenceLayer)mesh.visible=(state.isolate&&state.focusKind==='entry'?e.id===state.selected:evidenceLayer.ids.has(e.id))&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M');
+  mesh.visible=display.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!display.isolate||style.inSelection);
+  if(evidenceLayer)mesh.visible=(display.isolate&&state.focusKind==='entry'?e.id===state.selected:evidenceLayer.ids.has(e.id))&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M');
   const mat=mesh.material;mat.color.set(style.colour);mat.emissive.set(style.emissive);
-  mat.emissiveIntensity=style.emissiveIntensity;mat.opacity=style.opacity;
-  mat.depthWrite=style.depthWrite;mat.depthTest=style.depthTest;mesh.renderOrder=style.order;
+  applySurfaceMode(mat,style,state.renderMode);mesh.renderOrder=solid?0:style.order;
  }
  const opacity=Number($('opacity3').value)/100;
- shells.forEach(m=>{m.visible=showShell(state,m.userData.entry.hemisphere,opacity);m.material.opacity=opacity;});
- if(evidenceLayer)evidenceLayer.group.visible=!(state.isolate&&state.focusKind==='entry');
+ shells.forEach(m=>{
+  m.visible=showShell(display,m.userData.entry.hemisphere,solid?1:opacity);
+  applySurfaceMode(m.material,{opacity,depthWrite:false,depthTest:true},state.renderMode);m.renderOrder=solid?0:2;
+ });
+ if(evidenceLayer)evidenceLayer.group.visible=!(display.isolate&&state.focusKind==='entry');
  const group=state.group!=='all';
  $('selectionSwatch').style.background=group?NAV[state.group].color:'#8894a4';
  $('selectionLegend').textContent=group?NAV[state.group].label:'解剖结构';
  const coverage=state.focusKind==='group'?conceptCoverage(state.group,entries):null;
- $('visibilityNote').textContent=coverage&&!coverage.hasGeometry?'仅层级知识：不绘制虚构模型、坐标或边界。':(coverage?.partial?'部分模型 · 非完整结构边界。':'')+(state.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」');
- if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent='连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
- const opacityLabel=$('opacity3').closest('label');
- $('opacity3').disabled=state.isolate;opacityLabel.classList.toggle('control-muted',state.isolate);
- $('opacityOut').textContent=state.isolate?'隐藏':$('opacity3').value+'%';
+ const modeNote=solid?(display.automaticIsolation?'实体独立显示 · 其它结构及外壳已隐藏 · 点击「显示全脑」返回':'实体显示 · 从左侧选择结构可独立查看'):(display.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」');
+ $('visibilityNote').textContent=coverage&&!coverage.hasGeometry?'仅层级知识：不绘制虚构模型、坐标或边界。':(coverage?.partial?'部分模型 · 非完整结构边界。':'')+modeNote;
+ if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent=(solid?modeNote+'。':'')+'连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
+ const opacityLabel=$('opacity3').closest('label'),opacityLocked=display.isolate||solid;
+ $('opacity3').disabled=opacityLocked;opacityLabel.classList.toggle('control-muted',opacityLocked);
+ $('opacityOut').textContent=display.isolate?'隐藏':solid?'不透明':$('opacity3').value+'%';
  const isolateButton=$('isolateSelected');
- if(isolateButton){isolateButton.disabled=!hasSelection;isolateButton.textContent=state.isolate?'恢复其他结构':'隐藏其他结构';isolateButton.setAttribute('aria-pressed',String(state.isolate));}
+ if(isolateButton){isolateButton.disabled=!hasSelection;isolateButton.textContent=display.automaticIsolation?'显示全脑':display.isolate?'恢复其他结构':'隐藏其他结构';isolateButton.setAttribute('aria-pressed',String(display.isolate));}
  dirty=true;
+}
+function setRenderMode(mode){
+ if(!['solid','transparent'].includes(mode))throw new TypeError('Unknown render mode');
+ if(!scene){toast('三维暂不可用；结构层级与笔记仍可使用。');return false;}
+ state.renderMode=mode;updateMaterials();
+ if(isSolid(state)&&hasGeometrySelection())focusUnit();
+ toast(isSolid(state)?'已切换实体模型；选中结构会自动隐藏其它部分。':'已恢复透明显示。');
+ return true;
+}
+function restoreWholeBrain(){
+ clearEvidence();state.selected=null;state.focusKind='none';state.group='all';state.query='';state.isolate=false;state.knownOnly=false;
+ $('search3').value='';$('knownOnly').setAttribute('aria-pressed','false');$('clipAxis').value='none';
+ updateClip();setHemi('both');setView('oblique');
+}
+function renderSnapshot(){
+ const fields=m=>({id:m.userData.entry.id,opacity:m.material.opacity,transparent:m.material.transparent,depthWrite:m.material.depthWrite,depthTest:m.material.depthTest});
+ return {mode:state.renderMode,isolated:displayState(state,!!scene&&!!hasGeometrySelection()).isolate,selected:state.selected,group:state.group,
+  visibleModels:[...meshes.values()].filter(m=>m.visible).map(fields),visibleShells:shells.filter(m=>m.visible).map(fields)};
 }
 function currentUnit(){return state.focusKind==='entry'?entries.filter(e=>e.id===state.selected):evidenceLayer?entries.filter(e=>evidenceLayer.ids.has(e.id)):visibleEntries();}
 function focusUnit(){
@@ -109,7 +137,8 @@ function focusUnit(){
  const direction=camera.position.clone().sub(controls.target).normalize();
  controls.target.copy(centre);camera.position.copy(centre).addScaledVector(direction,Math.max(45,size*1.65));controls.update();dirty=true;
 }
-function toggleIsolation(value=!state.isolate){
+function toggleIsolation(value=!displayState(state,!!scene&&!!hasGeometrySelection()).isolate){
+ if(!value&&displayState(state,!!scene&&!!hasGeometrySelection()).automaticIsolation){restoreWholeBrain();return;}
  if(value&&(!scene||!hasGeometrySelection())){toast('此条目没有可独立显示的模型');return;}
  state.isolate=value;$('isolate3').checked=value;updateMaterials();if(value)focusUnit();
 }
@@ -136,7 +165,7 @@ async function selectGroup(group){
  else if(coverage.hasGeometry&&!coverage.parcels.some(sourceFits))state.source=coverage.sources.includes('julich')||coverage.sources.includes('aal')?'julich':'cit168';
  renderList();groupDetail();if(innerWidth<=1100&&!embedded)$('detail3').classList.add('open');
  if(scene&&group!=='all'){
-  try{await Promise.all([...new Set(visibleEntries().map(e=>e.file))].map(loadFile));if(state.group===group&&state.focusKind==='group'&&(state.isolate||coverage.includeGroups.length))focusUnit();}
+  try{await Promise.all([...new Set(visibleEntries().map(e=>e.file))].map(loadFile));if(state.group===group&&state.focusKind==='group'&&(state.isolate||isSolid(state)||coverage.includeGroups.length))focusUnit();}
   catch{toast('部分模型未加载；从属关系仍可查看。');}
  }
 }
@@ -162,7 +191,7 @@ async function select(id,{zoom=false,reveal=false}={}){
  if(!scene)return;
  try{await loadFile(e.file);}catch{toast('这个模型尚未加载成功；名称与从属关系仍可查看。');return;}
  if(state.selected!==id||state.focusKind!=='entry')return;
- if(zoom)focus(e);
+ if(zoom||isSolid(state))focus(e);
 }
 function focus(e){
  if(!camera)return;
@@ -205,7 +234,13 @@ function pick(ev){
  const r=$('brainCanvas').getBoundingClientRect();cursor.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(cursor,camera);
  const pointHits=raycaster.intersectObjects((evidenceLayer?.group.visible?evidenceLayer.markers:[])||[],false);const pointHit=pointHits.find(h=>$('clipAxis').value==='none'||clip.distanceToPoint(h.point)>=0);if(pointHit)return pointHit.object;
  const hits=raycaster.intersectObjects([...meshes.values()].filter(m=>m.visible),false);
- return hits.find(h=>$('clipAxis').value==='none'||clip.distanceToPoint(h.point)>=0)?.object;
+ const hit=hits.find(h=>$('clipAxis').value==='none'||clip.distanceToPoint(h.point)>=0);
+ if(!hit)return;
+ if(isSolid(state)){
+  const shellHit=raycaster.intersectObjects(shells.filter(m=>m.visible),false).find(h=>$('clipAxis').value==='none'||clip.distanceToPoint(h.point)>=0);
+  if(isOccludedByShell(hit.distance,shellHit?.distance,true))return;
+ }
+ return hit.object;
 }
 let manifest;
 async function loadFile(file){
@@ -229,6 +264,8 @@ async function loadFile(file){
  })();loadedFiles.set(file,p);try{return await p;}catch(e){loadedFiles.delete(file);throw e;}
 }
 function bindUI(){
+ $('solidMode').onclick=()=>setRenderMode(isSolid(state)?'transparent':'solid');
+ $('showWholeBrain').onclick=restoreWholeBrain;
  const navigate=e=>{const b=e.target.closest('[data-group]');if(b&&!b.disabled)selectGroup(b.dataset.group);};
  $('groupFilters').onclick=navigate;$('subgroupFilters').onclick=navigate;$('indexPath').onclick=navigate;
  const openResult=e=>{const b=e.target.closest('[data-id]');if(b){clearEvidence();select(b.dataset.id,{reveal:true,zoom:true});}else navigate(e);};
@@ -286,7 +323,7 @@ async function main(){
   entries=manifest.entries.filter(e=>e.atlas!=='surface');for(const e of entries){e.nav=navigationFor(e);e.text=describe(e);e.text.search+=' '+navigationText(e).toLowerCase();}
   searchIndex=createSearchIndex(entries);renderList();groupDetail();
   // Expose the catalogue before loading geometry. A failed model cannot remove knowledge.
-  window.brainAtlas={version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
+  window.brainAtlas={renderModeVersion:RENDER_MODE_VERSION,setRenderMode,restoreWholeBrain,getRenderState:renderSnapshot,version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
    getModelCoverage:id=>{const {parcels,...coverage}=conceptCoverage(id,entries);return {...coverage,entryIds:parcels.map(e=>e.id)};},
    getVisibleModelIds:()=>[...meshes.values()].filter(m=>m.visible).map(m=>m.userData.entry.id)};
   window.catalogReady=true;

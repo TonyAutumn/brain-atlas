@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="anatomy/discovery.css?v=search1">
 <link rel="stylesheet" href="anatomy/geometry-links.css?v=geometry1">
 <link rel="stylesheet" href="notes/notes.css?v=notes1">
+<link rel="stylesheet" href="anatomy/render-mode.css?v=solid1">
 </head>
 <body>
 <header class="top">
@@ -45,6 +46,7 @@
   </div>
   <div class="stage-foot"><div class="legend3"><span><i id="selectionSwatch"></i><span id="selectionLegend">解剖结构</span></span><span><i class="blue"></i>当前选择</span><span>深蓝：已学习</span></div>拖动旋转 · 滚轮缩放 · 右键平移 · 点击脑区查看<div id="visibilityNote" class="visibility-note">空间背景 · 可勾选「只看当前选择」</div></div>
   <div class="control-dock">
+   <div class="render-mode-controls" role="group" aria-label="模型显示方式"><button id="solidMode" type="button" aria-pressed="false" disabled title="切换为不透明实体；选中结构后自动隐藏其它部分">实体模型：关</button><button id="showWholeBrain" type="button" disabled title="取消选择并返回全脑，保留透明或实体模式">显示全脑</button><small>实体模式选中结构后自动隐藏其它部分</small></div>
    <label>外壳<input id="opacity3" type="range" min="0" max="100" value="18" aria-label="参考脑外壳不透明度"><output id="opacityOut">18%</output></label>
    <label>剖切<select id="clipAxis" aria-label="剖切方向"><option value="none">关闭</option><option value="x">矢状面</option><option value="y">冠状面</option><option value="z">轴状面</option></select><input id="clipDepth" type="range" min="-100" max="100" value="0" aria-label="剖切位置" disabled><output id="clipOut">—</output></label>
    <div class="stretch"><label class="check"><input id="regionColors" type="checkbox">区域颜色</label><label class="check"><input id="isolate3" type="checkbox">只看当前选择（隐藏外壳）</label><button class="mobile-detail" id="openDetail">脑区详情</button><span class="status3" id="modelStatus">解剖数据加载中</span></div>
@@ -54,6 +56,7 @@
  <aside class="right" id="detail3" aria-label="当前脑区详情" aria-live="polite"><span class="eyebrow">REGION PROFILE</span><h2>从一个名称开始</h2><p class="latin3">搜索中文、英文或缩写，查看结构的上下级关系。有模型时可继续定位。</p></aside>
 </main>
 <dialog id="sourcesDialog"><button id="closeSources">关闭</button><h2>解剖数据与显示范围</h2>
+<p><b>透明 / 实体：</b>模型下方的“实体模型”按钮切换不透明表面；选中结构后自动隐藏其它部分，“显示全脑”返回整体。切回透明模式恢复原透明度。材质切换不增加模型精度或组织纹理。<a href="anatomy/RENDER-MODES.md" target="_blank" rel="noopener">显示模式说明</a></p>
 <p><b>全库检索：</b>搜索覆盖所有已收录图谱和独立的结构层级词库，不受当前显示图谱、分组、侧别或已学习筛选限制。“仅层级”不是不存在，而是当前没有关联三维模型。<a href="anatomy/DISCOVERY.md" target="_blank" rel="noopener">词库来源与更新说明</a></p>
 <p><b>部分模型：</b>大结构或跨分区总称可关联已收录子结构；这不代表完整边界。详情可展开“已关联模型”查看全部来源和左右侧条目。<a href="anatomy/GEOMETRY-AUDIT.md" target="_blank" rel="noopener">关联核对与未覆盖范围</a></p>
 <p><b>导航层级：</b>从全脑沿解剖树逐级进入宏观结构、脑叶或结构系统、亚系统、核团，最后到图谱分区。每个详情会显示完整从属与直接上级。导航是学习索引，不表示功能网络或信息传导顺序；整组高亮只覆盖当前图谱已收录的分区。</p>
@@ -66,6 +69,6 @@
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开解剖与层级。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.catalogReady){var n=document.getElementById('loadText');if(n)n.textContent='页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=geometry1"></script>
+<script type="module" src="anatomy/app.js?v=solid1"></script>
 <script type="module" src="notes/atlas-integration.js?v=notes1"></script>
 </body></html>

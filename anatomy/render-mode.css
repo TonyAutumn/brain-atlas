@@ -1,0 +1,8 @@
+/* An explicit toggle and escape route, without changing the atlas or note layout. */
+.render-mode-controls{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.render-mode-controls button{font-size:13px;padding:7px 10px;min-height:34px}
+.render-mode-controls small{font-size:12px;color:var(--muted);line-height:1.6}
+.stage-foot{bottom:190px;right:20px;max-width:640px}
+.toast3{bottom:245px}
+@media(max-width:1100px){.render-mode-controls small{display:none}.stage-foot{bottom:210px}}
+@media(max-width:720px){.stage-foot{bottom:225px;right:16px}.toast3{bottom:285px}.render-mode-controls{gap:7px}}
