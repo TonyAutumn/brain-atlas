@@ -1,8 +1,8 @@
 import {sourceScreen,quoteProof,mentionsRegion} from './source-proof.js';
-import {resolveMapping,human,normalize} from './model.js?v=evidence1';
+import {resolveMapping,resolveMappingCandidate,human,normalize} from './model.js?v=candidate2';
 import {RULES,nameVariants} from './mapping-rules.js';
 import {recordKind} from './networks.js';
-import {enrichmentPoints} from './enrichment.js?v=evidence1';
+import {enrichmentPoints} from './enrichment.js?v=candidate2';
 export const EVIDENCE_POLICY='atlas-evidence-v1';
 const cache=new WeakMap();
 function aliases(region){const variants=nameVariants(region.name).map(normalize);return RULES.filter(rule=>rule[1].some(n=>variants.includes(normalize(n)))).flatMap(rule=>rule[1]);}
@@ -21,9 +21,11 @@ export function curateMechanism(paper,mechanism,entries){
   if(!namedInProof(screen.proof,region)){base.omitted.push(region.name+'：摘录未支持这个脑区');continue;}
   if(!human(region.species)){base.omitted.push(region.name+'：人类与动物证据未分开');continue;}
   if(recordKind(region)!=='region'){base.omitted.push(region.name+'：当前仅有网络参考或细胞示意，不能作为实测脑区定位');continue;}
-  if(region.hemisphere==='unknown'&&!['L','R','both'].includes(paper.mappings[region.id]?.hemisphere)){base.omitted.push(region.name+'：原文侧别待核对');continue;}
+  const candidates=resolveMappingCandidate(region,paper.mappings[region.id],entries),rawPoints=paper.enrichments?.[region.id]?.points||[];
+  if(!candidates.length&&!rawPoints.length)base.lookupRegions.push(region.id);
+  if(region.hemisphere==='unknown'&&!['L','R','both'].includes(paper.mappings[region.id]?.hemisphere)){base.omitted.push(region.name+'：已保留解剖候选，但原文侧别待核对，证据图暂不高亮');continue;}
   const parcels=resolveMapping(region,paper.mappings[region.id],entries),points=enrichmentPoints(paper,region,entries).filter(p=>p.type==='atlas-reference');
-  if(parcels.length||points.length){base.eligibleRegions.push(region.id);if(!parcels.length)base.pointRecords.push(region.id);}else base.lookupRegions.push(region.id);
+  if(parcels.length||points.length){base.eligibleRegions.push(region.id);if(!parcels.length)base.pointRecords.push(region.id);}
  }
  if(!base.eligibleRegions.length){return {...base,status:base.lookupRegions.length?'location':'evidence',reason:base.lookupRegions.length?'有原文支持，等待可靠的图谱对应':base.omitted.join('；')||'未识别到有原文支持的人脑定位'};}
  const kept=new Set(base.eligibleRegions),connections=[];
@@ -46,7 +48,16 @@ export function curatePaper(paper,entries){
   const key=JSON.stringify([row.mechanism.regions.slice().sort(),row.mechanism.connections,row.mechanism.evidenceType,row.mechanism.behavior||row.mechanism.title,row.mechanism.finding||row.mechanism.claim,row.proof.fragments]);
   if(seen.has(key)){row.status='duplicate';row.reason='与已保留条目使用相同定位及摘录';}else seen.add(key);
  }
- const result={ready:rows.filter(r=>r.status==='ready'),excluded:rows.filter(r=>r.status!=='ready'),rows,lookupRegions:[...new Set(rows.flatMap(r=>r.lookupRegions))]};
+ const catalogLookup=[];
+ for(const mechanism of paper.data.mechanisms){
+  const proof=quoteProof(mechanism.quote,paper.source);if(!proof||!mechanism.behavior||!mechanism.finding)continue;
+  for(const id of mechanism.regions){
+   const region=paper.data.regions.find(r=>r.id===id);if(!region||!human(region.species)||recordKind(region)!=='region'||!namedInProof({fragments:proof.fragments,prefix:proof.prefix},region))continue;
+   const candidates=resolveMappingCandidate(region,paper.mappings[region.id],entries),points=paper.enrichments?.[region.id]?.points||[];
+   if(!candidates.length&&!points.length)catalogLookup.push(region.id);
+  }
+ }
+ const result={ready:rows.filter(r=>r.status==='ready'),excluded:rows.filter(r=>r.status!=='ready'),rows,lookupRegions:[...new Set([...rows.flatMap(r=>r.lookupRegions),...catalogLookup])]};
  cache.set(paper,{entries,result});return result;
 }
 export function curatedRows(papers,entries){return papers.flatMap(p=>curatePaper(p,entries).ready);}

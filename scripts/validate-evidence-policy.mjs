@@ -29,6 +29,10 @@ assert.equal(curatePaper(make({regions:[{...region,name:'temporoparietal junctio
 const missingQuote='Stimulation of the TEST nucleus improved memory in human participants.';
 const missing=make({regions:[{...region,name:'TEST nucleus'}],mechanisms:[{...mechanism,quote:missingQuote}]},missingQuote);
 assert.deepEqual(curatePaper(missing,entries).lookupRegions,['r1']);assert.equal(curatePaper(missing,entries).ready.length,0);
+const sidePending=make({regions:[{...region,hemisphere:'unknown'}]},quote);
+assert.equal(sidePending.mappings.r1.hemisphere,'unknown');assert.equal(curatePaper(sidePending,entries).ready.length,0);assert.equal(curatePaper(sidePending,entries).lookupRegions.length,0,'Known structure keeps a candidate but cannot enter evidence mode without laterality');
+const unknownMissing=make({regions:[{...region,name:'TEST nucleus',hemisphere:'unknown'}],mechanisms:[{...mechanism,quote:missingQuote}]},missingQuote);
+assert.deepEqual(curatePaper(unknownMissing,entries).lookupRegions,['r1'],'Unknown side must not prevent atlas terminology lookup');
 assert.equal(curatePaper({...missing,source:'No source evidence.'},entries).lookupRegions.length,0,'Online lookup cannot rehabilitate a missing experiment quote');
 const source={id:'atlas',type:'atlas',url:'https://siibra-api-stable.apps.hbp.eu/v3_0/regions',title:'TEST reference',text:'Synthetic atlas reference'};
 const point={kind:'atlas-reference',space:'MNI152_2009c_nonlin_asym',units:'mm',axes:'RAS',sourceId:'atlas',position:[25,-20,-10],label:'TEST'};
@@ -45,7 +49,12 @@ const roundtrip=validateBackup({version:1,themes:[],papers:[paired]},entries).pa
 const many=make({mechanisms:Array.from({length:8},(_,i)=>({...mechanism,id:'m'+(i+1)}))});
 assert.equal(screenAtlasAnalysis(many.data,quote).mechanisms.length,6);assert.equal(screenAtlasAnalysis(many.data,quote).summary,'');
 assert.equal(screenAtlasAnalysis({...many.data,mechanisms:[{...mechanism,behavior:''}]},quote).mechanisms.length,0);
+const screenedUnknown=screenAtlasAnalysis({...many.data,regions:[{...region,hemisphere:'unknown'}],mechanisms:[mechanism]},quote);
+assert.equal(screenedUnknown.regions.length,1,'Worker keeps source-supported anatomy when the paper does not report laterality');
+const catalogOnly=screenAtlasAnalysis({...many.data,mechanisms:[{...mechanism,method:'',locator:''}]},quote);
+assert.equal(catalogOnly.mechanisms.length,0);assert.equal(catalogOnly.regions.length,1,'Incomplete experiment metadata may block evidence but not erase a source-named anatomical candidate');
 assert.match(ANALYSIS_PROMPT,/通常1–3条，最多6条/);assert.match(ANALYSIS_PROMPT,/不是文献总结/);
+assert.match(ANALYSIS_PROMPT,/unknown，但仍保留该结构供解剖候选匹配/);
 const realFetch=globalThis.fetch;let requestBody;
 globalThis.fetch=async(url,init)=>{assert(url.endsWith('/chat/completions'));requestBody=JSON.parse(init.body);return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(many.data)}}],usage:{total_tokens:100}});};
 try{const form=new FormData();form.append('text',quote+' '+quote);form.append('atlasNames',JSON.stringify(['CA1','CA3']));const out=await analyzeForm(form,{MOONSHOT_API_KEY:'test-not-real'},new AbortController().signal,()=>{});assert.equal(out.analysis.mechanisms.length,6);assert.equal(requestBody.max_tokens,7000);assert.deepEqual(JSON.parse(requestBody.messages[1].content).atlasNames,['CA1','CA3']);}finally{globalThis.fetch=realFetch;}

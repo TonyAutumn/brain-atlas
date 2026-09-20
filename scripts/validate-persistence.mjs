@@ -23,6 +23,9 @@ assert.deepEqual(rematchPapers(cleared.papers,entries).papers[0].mappings.r1,pap
 const unavailable={...paper,mappings:{...paper.mappings,r1:{target:'parcel:future-atlas-1',hemisphere:'unknown',confirmed:false}}};
 assert.deepEqual(validateBackup({...original,papers:[unavailable]},entries).papers[0].mappings.r1,unavailable.mappings.r1,'Backup must preserve stored mapping when geometry/side is unavailable');
 assert.equal(evidenceScene(overviewRows([unavailable]),entries).nodes.some(n=>n.id.endsWith(':r1')),false,'Preserving a record does not make invalid geometry drawable');
+const sidePending={...paper,mappings:{...paper.mappings,r1:{target:'set:TPJ',hemisphere:'unknown',confirmed:false}}};
+assert.equal(evidenceScene(overviewRows([sidePending]),entries).nodes.some(n=>n.id.endsWith(':r1')),false,'Side-pending candidates never enter evidence mode');
+assert.equal(evidenceScene(overviewRows([sidePending]),entries,{referenceMode:true}).nodes.find(n=>n.id.endsWith(':r1')).entryIds.length,2,'Reference mode can show bilateral candidates without asserting evidence laterality');
 assert.equal(validateBackup(cleared,entries).papers[0].mappingHistory.length,1);
 
 const source={id:'atlas',type:'atlas',url:'https://siibra-api-stable.apps.hbp.eu/v3_0/regions',title:'TEST atlas',text:'Test reference only'};

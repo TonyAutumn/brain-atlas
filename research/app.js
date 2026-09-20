@@ -1,14 +1,14 @@
 import {quoteProof} from './source-proof.js';
-import {curatePaper,curatedRows} from './evidence-policy.js';
+import {curatePaper,curatedRows} from './evidence-policy.js?v=candidate2';
 import {evidenceCard,excludedRows} from './evidence-ui.js';
-import {applyEnrichment,enrichmentPoints,reuseKnownMappings} from './enrichment.js?v=evidence1';
+import {applyEnrichment,enrichmentPoints,reuseKnownMappings} from './enrichment.js?v=candidate2';
 import {cleanMapping,mappingChoices,retainMappingHistory} from './mapping-state.js';
 import {createSaveQueue} from './save-queue.js';
-import {lookupDescription} from './enrichment-ui.js?v=evidence1';
+import {lookupDescription} from './enrichment-ui.js?v=candidate2';
 import {readLookupStream} from './lookup-client.js';
 import {networkOf,recordKind,kindLabel} from './networks.js';
 import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js?v=evidence1';
-import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,overviewRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=evidence1';
+import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,overviewRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=candidate2';
 import {automaticThemes} from './theme-policy.js';
 import {readLibrary,saveLibrary} from './store.js';
 const $=id=>document.getElementById(id);
@@ -39,10 +39,12 @@ async function refreshStored(){
 function selectedPapers(){return library.papers.filter(p=>(!activeTheme||p.data.themes.some(t=>t.toLowerCase()===activeTheme.toLowerCase()))&&(!$('reviewedOnly').checked||p.reviewed)&&(!search||[p.data.title,p.data.task,p.data.summary,...p.data.mechanisms.map(m=>m.title+' '+m.claim)].join(' ').toLowerCase().includes(search)));}
 function render(){
  const papers=selectedPapers(),rows=curatedRows(papers,entries),excluded=papers.flatMap(p=>curatePaper(p,entries).excluded),themeNames=themeList([...library.themes,...library.papers.flatMap(p=>p.data.themes)]);
+ const candidateCount=papers.reduce((n,p)=>n+p.data.regions.filter(r=>p.mappings[r.id]?.target).length,0);
  $('themeList').innerHTML=[['', '全部文献'],...themeNames.map(t=>[t,t])].map(([id,name])=>`<button data-theme="${esc(id)}" aria-pressed="${activeTheme===id}"><span>${esc(name)}</span><small>${library.papers.filter(p=>!id||p.data.themes.some(t=>t.toLowerCase()===id.toLowerCase())).length}</small></button>`).join('');
  $('themeSuggestions').innerHTML=themeNames.map(t=>`<option value="${esc(t)}"></option>`).join('');
  $('topicTitle').textContent=activeTheme||'全部文献';$('renameTheme').hidden=!activeTheme;
- $('topicSummary').textContent=`${papers.length} 篇文献 · ${rows.length} 条可定位证据 · ${excluded.length} 条已收起`;
+ $('topicSummary').textContent=`${papers.length} 篇文献 · ${candidateCount} 项解剖候选 · ${rows.length} 条可定位证据 · ${excluded.length} 条待核对`;
+ $('recordTitle').textContent=`结构记录与功能网络 · 参考模式 · ${candidateCount} 项候选`;
  $('mechanismsTab').setAttribute('aria-pressed',String(view==='mechanisms'));$('papersTab').setAttribute('aria-pressed',String(view==='papers'));
  currentRows=selectedRows?rows.filter(r=>selectedRows.includes(r.key)):rows;
  if(selectedRows&&!currentRows.length){selectedRows=null;currentRows=rows;}
@@ -59,7 +61,7 @@ function render(){
 }
 async function updateScene(){
  const request=++sceneRequest;currentMapRows=recordMode==='catalog'?overviewRows(selectedPapers()):currentRows;
- const spec=evidenceScene(currentMapRows,entries);
+ const spec=evidenceScene(currentMapRows,entries,{referenceMode:recordMode==='catalog'});
  spec.title=recordMode==='catalog'?'已记录结构 · 参考模式':selectedRows?'当前定位证据':(activeTheme||'全部文献')+' · 定位证据';pendingScene=spec;
  $('brainTitle').textContent=spec.title;
  const pending=spec.nodes.filter(n=>n.provisional).length;
@@ -125,7 +127,7 @@ async function analyze(event){
     stage=saved?'分析完成，已保存为待核对草稿。':'分析完成，但本地保存失败，请立即导出备份。';
     if(warnings.length)stage+='\n'+warnings.join('\n');
     selectedRows=null;activeTheme=paper.data.themes[0]||'';render();
-    if(saved){recordMode='evidence';$('recordFilter').value='all';const screening=curatePaper(paper,entries);stage=`已保存：${screening.ready.length} 条可定位证据，${screening.excluded.length} 条收起。`;message(stage);if($('autoLookup').checked&&screening.lookupRegions.length){stage+=' 正在补全有依据的定位。';update();await runLookup([paper.id],false,true);}render();$('uploadDialog').close();}
+    if(saved){recordMode='evidence';$('recordFilter').value='all';const screening=curatePaper(paper,entries),mapped=paper.data.regions.filter(r=>paper.mappings[r.id]?.target).length;if(!screening.ready.length&&mapped){recordMode='catalog';$('recordPanel').open=true;}stage=`已保存：${mapped} 项解剖候选，${screening.ready.length} 条可定位证据，${screening.excluded.length} 条待核对。`;message(stage);if($('autoLookup').checked&&screening.lookupRegions.length){stage+=' 正在补全尚无候选的结构。';update();await runLookup([paper.id],false,true);}render();$('uploadDialog').close();}
    }
   }
   while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});if(buffer.length>4000000)throw Error('服务响应过大，已停止读取。');let end;while((end=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,end);buffer=buffer.slice(end+1);await handle(line);}}
@@ -136,7 +138,7 @@ async function analyze(event){
 async function runLookup(paperIds,retry=false,afterAnalysis=false){
  if(lookupBusy||busy&&!afterAnalysis){message('请等待当前任务完成。');return;}
  const jobs=[];for(const id of paperIds){const p=library.papers.find(p=>p.id===id);if(!p)continue;for(const r of p.data.regions){const e=p.enrichments?.[r.id];if(curatePaper(p,entries).lookupRegions.includes(r.id)&&(!e||retry))jobs.push({paperId:id,region:r});}}
- if(!jobs.length){$('lookupStatus').textContent='当前没有通过证据筛选、仍需补定位的结构。背景、假说和引文待核对项不会自动联网检索。';return;}
+ if(!jobs.length){$('lookupStatus').textContent='当前有原文依据的解剖结构均已有候选或补全记录。侧别待定不会清除结构对应；它只暂缓证据模式高亮。';return;}
  lookupBusy=true;lookupAbort=new AbortController();$('cancelLookup').hidden=false;$('lookupBtn').disabled=true;$('retryLookup').disabled=true;
  let completed=0;
  try{
@@ -220,8 +222,8 @@ function bind(){
  $('uploadDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();});
  $('uploadBtn').onclick=upload;$('settingsBtn').onclick=settings;$('uploadForm').onsubmit=analyze;$('cancelAnalysis').onclick=()=>{abort?.abort();lookupAbort?.abort();};
  $('saveSettings').onclick=()=>{try{saveSettings();}catch(e){$('connectionStatus').textContent=e.message;}};
- $('testConnection').onclick=async()=>{try{saveSettings();$('testConnection').disabled=true;$('connectionStatus').textContent='正在核对服务、Kimi 密钥与模型…';const data=await(await callService('/health',{signal:AbortSignal.timeout(30000)})).json();$('connectionStatus').textContent='已连接 Kimi，当前模型：'+data.model+(data.capabilities?.includes('atlas-evidence-v1')?' · 已启用定位证据提取':' · 请更新分析服务，启用精简定位证据提取');$('settingsBtn').textContent='Kimi 已连接';}catch(e){$('connectionStatus').textContent=e.message;}finally{$('testConnection').disabled=false;}};
- $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=evidence1',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制完整分析服务代码，请替换 Cloudflare Worker 代码并部署。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
+ $('testConnection').onclick=async()=>{try{saveSettings();$('testConnection').disabled=true;$('connectionStatus').textContent='正在核对服务、Kimi 密钥与模型…';const data=await(await callService('/health',{signal:AbortSignal.timeout(30000)})).json();$('connectionStatus').textContent='已连接 Kimi，当前模型：'+data.model+(data.capabilities?.includes('atlas-candidate-v2')?' · 已启用解剖候选与证据分层':' · 服务仍是旧版：请复制新版代码并重新 Deploy，否则新论文仍可能丢失侧别未报告的结构');$('settingsBtn').textContent='Kimi 已连接';}catch(e){$('connectionStatus').textContent=e.message;}finally{$('testConnection').disabled=false;}};
+ $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=candidate2',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制新版分析服务代码，请替换 Cloudflare Worker 代码并部署。原有 Secrets 不变。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
  $('generateToken').onclick=()=>{const bytes=crypto.getRandomValues(new Uint8Array(24));$('generatedToken').textContent=Array.from(bytes,v=>v.toString(16).padStart(2,'0')).join('');$('copyToken').hidden=false;};
  $('copyToken').onclick=async()=>{try{await navigator.clipboard.writeText($('generatedToken').textContent);message('访问码已复制；请同时保存到服务端和本页连接设置。');}catch{message('请手动选中并复制访问码。');}};
  $('themeList').onclick=e=>{const b=e.target.closest('[data-theme]');if(b){activeTheme=b.dataset.theme;selectedRows=null;recordMode='evidence';$('recordFilter').value='all';render();}};
@@ -236,10 +238,10 @@ function bind(){
  $('rematchBtn').onclick=async()=>{
   if(busy||lookupBusy){message('请等待当前任务完成后重新匹配。');return;}
   $('rematchBtn').disabled=true;
-  try{const result=rematchPapers(library.papers,entries);const saved=await commit({...library,papers:result.papers});if(saved){$('rematchStatus').textContent=`已恢复或补充 ${result.matched} 项自动候选；仍有 ${result.remaining} 项缺少可靠对应。已有匹配与人工核对状态保留。无需调用 Kimi。`;}}catch(e){message(e.message);}finally{$('rematchBtn').disabled=false;}
+  try{const result=rematchPapers(library.papers,entries);const saved=await commit({...library,papers:result.papers,mappingRevision:'candidate2'});if(saved){if(result.matched){recordMode='catalog';$('recordPanel').open=true;}$('rematchStatus').textContent=`已恢复或补充 ${result.matched} 项自动候选；仍有 ${result.remaining} 项缺少可靠对应。已有匹配与人工核对状态保留。无需调用 Kimi。`;}}catch(e){message(e.message);}finally{$('rematchBtn').disabled=false;}
  };
  $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('backupFile').click();
- $('backupFile').onchange=async()=>{const f=$('backupFile').files[0];if(!f)return;if(lookupBusy||busy){message('请在当前任务结束后导入备份。');$('backupFile').value='';return;}try{if(f.size>80*1024*1024)throw Error('备份文件超过 80 MB。');const data=validateBackup(JSON.parse(await f.text()),entries),existing=new Set(library.papers.map(p=>p.id)),added=data.papers.filter(p=>!existing.has(p.id));const saved=await commit({...library,themes:themeList([...library.themes,...data.themes]),papers:[...library.papers,...added]});if(saved)message(`已导入 ${added.length} 篇文献；相同编号的现有文献未被覆盖。`);}catch(e){message(e.message);}finally{$('backupFile').value='';}};
+ $('backupFile').onchange=async()=>{const f=$('backupFile').files[0];if(!f)return;if(lookupBusy||busy){message('请在当前任务结束后导入备份。');$('backupFile').value='';return;}try{if(f.size>80*1024*1024)throw Error('备份文件超过 80 MB。');const data=validateBackup(JSON.parse(await f.text()),entries),existing=new Set(library.papers.map(p=>p.id)),added=data.papers.filter(p=>!existing.has(p.id)),rematched=rematchPapers([...library.papers,...added],entries);const saved=await commit({...library,themes:themeList([...library.themes,...data.themes]),papers:rematched.papers,mappingRevision:'candidate2'});if(saved)message(`已导入 ${added.length} 篇文献，并补充 ${rematched.matched} 项解剖候选；相同编号的现有文献未被覆盖。`);}catch(e){message(e.message);}finally{$('backupFile').value='';}};
  $('markLearned').onclick=()=>{if(!['all','region'].includes($('recordFilter').value))return;try{const spec=evidenceScene(currentMapRows,entries,{confirmedOnly:true}),ids=[...new Set(spec.nodes.flatMap(n=>n.entryIds))];if(!ids.length)return;const key='brain-atlas-anatomy-known-v1',known=new Set(JSON.parse(localStorage.getItem(key)||'[]'));ids.forEach(id=>known.add(id));localStorage.setItem(key,JSON.stringify([...known]));if(ready)$('brainFrame').contentWindow.brainAtlas.markLearned(ids);message(`已保存 ${ids.length} 个图谱条目的学习标记；仅包含已核对定位。`);}catch{message('学习标记未能保存，请检查浏览器存储权限。');}};
  window.addEventListener('message',e=>{
   if(e.origin!==location.origin||e.source!==$('brainFrame').contentWindow)return;
@@ -249,7 +251,7 @@ function bind(){
  });
 }
 async function main(){
- try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;saveQueue=createSaveQueue(saveLibrary,stored.revision||0);$('saveStatus').textContent='已读取本机文献库';if(library.mappingRevision!=='stable2'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'stable2'});$('rematchStatus').textContent=`已从保存历史、已有检索术语与本地图谱恢复或补充 ${result.matched} 项对应。现有匹配保留；无需重新上传论文。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
+ try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;saveQueue=createSaveQueue(saveLibrary,stored.revision||0);$('saveStatus').textContent='已读取本机文献库';if(library.mappingRevision!=='candidate2'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'candidate2'});$('rematchStatus').textContent=`已用新版解剖词表重新处理现有文献：补充 ${result.matched} 项候选，仍有 ${result.remaining} 项等待联网补全或人工核对。原有匹配与核对状态保留，无需重新上传。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
  catch(e){$('topicSummary').textContent=e.message;$('uploadBtn').disabled=true;message(e.message);}
 }
 main();

@@ -14,7 +14,7 @@ mechanisms 每项：id(m1等), title(不超过30字), behavior(本项实际测�
 2. 区分当前研究、引述他人研究与作者推断，综述中的机制不能标为该综述做了因果实验。分歧与不支持结果不得抹去。
 3. source只提供了文本提取时，不声称看过PDF内的图片。用户附加的图像可使用，注明附图文件名，无法可靠辨认则列入限制。
 4. 主题只能是本文实际研究的具体现象、主观体验或行为，回答“发生了什么体验/现象，个体做了什么”。例如濒死体验、顿悟、身体所有权错觉、恐惧消退、拖延、合作行为、空间导航。禁止以学科/研究领域（进化神经科学、认知神经科学、心理学）、研究方法（fMRI、脑电）、解剖结构（海马、前额叶）、理论框架（预测编码、自由能原理）或笼统的神经机制作为主题；这些信息放在摘要、method、regions或mechanisms中。不要把禁止名称简单加上“行为”或“现象”来规避限制。每个候选主题必须能在本文研究问题、行为任务或实际测量体验中找到依据，仅背景提及不算。优先一个核心主题，仅在独立研究多个现象时增加，最多三个；没有明确现象或行为则返回空数组，不能猜造。优先复用已有主题中符合上述标准且与本文同义的名称。近死/濒死/near-death experience/NDE统一为濒死体验。不把用户指定主题当作结论或支持证据。
-5. 先筛选，再提取：只有原文明示具体人脑结构、侧别、实验/测量、行为或体验结果，并能连续摘录支持，才保留。通常1–3条，最多6条、18个regions，每项最多6条连接。宁可返回空数组，也不凑数量。按直接干预证据、明确脑区关联、模型估计关系依次优先；保留关键零结果。一个独立实验/对比一条，左右侧不同刺激与结果分开，禁止将不同研究、不同样本和动物/人类合并。
+5. 先筛选，再提取：只有原文明示具体人脑结构、实验/测量、行为或体验结果，并能连续摘录支持，才保留。侧别明确时填 L/R/both；原文确实未说明侧别时填 unknown，但仍保留该结构供解剖候选匹配，绝不能猜成双侧。通常1–3条，最多6条、18个regions，每项最多6条连接。宁可返回空数组，也不凑数量。按直接干预证据、明确脑区关联、模型估计关系依次优先；保留关键零结果。一个独立实验/对比一条，左右侧不同刺激与结果分开，禁止将不同研究、不同样本和动物/人类合并。
 6. 排除：纯机制假说、进化解释、全身生理危机、问卷易感性、一般递质功能、背景解剖、仅共同激活、无法指出人脑位置的泛泛网络描述。共同激活若有具体行为结果可作为单区/多区定位保留，但不得生成连接。综述仅提取其明确转述的人类实验，origin=cited，注明经综述转述；不得把综述作者的解释或模型框架作为实验发现。
 7. atlasNames 仅提示当前底座候选范围。原文支持且能对应这些范围的结果优先；确有实测证据但图谱尚缺的精确人脑结构可留下供后续补定位。不要为了匹配改写原文脑区、猜测侧别，或把DMN换成角回；网络不是单个脑区。细胞类型若无实测个体坐标，不输出为神经元定位；仅当原文实验明确定位所属人脑结构时，用该结构记录实验结果，不生成蓝点云。
 8. 没有符合上述条件的证据时regions和mechanisms为空，limitations用一句话说明原因。中文解释，学名和引用保留原文。不得补造doi、定位、样本或结果。`;
@@ -83,7 +83,7 @@ export default {
   if(!await sameToken(request.headers.get('Authorization')||'','Bearer '+env.ACCESS_TOKEN))return json({error:'访问码不正确，请在连接设置中重新填写。'},401);
   const path=new URL(request.url).pathname.replace(/\/$/,'');
   if(path==='/health'&&request.method==='GET'){
-   try{const r=await kimi('/models',{},env,AbortSignal.timeout(20000));const models=await r.json(),model=env.KIMI_MODEL||'kimi-k2.6';if(!models.data?.some(m=>m.id===model))return json({error:'Kimi 已连接，但账户当前未列出模型 '+model+'。请调整 KIMI_MODEL。'},503);return json({ok:true,model,capabilities:['enrich-v1','atlas-evidence-v1']});}catch(e){return json({error:e.message},e.status||502);}
+   try{const r=await kimi('/models',{},env,AbortSignal.timeout(20000));const models=await r.json(),model=env.KIMI_MODEL||'kimi-k2.6';if(!models.data?.some(m=>m.id===model))return json({error:'Kimi 已连接，但账户当前未列出模型 '+model+'。请调整 KIMI_MODEL。'},503);return json({ok:true,model,capabilities:['enrich-v1','atlas-evidence-v1','atlas-candidate-v2']});}catch(e){return json({error:e.message},e.status||502);}
   }
   if(!['/analyze','/enrich'].includes(path)||request.method!=='POST')return json({error:'接口不存在。'},404);
   if(Number(request.headers.get('Content-Length')||0)>LIMIT)return json({error:'上传内容超过 20 MB。'},413);

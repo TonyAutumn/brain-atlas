@@ -21,6 +21,10 @@ export const RULES=[
  ['hypothalamus',['下丘脑'],['Hypothalamus']],
  ['STN',['subthalamic nucleus','STN','丘脑底核'],['STN']],
  ['MD',['mediodorsal thalamus','mediodorsal thalamic nucleus','丘脑背内侧核'],['MD']]
+ ,['VP',['ventral pallidum','VP','腹侧苍白球'],['VP','Ventral Pallidum'],'腹侧苍白球候选；属于腹侧基底神经节，不等于腹侧纹状体。']
+ ,['GP',['globus pallidus','pallidum','苍白球'],['Globus Pallidus externa','Globus Pallidus interna'],'已收录背侧苍白球外侧部与内侧部；若原文明确为腹侧苍白球应使用 VP。']
+ ,['SN',['substantia nigra','SN','黑质'],['SNC','SNR','Substantia Nigra pars compacta','Substantia Nigra pars reticulata'],'黑质已收录分区集合；解剖上位于中脑。']
+ ,['RN',['red nucleus','RN','红核'],['RN','Red Nucleus']]
 ];
 export function nameVariants(name){
  const full=String(name||'').normalize('NFKC').trim();

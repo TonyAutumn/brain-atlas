@@ -15,7 +15,8 @@ const analysis=validateAnalysis(fixture);assert.equal(analysis.mechanisms[0].con
 assert.deepEqual(themeList(['NDE','near-death experience','濒死体验']),['濒死体验']);
 assert.equal(quoteCheck('a  b','A\nb'),'matched');assert.equal(quoteCheck('unseen','paper'),'unmatched');
 const paper=createPaper(analysis,entries,{source:'Synthetic relationship'});assert(paper.mappings.r1);assert.equal(resolveMapping(paper.data.regions[0],paper.mappings.r1,entries).length,1);
-for(const r of [{...analysis.regions[0],species:'小鼠'},{...analysis.regions[0],level:'neuron'},{...analysis.regions[0],hemisphere:'unknown'}])assert.equal(suggestMapping(r,entries),null);
+for(const r of [{...analysis.regions[0],species:'小鼠'},{...analysis.regions[0],level:'neuron'}])assert.equal(suggestMapping(r,entries),null);
+const pendingSide={...analysis.regions[0],hemisphere:'unknown'},pendingMapping=suggestMapping(pendingSide,entries);assert(pendingMapping);assert.equal(pendingMapping.hemisphere,'unknown');assert.equal(resolveMapping(pendingSide,pendingMapping,entries).length,0);
 const p2=createPaper({...analysis,title:'TEST ONLY: paper B'},entries),rows=mechanismRows([paper,p2]);
 const spec=evidenceScene(rows,entries);assert.equal(spec.nodes.length,4);assert.equal(spec.links.length,2);assert.notEqual(spec.links[0].from,spec.links[1].from,'Do not join paths from different papers');
 assert.equal(evidenceScene(rows,entries,{confirmedOnly:true}).nodes.length,0);
@@ -49,7 +50,7 @@ try{
  assert.equal((await worker.fetch(new Request('https://test/health',{headers:{...headers,Origin:'https://other.invalid'}}),env)).status,403);
  assert.equal((await worker.fetch(new Request('https://test/health',{headers}),{})).status,503);
  assert.equal(calls.length,0,'Unauthorized/unconfigured calls must not contact Kimi');
- assert.equal((await(await worker.fetch(new Request('https://test/health',{headers}),env)).json()).ok,true);
+ const health=await(await worker.fetch(new Request('https://test/health',{headers}),env)).json();assert.equal(health.ok,true);assert(health.capabilities.includes('atlas-candidate-v2'));
  for(const status of [301,302,303,307,308]){
   calls=[];redirectStatus=status;
   const response=await worker.fetch(new Request('https://test/health',{headers}),env);

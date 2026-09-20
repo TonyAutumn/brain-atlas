@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {suggestMapping,resolveMapping,rematchPapers,validateBackup} from '../research/model.js';
+import {suggestMapping,resolveMapping,resolveMappingCandidate,rematchPapers,validateBackup} from '../research/model.js';
 import {RULES} from '../research/mapping-rules.js';
 const entries=JSON.parse(fs.readFileSync(new URL('../anatomy/data/manifest.json',import.meta.url))).entries.filter(e=>e.atlas!=='surface');
 const region=name=>({id:'r1',name,level:'region',species:'人类',hemisphere:'both'});
@@ -10,11 +10,16 @@ const tpj=region('temporoparietal junction (TPJ)'),mapping=suggestMapping(tpj,en
 assert.equal(mapping.target,'set:TPJ');assert.equal(resolveMapping(tpj,mapping,entries).length,2);
 assert.equal(resolveMapping(tpj,{...mapping,hemisphere:'L'},entries).length,1);
 const acc=resolveMapping(region('ACC'),suggestMapping(region('ACC'),entries),entries);assert(acc.length);assert(acc.every(e=>!e.name.includes('PCC')));
-for(const r of [region('CM'),region('posterior hippocampus'),{...tpj,hemisphere:'unknown'},{...tpj,species:'小鼠'},{...tpj,level:'neuron'},{...region('left TPJ'),hemisphere:'R'}])assert.equal(suggestMapping(r,entries),null);
+for(const r of [region('CM'),region('posterior hippocampus'),{...tpj,species:'小鼠'},{...tpj,level:'neuron'},{...region('left TPJ'),hemisphere:'R'}])assert.equal(suggestMapping(r,entries),null);
+const unknown={...tpj,hemisphere:'unknown'},unknownMap=suggestMapping(unknown,entries);
+assert.equal(unknownMap.target,'set:TPJ');assert.equal(unknownMap.hemisphere,'unknown');
+assert.equal(resolveMapping(unknown,unknownMap,entries).length,0,'Unknown side must not enter the evidence view');
+assert.equal(resolveMappingCandidate(unknown,unknownMap,entries).length,2,'Unknown side retains bilateral atlas candidates for reference mode');
+for(const [name,target] of [['dorsolateral prefrontal cortex','group:frontal_prefrontal'],['anterior insula','group:insula'],['basal ganglia','group:basal'],['ventral striatum','group:ventral_striatum'],['ventral pallidum','set:VP']])assert.equal(suggestMapping(region(name),entries)?.target,target,name);
 const data={title:'Test',regions:[tpj],mechanisms:[],themes:[]};
 const paper={id:'test-1',data,mappings:{r1:null},originalFile:new Blob(['test']),source:'original'};
 const result=rematchPapers([paper],entries);assert.equal(result.matched,1);assert.equal(paper.mappings.r1,null);assert.equal(result.papers[0].source,'original');assert.equal(result.papers[0].originalFile,paper.originalFile);
 assert.equal(rematchPapers(result.papers,entries).matched,0);
 const manual={...paper,mappings:{r1:{...mapping,confirmed:true}}};assert.deepEqual(rematchPapers([manual],entries).papers[0].mappings,manual.mappings);
 const backup=validateBackup({version:1,themes:[],papers:result.papers},entries);assert.equal(backup.papers[0].mappings.r1.target,'set:TPJ');
-console.log('Matching checks passed: all curated aliases resolve; TPJ/bilateral display; ambiguous, animal, neuron and conflicting-side exclusions; rematch preservation and backup roundtrip.');
+console.log('Matching checks passed: curated and broad anatomical aliases resolve; unknown side retains reference candidates but not evidence geometry; ambiguous, animal, neuron and conflicting-side exclusions; rematch preservation and backup roundtrip.');
