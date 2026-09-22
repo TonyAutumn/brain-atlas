@@ -1,6 +1,6 @@
 // Display associations are deliberately separate from anatomical ancestry and evidence mapping.
-import {NAV,inGroup,navigationFor} from './navigation.js?v=search1';
-export const GEOMETRY_LINK_VERSION='2026-09-17.2';
+import {NAV,inGroup,navigationFor} from './navigation.js?v=posteromedial1';
+export const GEOMETRY_LINK_VERSION='2026-09-22.1';
 const relation=(includeGroups,note,references)=>Object.freeze({includeGroups:Object.freeze(includeGroups),note,references:Object.freeze(references),preferredSource:'cit168'});
 export const GEOMETRY_RELATIONS=Object.freeze({
  tegmentum:relation(['midbrain_tegmentum','pontine_tegmentum'],

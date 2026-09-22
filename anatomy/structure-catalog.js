@@ -1,16 +1,25 @@
 // Anatomical concepts and search vocabulary, independent of meshes and saved parcel IDs.
 // A concept without a mesh is still a valid, searchable learning entry.
-export const CATALOG_VERSION='2026-09-17.1';
+export const CATALOG_VERSION='2026-09-22.1';
 export const SOURCES={
  midbrain:{title:'Human Protein Atlas · Midbrain (anatomical divisions)',url:'https://www.proteinatlas.org/humanproteome/brain/midbrain'},
  pons:{title:'Human Protein Atlas · Pons (anatomical divisions)',url:'https://www.proteinatlas.org/humanproteome/brain/pons'},
  brain:{title:'Human Protein Atlas · Human brain structure list',url:'https://v24.proteinatlas.org/humanproteome/brain/data'},
  pontine:{title:'NLM MeSH · Pontine Tegmentum',url:'https://www.ncbi.nlm.nih.gov/mesh/68065821'},
+ posteromedial:{title:'Vogt & Laureys, 2005 · Posterior cingulate, precuneal and retrosplenial cortices',url:'https://pubmed.ncbi.nlm.nih.gov/16186025/'},
+ posteromedialHuman:{title:'Rolls et al., 2023 · Human posterior cingulate, retrosplenial and medial parietal cortex',url:'https://pubmed.ncbi.nlm.nih.gov/36178249/'},
+ posteriorCingulate:{title:'Leech & Sharp, 2014 · The role of the posterior cingulate cortex in cognition and disease',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC3891440/'},
+ precuneus:{title:'Cavanna & Trimble, 2006 · The precuneus: functional anatomy and behavioural correlates',url:'https://pubmed.ncbi.nlm.nih.gov/16399806/'},
+ retrosplenial:{title:'Vann et al., 2009 · What does the retrosplenial cortex do?',url:'https://pubmed.ncbi.nlm.nih.gov/19812579/'},
  atlas:{title:'本站图谱原始标签、来源及范围说明',url:'anatomy/SOURCES.md'}
 };
 // id, Chinese label, primary parent, English name, aliases, kind, note, sources, related IDs
 const EXTRA=[
  ['telencephalon','端脑（大脑半球）','cerebrum','Telencephalon',['cerebral hemispheres','端脑','大脑半球'],'前脑分区','端脑与间脑同属前脑；端脑包括大脑皮层及端脑深部结构。',['brain']],
+ ['posteromedial_cortex','后内侧皮层（总称）','cortex','Posteromedial cortex',['posterior medial cortex','posteromedial cortical region','posterior medial cortical region','PMC','后内侧皮质','后部内侧皮层','后部内侧皮质'],'跨区皮层总称','文献中的后内侧皮层通常指内侧后部的一组相邻皮层，而不是边界固定的单一脑区；常涉及后扣带皮层、压后皮层与楔前叶，但具体纳入范围随研究和图谱而异。本站将总称与各具体结构分开，当前不为它虚构整体三维边界。',['posteromedial','posteromedialHuman'],['posterior_cingulate','retrosplenial_cortex','precuneus']],
+ ['posterior_cingulate','后扣带皮层','cingulate','Posterior cingulate cortex',['posterior cingulate','posterior cingulate gyrus','PCC','后扣带皮质','后扣带回'],'扣带皮层分区','位于扣带皮层后部。常按 Brodmann 23、31 区讨论，但论文和图谱边界并不完全一致；它与楔前叶、压后皮层相邻，却不是三者的同义词。',['posteriorCingulate','posteromedial'],['posteromedial_cortex','retrosplenial_cortex','precuneus']],
+ ['retrosplenial_cortex','压后皮层','cingulate','Retrosplenial cortex',['retrosplenial area','RSC','脾后皮层','压后皮质','脾后皮质'],'皮层分区','位于胼胝体压部后方附近，常与 Brodmann 29、30 区相关。它与后扣带皮层相邻且在文献中有时被合并讨论，但应保留为独立结构。',['retrosplenial','posteromedial'],['posteromedial_cortex','posterior_cingulate','precuneus']],
+ ['precuneus','楔前叶','parietal','Precuneus',['precuneal cortex','PCu','楔前皮层','楔前皮质'],'内侧顶叶结构','位于顶叶内侧面，是内侧顶叶的一部分；它与后扣带皮层及压后皮层相邻，不能仅凭“后内侧皮层”一词确定论文实际指向哪一部分。',['precuneus','posteromedialHuman'],['posteromedial_cortex','posterior_cingulate','retrosplenial_cortex']],
  ['tectum','中脑顶盖','midbrain','Tectum',['tectum mesencephali','midbrain tectum','tectal plate','quadrigeminal plate','corpora quadrigemina','顶盖','四叠体','四叠体板'],'中脑分区','位于中脑导水管背侧，包括上丘与下丘。当前只有层级条目，没有完整顶盖三维模型。',['midbrain']],
  ['superior_colliculus','上丘','tectum','Superior colliculus',['superior colliculi','SC','上四叠体'],'核团及表面隆起','属于中脑顶盖；不要与丘脑的外侧膝状体混同。',['midbrain']],
  ['inferior_colliculus','下丘','tectum','Inferior colliculus',['inferior colliculi','IC','下四叠体'],'核团及表面隆起','属于中脑顶盖；不要与丘脑的内侧膝状体混同。',['midbrain']],

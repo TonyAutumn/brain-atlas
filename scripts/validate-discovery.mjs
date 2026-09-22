@@ -22,6 +22,12 @@ for(const q of ['VTA','vta','ＶＴＡ','ventral tegmental area','ventral-tegmen
  assert.deepEqual(hits.filter(h=>h.kind==='parcel').map(h=>h.id).sort(),['cit-21','cit-22'],q);
 }
 for(const [q,id] of [['tectum','tectum'],['顶盖','tectum'],['四叠体','tectum'],['tegmentum','tegmentum'],['被盖','tegmentum'],['midbrain tegmentum','midbrain_tegmentum'],['脑桥','pons'],['LC','locus_coeruleus'],['PAG','periaqueductal_gray'],['DRN','dorsal_raphe'],['PPTg','pedunculopontine']])assert(search(q).some(h=>h.kind==='concept'&&h.id===id),q);
+for(const q of ['后内侧皮层','后内侧皮质','posteromedial cortex','posterior medial cortex','PMC'])assert.equal(search(q)[0]?.id,'posteromedial_cortex',q);
+for(const [q,id] of [['后扣带皮层','posterior_cingulate'],['PCC','posterior_cingulate'],['压后皮层','retrosplenial_cortex'],['RSC','retrosplenial_cortex'],['楔前叶','precuneus'],['precuneal cortex','precuneus']])assert(search(q).some(h=>h.kind==='concept'&&h.id===id),q);
+assert.deepEqual(NAV.posteromedial_cortex.related,['posterior_cingulate','retrosplenial_cortex','precuneus']);
+assert.deepEqual(pathFor('posterior_cingulate'),['all','cerebrum','telencephalon','cortex','cingulate','posterior_cingulate']);
+assert.deepEqual(pathFor('precuneus'),['all','cerebrum','telencephalon','cortex','parietal','precuneus']);
+for(const id of ['posteromedial_cortex','posterior_cingulate','retrosplenial_cortex','precuneus'])assert.equal(conceptCoverage(id,entries).hasGeometry,false,id);
 for(const id of ['tectum','superior_colliculus','inferior_colliculus','pons','locus_coeruleus','medulla'])assert.equal(conceptCoverage(id,entries).hasGeometry,false,id);
 // The general tegmentum now exposes existing subregion meshes, never a fabricated whole or a VTA synonym.
 assert.equal(conceptCoverage('tegmentum',entries).hasGeometry,true);

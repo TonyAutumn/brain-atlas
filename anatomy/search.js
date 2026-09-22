@@ -1,8 +1,8 @@
-import {NAV,pathFor,navigationFor} from './navigation.js?v=search1';
+import {NAV,pathFor,navigationFor} from './navigation.js?v=posteromedial1';
 import {describe} from './labels.js';
 import {RULES,atlasCode} from '../research/mapping-rules.js';
-import {parcelAliases} from './structure-catalog.js';
-import {conceptCoverage} from './geometry-links.js?v=geometry1';
+import {parcelAliases} from './structure-catalog.js?v=posteromedial1';
+import {conceptCoverage} from './geometry-links.js?v=posteromedial1';
 export {conceptCoverage};
 export const normalizeSearch=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
 const compact=s=>s.replaceAll(' ','');
