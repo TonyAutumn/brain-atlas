@@ -39,7 +39,7 @@ for(const cov of [tegmentum,peduncle]){assert(cov.partial);assert.equal(cov.labe
 assert.match(peduncle.note,/广义/);assert.match(peduncle.note,/脚底仍无模型/);
 assert.deepEqual(ids(tegmentum.parcels),ids(entries.filter(e=>inGroup(e,'midbrain_tegmentum'))));
 assert(!tegmentum.parcels.some(e=>inGroup(e,'substantia_nigra')));
-const missing=['amygdala_corticomedial','tectum','superior_colliculus','inferior_colliculus','periaqueductal_gray','cerebral_aqueduct','crus_cerebri','pons','pontine_tegmentum','basilar_pons','pontine_nuclei','locus_coeruleus','parabrachial_nuclei','dorsal_tegmental_nucleus','pontomesencephalic','pedunculopontine','laterodorsal_tegmental','raphe_nuclei','dorsal_raphe','median_raphe','medulla','inferior_olive','solitary_nucleus','nucleus_ambiguus','gracile_nucleus','cuneate_nucleus','hypoglossal_nucleus','unassigned','midbrain_other'];
+const missing=['amygdala_corticomedial','posteromedial_cortex','posterior_cingulate','retrosplenial_cortex','precuneus','tectum','superior_colliculus','inferior_colliculus','periaqueductal_gray','cerebral_aqueduct','crus_cerebri','pons','pontine_tegmentum','basilar_pons','pontine_nuclei','locus_coeruleus','parabrachial_nuclei','dorsal_tegmental_nucleus','pontomesencephalic','pedunculopontine','laterodorsal_tegmental','raphe_nuclei','dorsal_raphe','median_raphe','medulla','inferior_olive','solitary_nucleus','nucleus_ambiguus','gracile_nucleus','cuneate_nucleus','hypoglossal_nucleus','unassigned','midbrain_other'];
 assert.deepEqual(concepts.filter(id=>!conceptCoverage(id,entries).hasGeometry).sort(),missing.sort());
 for(const id of missing)assert.equal(conceptCoverage(id,entries).label,'仅层级');
 assert.deepEqual(conceptCoverage('unknown-invalid-id',entries).parcels,[]);
