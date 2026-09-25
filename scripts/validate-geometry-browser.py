@@ -3,6 +3,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import threading
+import json
 from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +24,8 @@ def run():
             page.on('pageerror',lambda e:errors.append(str(e)))
             page.goto(url,wait_until='domcontentloaded')
             page.wait_for_function('window.catalogReady === true')
-            page.wait_for_function("document.getElementById('modelStatus').textContent.includes('458 个模型条目')",timeout=60000)
+            count=sum(e['atlas']!='surface' for e in json.loads((ROOT/'anatomy/data/manifest.json').read_text())['entries'])
+            expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=60000)
             assert page.evaluate('window.atlasReady === true')
             page.locator('#search3').fill('tegmentum')
             expect(page.locator('#regionItems .concept-item[data-group="tegmentum"]')).to_contain_text('部分模型')
