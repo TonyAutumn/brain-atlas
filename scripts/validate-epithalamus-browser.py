@@ -65,12 +65,14 @@ def run():
             page.locator('#markLearned').click()
             page.locator('#anatomicalMode').click();page.locator('#showWholeBrain').click()
             assert not state(page)['isolated'] and state(page)['visibleShells']
+            page.screenshot(path=str(artifacts/'whole-brain-appearance.png'))
             page.reload();expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000)
             assert state(page)['mode']=='transparent'
             assert 'cit-25' in page.evaluate('() => window.brainAtlas.getKnown()')
             page.set_viewport_size({'width':390,'height':844})
             expect(page.locator('#anatomicalMode')).to_be_visible()
             bounds=page.locator('.render-mode-controls').bounding_box();assert bounds['x']>=0 and bounds['x']+bounds['width']<=390
+            page.screenshot(path=str(artifacts/'mobile-controls.png'))
             # A stale worker is rejected before sending a paper, with input retained.
             calls=[]
             context.route('https://atlas-test.invalid/health',lambda route:route.fulfill(headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'},json={'ok':True,'model':'test-model','capabilities':['atlas-candidate-v2','atlas-evidence-v1']}))
@@ -79,6 +81,7 @@ def run():
             page.goto(url+'papers.html')
             page.evaluate("() => {localStorage.setItem('brain-atlas-service-v1','https://atlas-test.invalid');sessionStorage.setItem('brain-atlas-access-v1','test-only-not-a-real-secret');}")
             page.reload();page.locator('#uploadBtn').click()
+            page.locator('#uploadDialog summary').click()
             text='TEST ONLY: A sufficiently long synthetic structural MRI paper. '*10
             page.locator('#paperText').fill(text);page.locator('#analyzeBtn').click()
             expect(page.locator('#uploadStatus')).to_contain_text('当前论文尚未发送',timeout=30000)
