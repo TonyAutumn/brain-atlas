@@ -39,12 +39,12 @@ for(const cov of [tegmentum,peduncle]){assert(cov.partial);assert.equal(cov.labe
 assert.match(peduncle.note,/广义/);assert.match(peduncle.note,/脚底仍无模型/);
 assert.deepEqual(ids(tegmentum.parcels),ids(entries.filter(e=>inGroup(e,'midbrain_tegmentum'))));
 assert(!tegmentum.parcels.some(e=>inGroup(e,'substantia_nigra')));
-const missing=['amygdala_corticomedial','posteromedial_cortex','posterior_cingulate','retrosplenial_cortex','precuneus','tectum','superior_colliculus','inferior_colliculus','periaqueductal_gray','cerebral_aqueduct','crus_cerebri','pons','pontine_tegmentum','basilar_pons','pontine_nuclei','locus_coeruleus','parabrachial_nuclei','dorsal_tegmental_nucleus','pontomesencephalic','pedunculopontine','laterodorsal_tegmental','raphe_nuclei','dorsal_raphe','median_raphe','medulla','inferior_olive','solitary_nucleus','nucleus_ambiguus','gracile_nucleus','cuneate_nucleus','hypoglossal_nucleus','unassigned','midbrain_other'];
+const missing=['medial_habenula','lateral_habenula','stria_medullaris','habenular_commissure','posterior_commissure','amygdala_corticomedial','posteromedial_cortex','posterior_cingulate','retrosplenial_cortex','precuneus','tectum','superior_colliculus','inferior_colliculus','periaqueductal_gray','cerebral_aqueduct','crus_cerebri','pons','pontine_tegmentum','basilar_pons','pontine_nuclei','locus_coeruleus','parabrachial_nuclei','dorsal_tegmental_nucleus','pontomesencephalic','pedunculopontine','laterodorsal_tegmental','raphe_nuclei','dorsal_raphe','median_raphe','medulla','inferior_olive','solitary_nucleus','nucleus_ambiguus','gracile_nucleus','cuneate_nucleus','hypoglossal_nucleus','unassigned','midbrain_other'];
 assert.deepEqual(concepts.filter(id=>!conceptCoverage(id,entries).hasGeometry).sort(),missing.sort());
 for(const id of missing)assert.equal(conceptCoverage(id,entries).label,'仅层级');
 assert.deepEqual(conceptCoverage('unknown-invalid-id',entries).parcels,[]);
 for(const shell of manifest.entries.filter(e=>e.atlas==='surface'))assert(!inGeometryGroup(shell,'all'));
-assert.equal(conceptCoverage('all',entries).parcels.length,458);
+assert.equal(conceptCoverage('all',entries).parcels.length,459);
 assert.deepEqual(ids(entries.filter(e=>inGroup(e,'tegmentum'))),[],'Display link must not rewrite anatomical ancestry');
 assert.deepEqual(ids(entries.filter(e=>inGroup(e,'cerebral_peduncle'))),[]);
 assert.deepEqual(ancestry,Object.fromEntries(entries.map(e=>[e.id,pathFor(navigationFor(e))])));
@@ -53,7 +53,7 @@ assert.deepEqual(searchAtlas('VTA',index).filter(h=>h.kind==='parcel').map(h=>h.
 assert(!searchAtlas('tegmentum',index).some(h=>h.kind==='parcel'&&['cit-21','cit-22'].includes(h.id)),'Part-of is not a synonym');
 const linkedBefore=concepts.filter(id=>entries.some(e=>inGroup(e,id))),linkedAfter=concepts.filter(id=>conceptCoverage(id,entries).hasGeometry);
 assert.deepEqual(linkedAfter.filter(id=>!linkedBefore.includes(id)).sort(),['cerebral_peduncle','tegmentum']);
-assert.equal(linkedBefore.length,84);assert.equal(linkedAfter.length,86);
+assert.equal(linkedBefore.length,86);assert.equal(linkedAfter.length,88);
 const app=fs.readFileSync(new URL('anatomy/app.js',root),'utf8');
 assert(app.includes('sourceFits(e)&&inGeometryGroup(e,state.group)'));
 assert(app.includes("evidenceLayer.group.visible=!(display.isolate&&state.focusKind==='entry')"),'Evidence visibility must use the effective isolation state');
@@ -67,4 +67,4 @@ assert(displayState({focusKind:'entry',renderMode:'solid',isolate:false},true).i
 const evidence=displayState({focusKind:'evidence',renderMode:'solid',isolate:false},true);
 assert(evidence.isolate&&evidence.focusKind!=='entry','Solid evidence hides its shell but retains the evidence layer');
 for(const file of ['anatomy/geometry-links.js','anatomy/GEOMETRY-AUDIT.md','scripts/validate-geometry-browser.py'])assert(fs.existsSync(new URL(file,root)),file);
-console.log(`Geometry links verified: ${entries.length} unchanged models; ${concepts.length} concepts; ${linkedBefore.length} -> ${linkedAfter.length} linked; ${missing.length-2} anatomical concepts without meshes plus 2 empty review groups. Explicit partial associations only; ancestry, search aliases and evidence visibility preserved.`);
+console.log(`Geometry links verified: ${entries.length} verified models; ${concepts.length} concepts; ${linkedBefore.length} -> ${linkedAfter.length} linked; ${missing.length-2} anatomical concepts without meshes plus 2 empty review groups. Explicit partial associations only; ancestry, search aliases and evidence visibility preserved.`);

@@ -1,7 +1,9 @@
 // Anatomical concepts and search vocabulary, independent of meshes and saved parcel IDs.
 // A concept without a mesh is still a valid, searchable learning entry.
-export const CATALOG_VERSION='2026-09-22.1';
+export const CATALOG_VERSION='2026-09-25.1';
 export const SOURCES={
+ epithalamus:{title:'Allen Human Reference Atlas 2020 · 人脑结构标签与层级',url:'https://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/examples/voxel_count/voxel_count.csv'},
+ pineal:{title:'Allen Human Reference Atlas – 3D, 2020 · 来源、空间与许可',url:'https://community.brain-map.org/t/allen-human-reference-atlas-3d-2020-new/405'},
  midbrain:{title:'Human Protein Atlas · Midbrain (anatomical divisions)',url:'https://www.proteinatlas.org/humanproteome/brain/midbrain'},
  pons:{title:'Human Protein Atlas · Pons (anatomical divisions)',url:'https://www.proteinatlas.org/humanproteome/brain/pons'},
  brain:{title:'Human Protein Atlas · Human brain structure list',url:'https://v24.proteinatlas.org/humanproteome/brain/data'},
@@ -15,6 +17,13 @@ export const SOURCES={
 };
 // id, Chinese label, primary parent, English name, aliases, kind, note, sources, related IDs
 const EXTRA=[
+ ['habenular_complex','缰核复合体','epithalamus','Habenular nuclei',['habenula','habenulae','habenular nucleus','habenular complex','Hb','缰核','缰核群'],'核团复合体','属于上丘脑，分为内侧缰核和外侧缰核。当前 CIT168 左右网格表示整个缰核，未区分内、外侧部；它们不能代表整个上丘脑。',['epithalamus','atlas'],['stria_medullaris','habenular_commissure','pineal_gland']],
+ ['medial_habenula','内侧缰核','habenular_complex','Medial habenular nucleus',['medial habenula','MHb','MHN','缰核内侧部'],'核团','缰核复合体的内侧部分。当前只有名称与从属关系，不能用整个缰核的网格代替这一亚核。',['epithalamus'],['lateral_habenula']],
+ ['lateral_habenula','外侧缰核','habenular_complex','Lateral habenular nucleus',['lateral habenula','LHb','LHN','缰核外侧部'],'核团','缰核复合体的外侧部分。当前图谱未单独分割，不能将整个缰核的左右模型冒充外侧缰核。',['epithalamus'],['medial_habenula']],
+ ['pineal_gland','松果体','epithalamus','Pineal gland',['pineal body','epiphysis cerebri','glandula pinealis','Pin','松果腺','松果腺体'],'中线神经内分泌器官','属于上丘脑的中线结构，与缰核分别列出。三维表面来自 Allen 2020 人脑图谱的松果体标签，保留来源坐标，不拆成左右两枚。',['epithalamus','pineal'],['habenular_complex','habenular_commissure','posterior_commissure']],
+ ['stria_medullaris','丘脑髓纹','epithalamus','Stria medullaris of thalamus',['stria medullaris','stria medullaris thalami','habenular stria','SM','SMT','髓纹'],'白质纤维束','与缰核相联系的传入纤维束，沿丘脑内侧上缘走行；不是缰核本身。本学习导航置于上丘脑相关结构，Allen 来源本体则将纤维束另行分类。当前暂无对应分割。',['epithalamus'],['habenular_complex']],
+ ['habenular_commissure','缰连合','epithalamus','Habenular commissure',['commissura habenularum','commissure of habenula','缰核连合'],'连合纤维束','连接两侧缰核相关区域的连合纤维，靠近松果体柄；与后连合分开。当前只提供层级与位置关系。',['epithalamus'],['habenular_complex','pineal_gland','posterior_commissure']],
+ ['posterior_commissure','后连合','epithalamus','Posterior commissure',['commissura posterior','epithalamic commissure','后联合'],'连合纤维束','靠近松果体柄下方、中脑导水管上端的中线连合。本学习导航置于上丘脑相关结构；Allen 来源本体将其另列于中脑纤维系统，不据此虚构单一从属标准。当前暂无对应分割。',['epithalamus'],['pineal_gland','habenular_commissure','midbrain']],
  ['telencephalon','端脑（大脑半球）','cerebrum','Telencephalon',['cerebral hemispheres','端脑','大脑半球'],'前脑分区','端脑与间脑同属前脑；端脑包括大脑皮层及端脑深部结构。',['brain']],
  ['posteromedial_cortex','后内侧皮层（总称）','cortex','Posteromedial cortex',['posterior medial cortex','posteromedial cortical region','posterior medial cortical region','PMC','后内侧皮质','后部内侧皮层','后部内侧皮质'],'跨区皮层总称','文献中的后内侧皮层通常指内侧后部的一组相邻皮层，而不是边界固定的单一脑区；常涉及后扣带皮层、压后皮层与楔前叶，但具体纳入范围随研究和图谱而异。本站将总称与各具体结构分开，当前不为它虚构整体三维边界。',['posteromedial','posteromedialHuman'],['posterior_cingulate','retrosplenial_cortex','precuneus']],
  ['posterior_cingulate','后扣带皮层','cingulate','Posterior cingulate cortex',['posterior cingulate','posterior cingulate gyrus','PCC','后扣带皮质','后扣带回'],'扣带皮层分区','位于扣带皮层后部。常按 Brodmann 23、31 区讨论，但论文和图谱边界并不完全一致；它与楔前叶、压后皮层相邻，却不是三者的同义词。',['posteriorCingulate','posteromedial'],['posteromedial_cortex','retrosplenial_cortex','precuneus']],
@@ -70,7 +79,7 @@ const TERMS={
  deep:['Telencephalic subcortical gray matter',['皮层下灰质']],basal:['Basal ganglia',['basal nuclei','基底节']],dorsal_striatum:['Dorsal striatum',[]],ventral_striatum:['Ventral striatum',['VS']],caudate:['Caudate nucleus',['caudate']],putamen:['Putamen',[]],nucleus_accumbens:['Nucleus accumbens',['NAc','NAcc','Acb']],dorsal_pallidum:['Dorsal pallidum',['globus pallidus','GP','苍白球']],ventral_basal_ganglia:['Ventral basal ganglia',[]],ventral_pallidum:['Ventral pallidum',['VP']],
  forebrain:['Basal forebrain',['BF']],basal_forebrain_cholinergic:['Cholinergic basal forebrain',['胆碱能基底前脑']],extended_amygdala:['Extended amygdala related structures',['BNST','BST','bed nucleus of the stria terminalis','终纹床核']],olfactory_forebrain:['Olfactory basal forebrain',['olfactory tubercle','Tu','嗅结节']],
  diencephalon:['Diencephalon',['间脑']],thalamus:['Thalamus',[]],thalamus_geniculate:['Geniculate bodies',['LGN','MGN','lateral geniculate','medial geniculate','外侧膝状体','内侧膝状体']],thalamus_anterior:['Anterior thalamic nuclei',[]],thalamus_medial:['Medial thalamic nuclei',['mediodorsal thalamus','MD']],thalamus_posterior:['Posterior thalamic nuclei',['pulvinar','丘脑枕']],thalamus_intralaminar:['Intralaminar and midline thalamic nuclei',['intralaminar thalamus','midline thalamus']],thalamus_ventrolateral:['Ventral and lateral thalamic nuclei',[]],
- subthalamus:['Subthalamus',[]],subthalamic_nucleus:['Subthalamic nucleus',['STN']],zona_incerta:['Zona incerta',['ZI']],hypothalamus:['Hypothalamus',[]],epithalamus:['Epithalamus',['habenula','habenular nucleus','缰核']],
+ subthalamus:['Subthalamus',[]],subthalamic_nucleus:['Subthalamic nucleus',['STN']],zona_incerta:['Zona incerta',['ZI']],hypothalamus:['Hypothalamus',[]],epithalamus:['Epithalamus',['上丘脑']],
  brainstem:['Brainstem',['brain stem','truncus encephali']],midbrain:['Midbrain',['mesencephalon']],substantia_nigra:['Substantia nigra',['SN','黑质']],red_nucleus:['Red nucleus',['nucleus ruber','RN']],ventral_tegmental:['Ventral tegmental area',['VTA','area tegmentalis ventralis','腹侧被盖区','腹侧被盖']],
  cerebellum:['Cerebellum',[]],cerebellar_lobules:['Cerebellar lobules',['小脑皮层']],cerebellar_hemisphere:['Cerebellar hemispheres',[]],cerebellar_vermis:['Cerebellar vermis',['vermis','蚓部']],cerebellar_nuclei:['Deep cerebellar nuclei',[]],cerebellar_medial_nuclei:['Fastigial and interposed nuclei',['fastigial nucleus','interposed nucleus','小脑顶核','小脑中间核']],dentate_nucleus:['Dentate nucleus',['小脑齿状核']]
 };
@@ -83,6 +92,7 @@ export function installCatalog(nav){
  nav.deep.note='端脑深部灰质的导航分组；间脑结构另列在前脑之下。';
  Object.assign(nav.diencephalon,{parent:'cerebrum',label:'间脑',note:'包括丘脑、下丘脑、上丘脑和丘脑底区等。'});
  nav.thalamus.parent='diencephalon';nav.subthalamus.parent='diencephalon';
+ Object.assign(nav.epithalamus,{note:'间脑的一个分区，包括缰核复合体、松果体及相关纤维结构。当前关联的缰核和松果体只是已收录部分，不是整个上丘脑的连续边界；各来源保留自己的分割空间。',references:['epithalamus','pineal']});
  nav.entorhinal.parent='medial';
  Object.assign(nav.ventral_tegmental,{parent:'midbrain_tegmentum',label:'腹侧被盖区（VTA）',note:'VTA 位于中脑被盖。当前关联 CIT168 的 VTA 标签；不代表整个被盖，也不自动合并 PBP。',references:['midbrain','atlas']});
  nav.red_nucleus.parent='midbrain_tegmentum';
@@ -93,8 +103,9 @@ export function installCatalog(nav){
 }
 // Deterministic source-label crosswalk. Geometry and persistent IDs are never renamed.
 const JULICH={18:'red_nucleus',109:'red_nucleus',93:'substantia_nigra',181:'substantia_nigra',88:'subthalamic_nucleus',15:'zona_incerta',16:'thalamus_geniculate',92:'thalamus_geniculate',38:'extended_amygdala',51:'olfactory_forebrain',154:'olfactory_forebrain',68:'ventral_striatum',136:'ventral_striatum',113:'basal_forebrain_cholinergic',166:'basal_forebrain_cholinergic',119:'nucleus_accumbens',202:'nucleus_accumbens',185:'ventral_pallidum',75:'amygdala_basolateral',141:'amygdala_centromedial',191:'amygdala_superficial',5:'amygdala_transition',66:'amygdala_other',149:'amygdala_other',188:'amygdala_other',172:'subicular',173:'subicular',52:'thalamus_reticular',39:'thalamus_anterior',184:'thalamus_anterior',74:'thalamus_medial',138:'thalamus_medial',61:'thalamus_intralaminar',79:'thalamus_intralaminar',131:'thalamus_intralaminar',156:'thalamus_intralaminar',190:'thalamus_intralaminar',9:'thalamus_posterior',23:'thalamus_posterior',24:'thalamus_posterior',47:'thalamus_posterior',63:'thalamus_posterior',81:'thalamus_posterior',103:'thalamus_posterior',169:'thalamus_posterior',12:'thalamus_ventrolateral',31:'thalamus_ventrolateral',45:'thalamus_ventrolateral',125:'thalamus_ventrolateral',137:'thalamus_ventrolateral',151:'thalamus_ventrolateral',168:'thalamus_ventrolateral',176:'thalamus_ventrolateral',178:'thalamus_ventrolateral',193:'thalamus_ventrolateral',194:'thalamus_ventrolateral'};
-const CIT=['putamen','caudate','nucleus_accumbens','extended_amygdala','dorsal_pallidum','dorsal_pallidum','substantia_nigra','red_nucleus','substantia_nigra','parabrachial_pigmented','ventral_tegmental','ventral_pallidum','epithalamus','hypothalamus','hypothalamus','subthalamic_nucleus'];
+const CIT=['putamen','caudate','nucleus_accumbens','extended_amygdala','dorsal_pallidum','dorsal_pallidum','substantia_nigra','red_nucleus','substantia_nigra','parabrachial_pigmented','ventral_tegmental','ventral_pallidum','habenular_complex','hypothalamus','hypothalamus','subthalamic_nucleus'];
 export function canonicalGroup(e){
+  if(e.atlas==='allen2020'&&e.label===10460)return 'pineal_gland';
  if(e.atlas==='julich'&&JULICH[e.label])return JULICH[e.label];
  if(e.atlas==='cit168'&&Number.isInteger(e.label)&&e.label>=1&&e.label<=32)return CIT[Math.floor((e.label-1)/2)];
  if(e.category==='midbrain'){

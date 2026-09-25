@@ -1,5 +1,7 @@
 // Names target only structures actually present in the shipped atlas manifest.
 export const RULES=[
+ ['Hb',['habenula','habenulae','habenular nuclei','habenular nucleus','habenular complex','Hb','缰核','缰核复合体'],['Habenular Nucleus'],'CIT168 整个缰核的候选边界；不等于整个上丘脑，也不能替代内侧或外侧缰核。'],
+ ['pineal',['pineal gland','pineal body','epiphysis cerebri','glandula pinealis','松果体','松果腺'],['Pineal body'],'Allen 2020 的中线松果体参考分割；不拆分左右，不表示个体实验定位精度。'],
  ['MTL',['mesiotemporal lobe','medial temporal lobe','内侧颞叶'],['CA1','CA2','CA3','DG','Subc','EC','Ph1','Ph2','Ph3'],'内侧颞叶已收录分区参考集合；并非完整体积或本文激活边界。'],
  ['Meynert',['basal forebrain/Meynert nucleus','nucleus basalis of Meynert','Meynert nucleus','Meynert基底核'],['Ch 4'],'原文名称混合了基底前脑与Meynert核：以Ch4作为候选，范围需核对，不代表整个基底前脑。'],
  ['TPJ',['temporoparietal junction','temporo-parietal junction','TPJ','颞顶联合区','颞顶交界区'],['TPJ'],'近似候选：Julich 的 Area TPJ；不代表论文中所有 TPJ 定义或实际激活范围。'],
@@ -28,7 +30,7 @@ export const RULES=[
 ];
 export function nameVariants(name){
  const full=String(name||'').normalize('NFKC').trim();
- const stripped=full.replace(/^(?:(?:left|right|bilateral)\s+|左侧|右侧|双侧)/i,'');
+ const stripped=full.replace(/^(?:(?:left|right|bilateral|midline)\s+|左侧|右侧|双侧|中线)/i,'');
  // Parentheses may contain an abbreviation. Never discard arbitrary descriptors.
  return [...new Set([full,stripped,stripped.replace(/\s*\([^()]*\)\s*$/,'').trim(),...[...stripped.matchAll(/\(([A-Za-z][A-Za-z0-9 .-]{0,24})\)/g)].map(m=>m[1])])];
 }

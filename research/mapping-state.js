@@ -1,6 +1,6 @@
 // A saved correspondence is distinct from whether today's atlas can display it.
 export function cleanMapping(value){
- if(!value||typeof value.target!=='string'||! /^(parcel|group|set|network):[a-zA-Z0-9_-]{1,150}$/.test(value.target)||!['L','R','both','unknown'].includes(value.hemisphere))return null;
+ if(!value||typeof value.target!=='string'||! /^(parcel|group|set|network):[a-zA-Z0-9_-]{1,150}$/.test(value.target)||!['L','R','both','M','unknown'].includes(value.hemisphere))return null;
  return {target:value.target,hemisphere:value.hemisphere,confirmed:value.confirmed===true};
 }
 export function cleanMappingHistory(history,regionIds){

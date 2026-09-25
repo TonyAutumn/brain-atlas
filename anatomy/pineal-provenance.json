@@ -1,0 +1,103 @@
+{
+  "atlas": "Allen Human Reference Atlas – 3D, 2020",
+  "version": "1.0.0",
+  "rrid": "SCR_017764",
+  "license": "CC BY 4.0",
+  "copyright": "© 2019 Allen Institute for Brain Science",
+  "citation": "Ding SL, Royall JJ, Sunkin SM, Facer BAC, Lesnar P, Bernard A, Ng L, Lein ES (2020). Allen Human Reference Atlas – 3D, 2020.",
+  "sourcePage": "https://community.brain-map.org/t/allen-human-reference-atlas-3d-2020-new/405",
+  "coordinateSpace": "MNI ICBM152 2009b nonlinear symmetric",
+  "units": "mm",
+  "affine": [
+    [
+      0.5,
+      0.0,
+      0.0,
+      -98.0
+    ],
+    [
+      0.0,
+      0.5,
+      0.0,
+      -134.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.5,
+      -72.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "affineField": "qform (sform_code=0)",
+  "voxelSizeMm": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "sourceShape": [
+    394,
+    466,
+    378
+  ],
+  "sourceLabel": 10460,
+  "sourceName": "pineal body",
+  "sourceVoxelCount": 792,
+  "sourceVolumeMm3": 99.0,
+  "hemisphere": "midline; not split or duplicated",
+  "sources": [
+    {
+      "url": "https://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation_full.nii.gz",
+      "sha256": "2b05581e39c44f2623d9b0a69f64e3df0823c20d054abef92973812313335dc3"
+    },
+    {
+      "url": "https://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/examples/voxel_count/voxel_count.csv",
+      "sha256": "7348be087e6c2b6cb1fde1d604761cdd2d70e0e33ded6e1f322db334959d162f"
+    }
+  ],
+  "method": "Exposed label voxel faces; four Taubin pairs (0.5, -0.53); source affine applied once; 0.05 mm vertex quantization.",
+  "limitations": "A macroanatomical reference segmentation, not a probability map or subject-specific boundary. 2009b symmetric is not identical to the other displayed templates. Smoothing does not increase source resolution.",
+  "output": {
+    "id": "allen2020-M-10460",
+    "name": "Pineal body",
+    "hemisphere": "M",
+    "atlas": "allen2020",
+    "category": "diencephalon",
+    "label": 10460,
+    "center": [
+      0.0,
+      -30.579999923706055,
+      0.6899999976158142
+    ],
+    "bounds": [
+      [
+        -2.799999952316284,
+        -34.810001373291016,
+        -1.309999942779541
+      ],
+      [
+        2.799999952316284,
+        -26.219999313354492,
+        2.799999952316284
+      ]
+    ],
+    "vertices": 716,
+    "triangles": 1432,
+    "color": [
+      119,
+      54,
+      113
+    ],
+    "positionScale": 0.05,
+    "positionType": "int16",
+    "indexType": "uint16",
+    "positionOffset": 0,
+    "indexOffset": 4296,
+    "file": "allen2020-M-pineal-0.bin.gz"
+  }
+}

@@ -32,3 +32,14 @@ jobs:
         run: python scripts/validate-geometry-browser.py
       - name: Exercise opaque surfaces, automatic isolation and recovery
         run: python scripts/validate-render-mode-browser.py
+      - name: Exercise epithalamus, pineal, appearance and service preflight
+        env:
+          BRAIN_ATLAS_ARTIFACT_DIR: /tmp/brain-atlas-browser-artifacts
+        run: python scripts/validate-epithalamus-browser.py
+      - name: Preserve new anatomy browser previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epithalamus-browser-preview
+          path: /tmp/brain-atlas-browser-artifacts
+          if-no-files-found: ignore

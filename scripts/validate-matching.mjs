@@ -4,7 +4,7 @@ import {suggestMapping,resolveMapping,resolveMappingCandidate,rematchPapers,vali
 import {RULES} from '../research/mapping-rules.js';
 const entries=JSON.parse(fs.readFileSync(new URL('../anatomy/data/manifest.json',import.meta.url))).entries.filter(e=>e.atlas!=='surface');
 const region=name=>({id:'r1',name,level:'region',species:'人类',hemisphere:'both'});
-for(const rule of RULES)for(const name of rule[1]){const r=region(name),m=suggestMapping(r,entries);assert(m,name);assert(resolveMapping(r,m,entries).length,name);assert.equal(m.confirmed,false);}
+for(const rule of RULES)for(const name of rule[1]){const r={...region(name),hemisphere:rule[0]==='pineal'?'M':'both'},m=suggestMapping(r,entries);assert(m,name);assert(resolveMapping(r,m,entries).length,name);assert.equal(m.confirmed,false);}
 for(const name of ['temporoparietal junction (TPJ)','hippocampus (HPC)','anterior cingulate cortex (ACC)','dentate gyrus (DG)','海马','CA1'])assert(suggestMapping(region(name),entries),name);
 const tpj=region('temporoparietal junction (TPJ)'),mapping=suggestMapping(tpj,entries);
 assert.equal(mapping.target,'set:TPJ');assert.equal(resolveMapping(tpj,mapping,entries).length,2);

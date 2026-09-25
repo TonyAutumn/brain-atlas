@@ -1,6 +1,6 @@
 // Display associations are deliberately separate from anatomical ancestry and evidence mapping.
-import {NAV,inGroup,navigationFor} from './navigation.js?v=posteromedial1';
-export const GEOMETRY_LINK_VERSION='2026-09-22.1';
+import {NAV,inGroup,navigationFor} from './navigation.js?v=epithalamus1';
+export const GEOMETRY_LINK_VERSION='2026-09-25.1';
 const relation=(includeGroups,note,references)=>Object.freeze({includeGroups:Object.freeze(includeGroups),note,references:Object.freeze(references),preferredSource:'cit168'});
 export const GEOMETRY_RELATIONS=Object.freeze({
  tegmentum:relation(['midbrain_tegmentum','pontine_tegmentum'],
@@ -24,6 +24,6 @@ export function conceptCoverage(group,entries){
  const partial=hasGeometry&&(!!relation||!parcels.some(e=>(e.nav||navigationFor(e))===group));
  return {parcels,sources:[...new Set(parcels.map(e=>e.atlas))],hasGeometry,partial,
   label:!hasGeometry?'仅层级':partial?'部分模型':'分区模型',
-  note:relation?.note||(hasGeometry?'显示已收录图谱分区；来源边界与分割尺度各不相同，不保证覆盖该结构的完整体积。':'当前已导入图谱没有可确认的对应分割；不会用附近结构、父结构或相似名称代替。'),
-  references:relation?.references||[],includeGroups:relation?.includeGroups||[],preferredSource:relation?.preferredSource||null};
+  note:relation?.note||(group==='epithalamus'?'部分模型：显示 CIT168 的左右缰核及 Allen 2020 的中线松果体。各来源保留独立模板空间，不合并为整个上丘脑；内/外侧缰核和纤维结构尚无独立分割。':group==='habenular_complex'?'CIT168 的整个缰核参考模型；未区分内侧缰核与外侧缰核，不代表整个上丘脑。':group==='pineal_gland'?'Allen 2020 松果体分割，MNI ICBM152 2009b 非线性对称空间。中线结构只显示一份；不代表概率图或个体精确边界。':hasGeometry?'显示已收录图谱分区；来源边界与分割尺度各不相同，不保证覆盖该结构的完整体积。':'当前已导入图谱没有可确认的对应分割；不会用附近结构、父结构或相似名称代替。'),
+  references:relation?.references||[],includeGroups:relation?.includeGroups||[],preferredSource:group==='epithalamus'?'all':relation?.preferredSource||null};
 }

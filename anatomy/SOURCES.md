@@ -49,3 +49,9 @@ STN 原始标签明确注明 Subthalamus，导航与 ZI 一同放入丘脑底部
 网格使用小端 int16 顶点（×0.05 mm）与 uint16 三角形索引；显示量化误差不超过 0.025 mm，按组 gzip 压缩。`manifest.json` 记录文件 SHA-256、每条目原始标签、顶点数、三角形数、边界、显示中心与字节偏移。文件中心是网格顶点平均值，不是激活峰或质心的实测定位。
 
 Three.js r160 与 OrbitControls 按 MIT 许可分发，全文见 `vendor/LICENSE-three.txt`。界面脚本不依赖外部 CDN。
+
+## Allen Human Reference Atlas – 3D, 2020：松果体补充
+
+新增 1 个中线条目 `allen2020-M-10460`，其来源为官方 `annotation_full.nii.gz` 的 pineal body 标签。CC BY 4.0；© 2019 Allen Institute for Brain Science。Ding SL et al. (2020), version 1.0.0, RRID:SCR_017764。源空间为 MNI ICBM152 2009b 非线性对称，0.5 mm 体素。详情、许可、校验值及可复现步骤见 [EPITHALAMUS.md](EPITHALAMUS.md)。原有 458 个图谱条目和两个参考外壳不变，现有 459 个可选图谱条目。
+
+缰核对应 CIT168 原 `cit-25/26`，现归入“上丘脑 → 缰核复合体”；不再用缰核模型代替整个上丘脑。内/外侧缰核仍无独立网格。

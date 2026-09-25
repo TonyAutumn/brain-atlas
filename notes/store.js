@@ -1,4 +1,4 @@
-import {cleanNote,validId,validKey} from './model.js';
+import {cleanNote,validId,validKey} from './model.js?v=epithalamus1';
 export const DB_NAME='brain-atlas-structure-notes-v1';
 let pending;
 const channel=typeof window!=='undefined'&&typeof BroadcastChannel!=='undefined'?new BroadcastChannel(DB_NAME):null;

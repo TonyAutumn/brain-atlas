@@ -1,14 +1,14 @@
-import {NAV,pathFor,navigationFor} from './navigation.js?v=posteromedial1';
-import {describe} from './labels.js';
-import {RULES,atlasCode} from '../research/mapping-rules.js';
-import {parcelAliases} from './structure-catalog.js?v=posteromedial1';
-import {conceptCoverage} from './geometry-links.js?v=posteromedial1';
+import {NAV,pathFor,navigationFor} from './navigation.js?v=epithalamus1';
+import {describe} from './labels.js?v=epithalamus1';
+import {RULES,atlasCode} from '../research/mapping-rules.js?v=epithalamus1';
+import {parcelAliases} from './structure-catalog.js?v=epithalamus1';
+import {conceptCoverage} from './geometry-links.js?v=epithalamus1';
 export {conceptCoverage};
 export const normalizeSearch=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
 const compact=s=>s.replaceAll(' ','');
 // A group can combine distinct structures (e.g. LGN and MGN); do not give
 // every child all of that group's abbreviations. Only inherit unambiguous names.
-const ALIAS_GROUPS=new Set(['substantia_nigra','red_nucleus','ventral_tegmental','subthalamic_nucleus','zona_incerta','nucleus_accumbens','ventral_pallidum','putamen','caudate','parabrachial_pigmented']);
+const ALIAS_GROUPS=new Set(['substantia_nigra','red_nucleus','ventral_tegmental','subthalamic_nucleus','zona_incerta','nucleus_accumbens','ventral_pallidum','putamen','caudate','parabrachial_pigmented','habenular_complex','pineal_gland']);
 function score(query,fields){
  const q=normalizeSearch(query),qc=compact(q);if(!qc)return 0;
  const short=/^[a-z0-9]{1,3}$/.test(qc);

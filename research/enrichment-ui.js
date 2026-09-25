@@ -1,4 +1,4 @@
-import {enrichmentPoints} from './enrichment.js?v=candidate2';
+import {enrichmentPoints} from './enrichment.js?v=epithalamus1';
 export function lookupDescription(paper,region,entries,escape){
  const e=paper.enrichments?.[region.id];if(!e)return '';
  const points=enrichmentPoints(paper,region,entries);

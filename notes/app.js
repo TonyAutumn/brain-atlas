@@ -1,6 +1,6 @@
-import {NAV,pathFor,navigationFor} from '../anatomy/navigation.js?v=search1';
-import {describe,ATLAS} from '../anatomy/labels.js';
-import {freshNote,cleanNote,noteURL,structureURL,titleOf,checkImage,packNotes,unpackNotes,LIMITS,validKey} from './model.js';
+import {NAV,pathFor,navigationFor} from '../anatomy/navigation.js?v=epithalamus1';
+import {describe,ATLAS} from '../anatomy/labels.js?v=epithalamus1';
+import {freshNote,cleanNote,noteURL,structureURL,titleOf,checkImage,packNotes,unpackNotes,LIMITS,validKey} from './model.js?v=epithalamus1';
 import {listNotes,getNote,saveNote,deleteNote,importNotes} from './store.js';
 const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};

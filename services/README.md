@@ -65,3 +65,9 @@ siibra `hasAnnotation.bestViewPoint` 被保存为外部图谱显示参考点，�
 结果保存在浏览器 IndexedDB 的 `paper.enrichments`，JSON 备份包含来源、日期、摘录和参考点。已完成条目不重复检索；新论文可复用之前的确切术语匹配，但不继承另一篇的推断、坐标或细胞证据。新的任务需要网页保持打开。
 
 验证：`node scripts/validate-enrichment.mjs` 覆盖模拟检索、鉴权、摘录核验、坐标空间、逐条流式保存、失败、别名复用、备份和示意点。真实公共接口已读取得到响应；付费 Kimi 与用户部署的 Worker 需要配置后验证。
+
+## 中线结构更新（2026-09-25）
+
+新 Worker 支持 hemisphere=`M`；只有原文明示中线时填写，未知仍为 `unknown`。`/health` 新增 `atlas-midline-v1`，测试连接应显示“已启用解剖候选、证据分层与中线结构”。前端在发送论文前检查该能力及此前的证据/候选能力；失败时保留文件和原文输入，不调用付费分析。
+
+部署操作仍是复制页面中的最新完整代码，替换个人 Cloudflare Worker 并 Deploy；已有 Secrets 不变。GitHub Pages 的发布不会自动替换个人 Worker。原有左右/双侧/未知记录继续兼容，无需清除文献或笔记。

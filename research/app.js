@@ -1,14 +1,15 @@
 import {quoteProof} from './source-proof.js';
-import {curatePaper,curatedRows} from './evidence-policy.js?v=candidate2';
-import {evidenceCard,excludedRows} from './evidence-ui.js';
-import {applyEnrichment,enrichmentPoints,reuseKnownMappings} from './enrichment.js?v=candidate2';
-import {cleanMapping,mappingChoices,retainMappingHistory} from './mapping-state.js';
+import {analysisCapabilityError} from './service-capabilities.js?v=epithalamus1';
+import {curatePaper,curatedRows} from './evidence-policy.js?v=epithalamus1';
+import {evidenceCard,excludedRows} from './evidence-ui.js?v=epithalamus1';
+import {applyEnrichment,enrichmentPoints,reuseKnownMappings} from './enrichment.js?v=epithalamus1';
+import {cleanMapping,mappingChoices,retainMappingHistory} from './mapping-state.js?v=epithalamus1';
 import {createSaveQueue} from './save-queue.js';
-import {lookupDescription} from './enrichment-ui.js?v=candidate2';
+import {lookupDescription} from './enrichment-ui.js?v=epithalamus1';
 import {readLookupStream} from './lookup-client.js';
 import {networkOf,recordKind,kindLabel} from './networks.js';
-import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js?v=evidence1';
-import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,overviewRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=candidate2';
+import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js?v=epithalamus1';
+import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,overviewRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=epithalamus1';
 import {automaticThemes} from './theme-policy.js';
 import {readLibrary,saveLibrary} from './store.js';
 const $=id=>document.getElementById(id);
@@ -107,6 +108,9 @@ async function analyze(event){
   const fingerprint=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',file?await file.arrayBuffer():new TextEncoder().encode(text)))).map(b=>b.toString(16).padStart(2,'0')).join('');
   const duplicate=library.papers.find(p=>p.fingerprint===fingerprint);
   if(duplicate)throw Error('这份正文已经在文献库中：'+duplicate.data.title+'。请打开该文献编辑主题，无需重复付费分析。');
+  stage='正在核对分析服务版本';update();
+  const health=await(await callService('/health',{signal:AbortSignal.any([abort.signal,AbortSignal.timeout(30000)])})).json();
+  const capabilityError=analysisCapabilityError(health);if(capabilityError)throw Error(capabilityError);
   const form=new FormData();if(file)form.append('file',file);else form.append('text',text);for(const f of figures)form.append('figures',f);form.append('atlasNames',JSON.stringify([...new Set(entries.map(e=>e.name.replace(/^[LR] /,'')))]));form.append('themes',library.themes.join('\n'));form.append('chosenTheme',$('uploadTheme').value.trim());
   const response=await callService('/analyze',{method:'POST',body:form,signal:abort.signal});
   if(!response.headers.get('Content-Type')?.includes('application/x-ndjson'))throw Error('分析服务版本不匹配，请更新服务代码。');
@@ -169,7 +173,7 @@ function field(label,value,key,rows=0){return `<label>${label}${rows?`<textarea 
 function enumOptions(values,selected){return Object.entries(values).map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');}
 function mappingRow(r,p){
  const m=p.mappings[r.id],allowed=['region','network'].includes(r.level)&&human(r.species);
- return `<div class="mapping-row" data-region="${esc(r.id)}"><h3>${esc(r.name)}</h3><p>${esc(r.species)} · ${kindLabel(r)} · 原文侧别：${esc(r.hemisphere)}<br>${esc(r.locator)}</p>${lookupDescription(p,r,entries,esc)}${allowed?`<div class="row"><label>图谱对应<select data-mapping><option value="">保留未匹配</option>${mappingChoices(r,m,options,!!networkOf(r)).map(o=>`<option value="${o.value}" ${m?.target===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label><label>用于显示的侧别<select data-side>${enumOptions({unknown:'未明确，不投到图中',L:'左侧',R:'右侧',both:'双侧'},m?.hemisphere||r.hemisphere)}</select></label></div><label class="check"><input type="checkbox" data-confirmed ${m?.confirmed?'checked':''}>我已核对侧别与图谱范围</label><p class="filter-note">${esc(mappingExplanation(r,m,entries))}</p><small>自动对应只是候选。大结构对应的是已收录分区集合，不能擅自把论文中的海马细化成 CA1 等亚区。</small>`:'<p class="filter-note">保留在证据列表中；有明确归属的细胞类型可显示蓝色示意点，动物证据不投射到人脑。</p>'}</div>`;
+ return `<div class="mapping-row" data-region="${esc(r.id)}"><h3>${esc(r.name)}</h3><p>${esc(r.species)} · ${kindLabel(r)} · 原文侧别：${esc(r.hemisphere)}<br>${esc(r.locator)}</p>${lookupDescription(p,r,entries,esc)}${allowed?`<div class="row"><label>图谱对应<select data-mapping><option value="">保留未匹配</option>${mappingChoices(r,m,options,!!networkOf(r)).map(o=>`<option value="${o.value}" ${m?.target===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label><label>用于显示的侧别<select data-side>${enumOptions({unknown:'未明确，仅作候选',L:'左侧',R:'右侧',both:'双侧',M:'中线'},m?.hemisphere||r.hemisphere)}</select></label></div><label class="check"><input type="checkbox" data-confirmed ${m?.confirmed?'checked':''}>我已核对侧别与图谱范围</label><p class="filter-note">${esc(mappingExplanation(r,m,entries))}</p><small>自动对应只是候选。大结构对应的是已收录分区集合，不能擅自把论文中的海马细化成 CA1 等亚区。</small>`:'<p class="filter-note">保留在证据列表中；有明确归属的细胞类型可显示蓝色示意点，动物证据不投射到人脑。</p>'}</div>`;
 }
 function mechanismEditor(m,p){
  const quotes={matched:'已在提取文本中找到原文；仍需核对它是否支持结论',unmatched:'摘录未在提取文本中找到，请核对原 PDF 或附图',missing:'尚无可核验的原文摘录'};
@@ -222,8 +226,8 @@ function bind(){
  $('uploadDialog').addEventListener('cancel',e=>{if(busy)e.preventDefault();});
  $('uploadBtn').onclick=upload;$('settingsBtn').onclick=settings;$('uploadForm').onsubmit=analyze;$('cancelAnalysis').onclick=()=>{abort?.abort();lookupAbort?.abort();};
  $('saveSettings').onclick=()=>{try{saveSettings();}catch(e){$('connectionStatus').textContent=e.message;}};
- $('testConnection').onclick=async()=>{try{saveSettings();$('testConnection').disabled=true;$('connectionStatus').textContent='正在核对服务、Kimi 密钥与模型…';const data=await(await callService('/health',{signal:AbortSignal.timeout(30000)})).json();$('connectionStatus').textContent='已连接 Kimi，当前模型：'+data.model+(data.capabilities?.includes('atlas-candidate-v2')?' · 已启用解剖候选与证据分层':' · 服务仍是旧版：请复制新版代码并重新 Deploy，否则新论文仍可能丢失侧别未报告的结构');$('settingsBtn').textContent='Kimi 已连接';}catch(e){$('connectionStatus').textContent=e.message;}finally{$('testConnection').disabled=false;}};
- $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=candidate2',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制新版分析服务代码，请替换 Cloudflare Worker 代码并部署。原有 Secrets 不变。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
+ $('testConnection').onclick=async()=>{try{saveSettings();$('testConnection').disabled=true;$('connectionStatus').textContent='正在核对服务、Kimi 密钥与模型…';const data=await(await callService('/health',{signal:AbortSignal.timeout(30000)})).json();$('connectionStatus').textContent='已连接 Kimi，当前模型：'+data.model+(analysisCapabilityError(data)?' · '+analysisCapabilityError(data):' · 已启用解剖候选、证据分层与中线结构');$('settingsBtn').textContent='Kimi 已连接';}catch(e){$('connectionStatus').textContent=e.message;}finally{$('testConnection').disabled=false;}};
+ $('copyWorker').onclick=async()=>{try{const r=await fetch('services/kimi-worker.js?v=epithalamus1',{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());message('已复制新版分析服务代码，请替换 Cloudflare Worker 代码并部署。原有 Secrets 不变。');}catch{message('无法复制，请点击旁边“下载代码”后打开并复制。');}};
  $('generateToken').onclick=()=>{const bytes=crypto.getRandomValues(new Uint8Array(24));$('generatedToken').textContent=Array.from(bytes,v=>v.toString(16).padStart(2,'0')).join('');$('copyToken').hidden=false;};
  $('copyToken').onclick=async()=>{try{await navigator.clipboard.writeText($('generatedToken').textContent);message('访问码已复制；请同时保存到服务端和本页连接设置。');}catch{message('请手动选中并复制访问码。');}};
  $('themeList').onclick=e=>{const b=e.target.closest('[data-theme]');if(b){activeTheme=b.dataset.theme;selectedRows=null;recordMode='evidence';$('recordFilter').value='all';render();}};
@@ -238,10 +242,10 @@ function bind(){
  $('rematchBtn').onclick=async()=>{
   if(busy||lookupBusy){message('请等待当前任务完成后重新匹配。');return;}
   $('rematchBtn').disabled=true;
-  try{const result=rematchPapers(library.papers,entries);const saved=await commit({...library,papers:result.papers,mappingRevision:'candidate2'});if(saved){if(result.matched){recordMode='catalog';$('recordPanel').open=true;}$('rematchStatus').textContent=`已恢复或补充 ${result.matched} 项自动候选；仍有 ${result.remaining} 项缺少可靠对应。已有匹配与人工核对状态保留。无需调用 Kimi。`;}}catch(e){message(e.message);}finally{$('rematchBtn').disabled=false;}
+  try{const result=rematchPapers(library.papers,entries);const saved=await commit({...library,papers:result.papers,mappingRevision:'epithalamus1'});if(saved){if(result.matched){recordMode='catalog';$('recordPanel').open=true;}$('rematchStatus').textContent=`已恢复或补充 ${result.matched} 项自动候选；仍有 ${result.remaining} 项缺少可靠对应。已有匹配与人工核对状态保留。无需调用 Kimi。`;}}catch(e){message(e.message);}finally{$('rematchBtn').disabled=false;}
  };
  $('exportBtn').onclick=exportBackup;$('importBtn').onclick=()=>$('backupFile').click();
- $('backupFile').onchange=async()=>{const f=$('backupFile').files[0];if(!f)return;if(lookupBusy||busy){message('请在当前任务结束后导入备份。');$('backupFile').value='';return;}try{if(f.size>80*1024*1024)throw Error('备份文件超过 80 MB。');const data=validateBackup(JSON.parse(await f.text()),entries),existing=new Set(library.papers.map(p=>p.id)),added=data.papers.filter(p=>!existing.has(p.id)),rematched=rematchPapers([...library.papers,...added],entries);const saved=await commit({...library,themes:themeList([...library.themes,...data.themes]),papers:rematched.papers,mappingRevision:'candidate2'});if(saved)message(`已导入 ${added.length} 篇文献，并补充 ${rematched.matched} 项解剖候选；相同编号的现有文献未被覆盖。`);}catch(e){message(e.message);}finally{$('backupFile').value='';}};
+ $('backupFile').onchange=async()=>{const f=$('backupFile').files[0];if(!f)return;if(lookupBusy||busy){message('请在当前任务结束后导入备份。');$('backupFile').value='';return;}try{if(f.size>80*1024*1024)throw Error('备份文件超过 80 MB。');const data=validateBackup(JSON.parse(await f.text()),entries),existing=new Set(library.papers.map(p=>p.id)),added=data.papers.filter(p=>!existing.has(p.id)),rematched=rematchPapers([...library.papers,...added],entries);const saved=await commit({...library,themes:themeList([...library.themes,...data.themes]),papers:rematched.papers,mappingRevision:'epithalamus1'});if(saved)message(`已导入 ${added.length} 篇文献，并补充 ${rematched.matched} 项解剖候选；相同编号的现有文献未被覆盖。`);}catch(e){message(e.message);}finally{$('backupFile').value='';}};
  $('markLearned').onclick=()=>{if(!['all','region'].includes($('recordFilter').value))return;try{const spec=evidenceScene(currentMapRows,entries,{confirmedOnly:true}),ids=[...new Set(spec.nodes.flatMap(n=>n.entryIds))];if(!ids.length)return;const key='brain-atlas-anatomy-known-v1',known=new Set(JSON.parse(localStorage.getItem(key)||'[]'));ids.forEach(id=>known.add(id));localStorage.setItem(key,JSON.stringify([...known]));if(ready)$('brainFrame').contentWindow.brainAtlas.markLearned(ids);message(`已保存 ${ids.length} 个图谱条目的学习标记；仅包含已核对定位。`);}catch{message('学习标记未能保存，请检查浏览器存储权限。');}};
  window.addEventListener('message',e=>{
   if(e.origin!==location.origin||e.source!==$('brainFrame').contentWindow)return;
@@ -251,7 +255,7 @@ function bind(){
  });
 }
 async function main(){
- try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;saveQueue=createSaveQueue(saveLibrary,stored.revision||0);$('saveStatus').textContent='已读取本机文献库';if(library.mappingRevision!=='candidate2'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'candidate2'});$('rematchStatus').textContent=`已用新版解剖词表重新处理现有文献：补充 ${result.matched} 项候选，仍有 ${result.remaining} 项等待联网补全或人工核对。原有匹配与核对状态保留，无需重新上传。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
+ try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;saveQueue=createSaveQueue(saveLibrary,stored.revision||0);$('saveStatus').textContent='已读取本机文献库';if(library.mappingRevision!=='epithalamus1'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'epithalamus1'});$('rematchStatus').textContent=`已用新版解剖词表重新处理现有文献：补充 ${result.matched} 项候选，仍有 ${result.remaining} 项等待联网补全或人工核对。原有匹配与核对状态保留，无需重新上传。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
  catch(e){$('topicSummary').textContent=e.message;$('uploadBtn').disabled=true;message(e.message);}
 }
 main();

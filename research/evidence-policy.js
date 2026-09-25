@@ -1,8 +1,8 @@
 import {sourceScreen,quoteProof,mentionsRegion} from './source-proof.js';
-import {resolveMapping,resolveMappingCandidate,human,normalize} from './model.js?v=candidate2';
-import {RULES,nameVariants} from './mapping-rules.js';
+import {resolveMapping,resolveMappingCandidate,human,normalize} from './model.js?v=epithalamus1';
+import {RULES,nameVariants} from './mapping-rules.js?v=epithalamus1';
 import {recordKind} from './networks.js';
-import {enrichmentPoints} from './enrichment.js?v=candidate2';
+import {enrichmentPoints} from './enrichment.js?v=epithalamus1';
 export const EVIDENCE_POLICY='atlas-evidence-v1';
 const cache=new WeakMap();
 function aliases(region){const variants=nameVariants(region.name).map(normalize);return RULES.filter(rule=>rule[1].some(n=>variants.includes(normalize(n)))).flatMap(rule=>rule[1]);}
@@ -23,7 +23,7 @@ export function curateMechanism(paper,mechanism,entries){
   if(recordKind(region)!=='region'){base.omitted.push(region.name+'：当前仅有网络参考或细胞示意，不能作为实测脑区定位');continue;}
   const candidates=resolveMappingCandidate(region,paper.mappings[region.id],entries),rawPoints=paper.enrichments?.[region.id]?.points||[];
   if(!candidates.length&&!rawPoints.length)base.lookupRegions.push(region.id);
-  if(region.hemisphere==='unknown'&&!['L','R','both'].includes(paper.mappings[region.id]?.hemisphere)){base.omitted.push(region.name+'：已保留解剖候选，但原文侧别待核对，证据图暂不高亮');continue;}
+  if(region.hemisphere==='unknown'&&!['L','R','both','M'].includes(paper.mappings[region.id]?.hemisphere)){base.omitted.push(region.name+'：已保留解剖候选，但原文侧别待核对，证据图暂不高亮');continue;}
   const parcels=resolveMapping(region,paper.mappings[region.id],entries),points=enrichmentPoints(paper,region,entries).filter(p=>p.type==='atlas-reference');
   if(parcels.length||points.length){base.eligibleRegions.push(region.id);if(!parcels.length)base.pointRecords.push(region.id);}
  }

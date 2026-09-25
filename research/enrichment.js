@@ -1,5 +1,5 @@
 import {cleanEnrichment} from './enrichment-schema.js';
-import {suggestMapping,resolveMapping,human} from './model.js?v=candidate2';
+import {suggestMapping,resolveMapping,human} from './model.js?v=epithalamus1';
 export function mergeEnrichment(previous,raw){
  const old=cleanEnrichment(previous),next=cleanEnrichment(raw);if(!old)return next;if(!next)return old;
  // Source IDs are local to one lookup. Relabel collisions before combining evidence.
@@ -40,7 +40,7 @@ export function enrichmentPoints(paper,region,entries){
   const seen=new Set();return parcels.filter(p=>{if(seen.has(p.hemisphere))return false;seen.add(p.hemisphere);return true;}).map(p=>({...common,id:common.recordId+':'+p.hemisphere,position:p.center,anchorId:p.id,type:'cell-illustration',color:'#39b9ff',description:'细胞类型示意点，非真实神经元坐标；仅表示所属结构：'+parent,sourceId:e.review.sourceId}));
  }
  if(region.level!=='region'||region.hemisphere==='unknown')return [];
- return e.points.filter(p=>region.hemisphere==='both'||region.hemisphere==='L'&&p.position[0]<=0||region.hemisphere==='R'&&p.position[0]>=0).map((p,i)=>({...common,...p,id:common.recordId+':atlas'+i,type:'atlas-reference',color:'#7be3c1',description:'外部图谱显示参考点（不是激活峰或单神经元）。'+p.label}));
+ return e.points.filter(p=>region.hemisphere==='both'||region.hemisphere==='L'&&p.position[0]<=0||region.hemisphere==='R'&&p.position[0]>=0||region.hemisphere==='M'&&Math.abs(p.position[0])<.01).map((p,i)=>({...common,...p,id:common.recordId+':atlas'+i,type:'atlas-reference',color:'#7be3c1',description:'外部图谱显示参考点（不是激活峰或单神经元）。'+p.label}));
 }
 export function reuseKnownMappings(paper,previous,entries){
  let result=paper;

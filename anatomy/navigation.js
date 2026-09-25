@@ -1,6 +1,6 @@
 // Extend the original learning hierarchy; retain its curated cortical routing.
 import {NAV,navigationFor as originalNavigationFor,mappingGroups as originalMappingGroups} from './navigation-base.js';
-import {installCatalog,canonicalGroup} from './structure-catalog.js?v=posteromedial1';
+import {installCatalog,canonicalGroup} from './structure-catalog.js?v=epithalamus1';
 installCatalog(NAV);
 export {NAV};
 export function navigationFor(e){return canonicalGroup(e)||originalNavigationFor(e);}

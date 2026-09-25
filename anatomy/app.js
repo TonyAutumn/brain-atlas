@@ -1,27 +1,30 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
-import {ATLAS,describe} from './labels.js';
-import {emphasis,showShell} from './visual-state.js?v=geometry1';
-import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText,hierarchyFor} from './navigation.js?v=posteromedial1';
-import {buildEvidenceLayer} from './evidence-layer.js?v=evidence1';
+import {ATLAS,describe} from './labels.js?v=epithalamus1';
+import {emphasis,showShell} from './visual-state.js?v=epithalamus1';
+import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText,hierarchyFor} from './navigation.js?v=epithalamus1';
+import {buildEvidenceLayer} from './evidence-layer.js?v=epithalamus1';
 import {createSceneSwitch} from './scene-switch.js';
-import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=posteromedial1';
-import {CATALOG_VERSION,SOURCES} from './structure-catalog.js?v=posteromedial1';
-import {inGeometryGroup,GEOMETRY_LINK_VERSION} from './geometry-links.js?v=posteromedial1';
-import {displayState,isSolid,applySurfaceMode,isOccludedByShell,RENDER_MODE_VERSION} from './render-mode.js?v=solid1';
+import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=epithalamus1';
+import {CATALOG_VERSION,SOURCES} from './structure-catalog.js?v=epithalamus1';
+import {inGeometryGroup,GEOMETRY_LINK_VERSION} from './geometry-links.js?v=epithalamus1';
+import {displayState,isSolid,applySurfaceMode,isOccludedByShell,RENDER_MODE_VERSION} from './render-mode.js?v=epithalamus1';
+import {configureAppearance,applyAppearance,isAnatomical,APPEARANCE_VERSION} from './anatomical-appearance.js?v=epithalamus1';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
 const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false,renderMode:'transparent'};
 let entries=[],searchIndex=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
 let evidenceLayer=null,evidenceSwitch=null;
+let previousSurfaceMode='transparent';
 const embedded=new URLSearchParams(location.search).get('embed')==='research';
 if(embedded)document.body.classList.add('research-embed');
 const clip=new THREE.Plane(new THREE.Vector3(1,0,0),0);
 const cursor=new THREE.Vector2();
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const debounce=(fn,ms)=>{let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
-const sourceFits=e=>state.source==='cit168'?e.atlas==='cit168':e.atlas==='julich'||e.atlas==='aal';
+const sourceFor=atlas=>atlas==='aal'?'julich':atlas;
+const sourceFits=e=>state.source==='all'||sourceFor(e.atlas)===state.source;
 // Rendering associations are not anatomical ancestry or search filters.
 const matches=e=>sourceFits(e)&&inGeometryGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id));
 const visibleEntries=()=>entries.filter(matches);
@@ -72,10 +75,12 @@ function hasGeometrySelection(){return state.focusKind==='entry'&&!!state.select
 function updateMaterials(){
  const hasSelection=!!scene&&!!hasGeometrySelection();
  if(!hasSelection)state.isolate=false;
- const display=displayState(state,hasSelection),solid=isSolid(state);
- $('solidMode').disabled=!scene;$('solidMode').setAttribute('aria-pressed',String(solid));
- $('solidMode').textContent=solid?'实体模型：开':'实体模型：关';
- $('solidMode').title=solid?'点击恢复透明显示；保留原透明度':'切换为不透明实体；选中结构后自动隐藏其它部分';
+ const display=displayState(state,hasSelection),solid=isSolid(state),anatomical=isAnatomical(state);
+ $('solidMode').disabled=!scene;$('solidMode').setAttribute('aria-pressed',String(state.renderMode==='solid'));
+ $('solidMode').textContent=state.renderMode==='solid'?'实体模型：开':'实体模型：关';
+ $('anatomicalMode').disabled=!scene;$('anatomicalMode').setAttribute('aria-pressed',String(anatomical));
+ $('anatomicalMode').textContent=anatomical?'解剖外观：开':'解剖外观：关';
+ $('solidMode').title=state.renderMode==='solid'?'点击恢复透明显示；保留原透明度':'切换为不透明实体；选中结构后自动隐藏其它部分';
  $('showWholeBrain').disabled=!entries.length;
  $('isolate3').disabled=!hasSelection;$('isolate3').checked=display.isolate;
  $('isolate3').title=display.automaticIsolation?'实体模式自动隔离；取消勾选可返回全脑':'仅显示当前选择';
@@ -86,12 +91,13 @@ function updateMaterials(){
   mesh.visible=display.isolate&&state.focusKind==='entry'?style.inSelection:matches(e)&&(!display.isolate||style.inSelection);
   if(evidenceLayer)mesh.visible=(display.isolate&&state.focusKind==='entry'?e.id===state.selected:evidenceLayer.ids.has(e.id))&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M');
   const mat=mesh.material;mat.color.set(style.colour);mat.emissive.set(style.emissive);
-  applySurfaceMode(mat,style,state.renderMode);mesh.renderOrder=solid?0:style.order;
+  applySurfaceMode(mat,style,state.renderMode);applyAppearance(mat,state.renderMode,e);mesh.renderOrder=solid?0:style.order;
  }
  const opacity=Number($('opacity3').value)/100;
  shells.forEach(m=>{
   m.visible=showShell(display,m.userData.entry.hemisphere,solid?1:opacity);
-  applySurfaceMode(m.material,{opacity,depthWrite:false,depthTest:true},state.renderMode);m.renderOrder=solid?0:2;
+  m.material.color.set('#bbc3ce');
+  applySurfaceMode(m.material,{opacity,depthWrite:false,depthTest:true},state.renderMode);applyAppearance(m.material,state.renderMode,m.userData.entry);m.renderOrder=solid?0:2;
  });
  if(evidenceLayer)evidenceLayer.group.visible=!(display.isolate&&state.focusKind==='entry');
  const group=state.group!=='all';
@@ -101,6 +107,7 @@ function updateMaterials(){
  const modeNote=solid?(display.automaticIsolation?'实体独立显示 · 其它结构及外壳已隐藏 · 点击「显示全脑」返回':'实体显示 · 从左侧选择结构可独立查看'):(display.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」');
  $('visibilityNote').textContent=coverage&&!coverage.hasGeometry?'仅层级知识：不绘制虚构模型、坐标或边界。':(coverage?.partial?'部分模型 · 非完整结构边界。':'')+modeNote;
  if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent=(solid?modeNote+'。':'')+'连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；紫色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
+ if(anatomical){$('selectionSwatch').style.background='#c7b5ab';$('selectionLegend').textContent='解剖外观 · 模拟材质';$('visibilityNote').textContent=(coverage&&!coverage.hasGeometry?'此结构暂无模型。':coverage?.partial?'部分模型，非完整结构边界。':'')+'原图谱表面 · 色泽与细纹为模拟，不增加解剖精度。'+(display.automaticIsolation?'仅显示当前选择；点击“显示全脑”返回。':'选择结构可独立查看。')+(evidenceLayer?'文献对应保留；切回默认显示可查看证据颜色。':'');}
  const opacityLabel=$('opacity3').closest('label'),opacityLocked=display.isolate||solid;
  $('opacity3').disabled=opacityLocked;opacityLabel.classList.toggle('control-muted',opacityLocked);
  $('opacityOut').textContent=display.isolate?'隐藏':solid?'不透明':$('opacity3').value+'%';
@@ -109,11 +116,12 @@ function updateMaterials(){
  dirty=true;
 }
 function setRenderMode(mode){
- if(!['solid','transparent'].includes(mode))throw new TypeError('Unknown render mode');
+ if(!['solid','transparent','anatomical'].includes(mode))throw new TypeError('Unknown render mode');
  if(!scene){toast('三维暂不可用；结构层级与笔记仍可使用。');return false;}
+ if(mode==='anatomical'&&state.renderMode!=='anatomical')previousSurfaceMode=state.renderMode;
  state.renderMode=mode;updateMaterials();
  if(isSolid(state)&&hasGeometrySelection())focusUnit();
- toast(isSolid(state)?'已切换实体模型；选中结构会自动隐藏其它部分。':'已恢复透明显示。');
+ toast(isAnatomical(state)?'已切换解剖外观；色泽与细纹为模拟，模型边界来自原图谱。':isSolid(state)?'已切换实体模型；选中结构会自动隐藏其它部分。':'已恢复透明显示。');
  return true;
 }
 function restoreWholeBrain(){
@@ -122,7 +130,7 @@ function restoreWholeBrain(){
  updateClip();setHemi('both');setView('oblique');
 }
 function renderSnapshot(){
- const fields=m=>({id:m.userData.entry.id,opacity:m.material.opacity,transparent:m.material.transparent,depthWrite:m.material.depthWrite,depthTest:m.material.depthTest});
+ const fields=m=>({id:m.userData.entry.id,opacity:m.material.opacity,transparent:m.material.transparent,depthWrite:m.material.depthWrite,depthTest:m.material.depthTest,appearanceMix:m.material.userData.tissueMix?.value||0,colour:m.material.color.getHexString()});
  return {mode:state.renderMode,isolated:displayState(state,!!scene&&!!hasGeometrySelection()).isolate,selected:state.selected,group:state.group,
   visibleModels:[...meshes.values()].filter(m=>m.visible).map(fields),visibleShells:shells.filter(m=>m.visible).map(fields)};
 }
@@ -161,8 +169,8 @@ async function selectGroup(group){
  state.query='';state.knownOnly=false;state.hemi='both';$('search3').value='';$('knownOnly').setAttribute('aria-pressed','false');
  $('hemiControls').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.hemi==='both'));
  const coverage=conceptCoverage(group,entries);
- if(coverage.preferredSource&&coverage.sources.includes(coverage.preferredSource))state.source=coverage.preferredSource;
- else if(coverage.hasGeometry&&!coverage.parcels.some(sourceFits))state.source=coverage.sources.includes('julich')||coverage.sources.includes('aal')?'julich':'cit168';
+ if(coverage.preferredSource&&(coverage.preferredSource==='all'||coverage.sources.includes(coverage.preferredSource)))state.source=coverage.preferredSource;
+ else if(coverage.hasGeometry&&!coverage.parcels.some(sourceFits))state.source=coverage.sources.includes('julich')||coverage.sources.includes('aal')?'julich':sourceFor(coverage.sources[0]);
  renderList();groupDetail();if(innerWidth<=1100&&!embedded)$('detail3').classList.add('open');
  if(scene&&group!=='all'){
   try{await Promise.all([...new Set(visibleEntries().map(e=>e.file))].map(loadFile));if(state.group===group&&state.focusKind==='group'&&(state.isolate||isSolid(state)||coverage.includeGroups.length))focusUnit();}
@@ -185,7 +193,7 @@ function renderDetail(e){
 async function select(id,{zoom=false,reveal=false}={}){
  const e=entries.find(e=>e.id===id);if(!e)return;
  state.selected=id;state.focusKind='entry';
- if(reveal){state.source=e.atlas==='cit168'?'cit168':'julich';state.group=e.nav;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
+ if(reveal){state.source=sourceFor(e.atlas);state.group=e.nav;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
  renderList();renderDetail(e);
  if(innerWidth<=1100&&!embedded)$('detail3').classList.add('open');
  if(!scene)return;
@@ -256,6 +264,7 @@ async function loadFile(file){
    const positions=Float32Array.from(new Int16Array(buffer,entry.positionOffset,entry.vertices*3),v=>v*entry.positionScale);
    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setIndex(new THREE.BufferAttribute(new Uint16Array(buffer,entry.indexOffset,entry.triangles*3),1));geometry.computeVertexNormals();geometry.computeBoundingSphere();
    const material=new THREE.MeshStandardMaterial({color:'#bbc3ce',roughness:.78,metalness:.06,transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
+   configureAppearance(material);
    if($('clipAxis').value!=='none')material.clippingPlanes=[clip];
    const mesh=new THREE.Mesh(geometry,material);mesh.userData.entry=entry;scene.add(mesh);
    if(entry.atlas==='surface'){mesh.renderOrder=2;shells.push(mesh);}else meshes.set(entry.id,mesh);
@@ -264,7 +273,8 @@ async function loadFile(file){
  })();loadedFiles.set(file,p);try{return await p;}catch(e){loadedFiles.delete(file);throw e;}
 }
 function bindUI(){
- $('solidMode').onclick=()=>setRenderMode(isSolid(state)?'transparent':'solid');
+ $('solidMode').onclick=()=>setRenderMode(state.renderMode==='solid'?'transparent':'solid');
+ $('anatomicalMode').onclick=()=>setRenderMode(isAnatomical(state)?previousSurfaceMode:'anatomical');
  $('showWholeBrain').onclick=restoreWholeBrain;
  const navigate=e=>{const b=e.target.closest('[data-group]');if(b&&!b.disabled)selectGroup(b.dataset.group);};
  $('groupFilters').onclick=navigate;$('subgroupFilters').onclick=navigate;$('indexPath').onclick=navigate;
@@ -323,7 +333,7 @@ async function main(){
   entries=manifest.entries.filter(e=>e.atlas!=='surface');for(const e of entries){e.nav=navigationFor(e);e.text=describe(e);e.text.search+=' '+navigationText(e).toLowerCase();}
   searchIndex=createSearchIndex(entries);renderList();groupDetail();
   // Expose the catalogue before loading geometry. A failed model cannot remove knowledge.
-  window.brainAtlas={renderModeVersion:RENDER_MODE_VERSION,setRenderMode,restoreWholeBrain,getRenderState:renderSnapshot,version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
+  window.brainAtlas={appearanceVersion:APPEARANCE_VERSION,renderModeVersion:RENDER_MODE_VERSION,setRenderMode,restoreWholeBrain,getRenderState:renderSnapshot,version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
    getModelCoverage:id=>{const {parcels,...coverage}=conceptCoverage(id,entries);return {...coverage,entryIds:parcels.map(e=>e.id)};},
    getVisibleModelIds:()=>[...meshes.values()].filter(m=>m.visible).map(m=>m.userData.entry.id)};
   window.catalogReady=true;

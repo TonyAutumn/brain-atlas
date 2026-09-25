@@ -1,13 +1,14 @@
 import {cleanEnrichment} from './enrichment-schema.js';
-import {cleanMapping,cleanMappingHistory} from './mapping-state.js';
+import {cleanMapping,cleanMappingHistory} from './mapping-state.js?v=epithalamus1';
 import {DMN,networkOf,recordKind} from './networks.js';
-import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js';
-import {NAV,inGroup,mappingGroups} from '../anatomy/navigation.js?v=candidate2';
-import {describe} from '../anatomy/labels.js';
-import {validateAnalysis,canonicalTheme,themeList} from './schema.js?v=evidence1';
+import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js?v=epithalamus1';
+import {NAV,inGroup,mappingGroups} from '../anatomy/navigation.js?v=epithalamus1';
+import {describe} from '../anatomy/labels.js?v=epithalamus1';
+import {validateAnalysis,canonicalTheme,themeList} from './schema.js?v=epithalamus1';
 export {canonicalTheme,themeList};
 export const normalize=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 const aliases={
+ epithalamus:"epithalamus",上丘脑:"epithalamus",
  hippocampus:'hippocampus',hippocampalformation:'hippocampus',海马:'hippocampus',海马结构:'hippocampus',
  amygdala:'amygdala',amygdaloidcomplex:'amygdala',杏仁核:'amygdala',
  insula:'insula',insularcortex:'insula',anteriorinsula:'insula',posteriorinsula:'insula',岛叶:'insula',前岛叶:'insula',后岛叶:'insula',
@@ -31,13 +32,14 @@ export function mappingOptions(entries){
  return options;
 }
 export function suggestMapping(region,entries){
- const side=/^(left\s+|左侧)/i.test(region.name)?'L':/^(right\s+|右侧)/i.test(region.name)?'R':/^(bilateral\s+|双侧)/i.test(region.name)?'both':null;
+ const side=/^(left\s+|左侧)/i.test(region.name)?'L':/^(right\s+|右侧)/i.test(region.name)?'R':/^(bilateral\s+|双侧)/i.test(region.name)?'both':/^(midline\s+|中线)/i.test(region.name)?'M':null;
  const hemisphere=region.hemisphere==='unknown'&&side?side:region.hemisphere;
  if(networkOf(region)&&human(region.species))return {target:'network:DMN',hemisphere,confirmed:false};
  if(region.level!=='region'||!human(region.species))return null;
  if(side&&region.hemisphere!=='unknown'&&side!==region.hemisphere)return null;
  const variants=nameVariants(region.name).map(normalize);
  const rule=RULES.find(rule=>rule[1].some(n=>variants.includes(normalize(n))));
+ if(rule?.[0]==='pineal'&&!['unknown','M'].includes(hemisphere))return null;
  if(rule&&entries.some(e=>rule[2].includes(atlasCode(e))))return {target:'set:'+rule[0],hemisphere,confirmed:false};
  const found=entries.filter(e=>[atlasName(e),atlasCode(e),describe(e).title].some(s=>variants.includes(normalize(s))));
  const unique=[...new Set(found.map(e=>e.atlas+'|'+atlasName(e)))];
@@ -55,7 +57,7 @@ export function mappingExplanation(region,mapping,entries){
  if(!mapping)return '名称存在歧义、尚无对应规则或当前图谱未收录；将进入联网补全队列，不会用附近脑区代替。';
  const candidates=resolveMappingCandidate(region,mapping,entries);
  if(!candidates.length)return '已有对应已保存：'+mapping.target+'，但当前图谱没有可解析的候选范围；记录不会因此被清空。';
- if(mapping.hemisphere==='unknown')return `已建立解剖候选：${mapping.target}，对应 ${candidates.length} 个图谱条目。原文侧别未明确；参考模式可显示双侧候选，证据模式暂不高亮。`;
+ if(mapping.hemisphere==='unknown')return `已建立解剖候选：${mapping.target}，对应 ${candidates.length} 个图谱条目。原文侧别未明确；参考模式可显示候选，证据模式暂不高亮。中线结构可在核对原文后选择“中线”。`;
  const rule=RULES.find(r=>'set:'+r[0]===mapping.target);
  const detail=rule?(rule[3]||'根据中英文学名或缩写识别为已收录结构。'):mapping.target.startsWith('group:')?'大结构对应已收录分区集合，不表示每个亚区都在论文中被激活。':'名称与图谱标签对应，不代表受试者实际激活边界。';
  return (mapping.confirmed?'已人工核对。':'自动候选，尚未人工核对。')+detail+' 显示 '+resolveMapping(region,mapping,entries).length+' 个图谱条目。';
@@ -78,18 +80,21 @@ export function human(species){
  return /(human|humans|homo sapiens|人类|成人|患者|被试|受试者|健康人)/i.test(value)||value==='人';
 }
 export function resolveMappingCandidate(region,mapping,entries){
- if(!mapping||!['region','network'].includes(region.level)||!human(region.species)||!['L','R','both','unknown'].includes(mapping.hemisphere))return [];
+ if(!mapping||!['region','network'].includes(region.level)||!human(region.species)||!['L','R','both','M','unknown'].includes(mapping.hemisphere))return [];
  const [kind,...rest]=String(mapping.target||'').split(':'),id=rest.join(':');
  let found=[];
  if(kind==='network'&&id==='DMN'&&networkOf(region))found=entries.filter(e=>DMN.codes.includes(atlasCode(e)));
- if(kind==='group'&&NAV[id]&&recordKind(region)!=='network')found=entries.filter(e=>e.atlas!=='cit168'&&inGroup(e,id));
+ if(kind==='group'&&NAV[id]&&recordKind(region)!=='network')found=entries.filter(e=>(id==='epithalamus'||e.atlas!=='cit168')&&inGroup(e,id));
  if(kind==='set'&&recordKind(region)!=='network'){const rule=RULES.find(r=>r[0]===id);if(rule)found=entries.filter(e=>rule[2].includes(atlasCode(e)));}
  if(kind==='parcel'&&recordKind(region)!=='network'){
   const anchor=entries.find(e=>e.id===id);if(!anchor)return [];
   const name=anchor.name.replace(/^[LR] /,'').trim();
   found=entries.filter(e=>e.atlas===anchor.atlas&&e.name.replace(/^[LR] /,'').trim()===name);
  }
- return mapping.hemisphere==='unknown'?found:found.filter(e=>mapping.hemisphere==='both'||e.hemisphere===mapping.hemisphere||e.hemisphere==='M');
+ // The new pineal organ has no lateral pair. Preserve legacy AAL midline mappings.
+ if(found.length&&found.every(e=>e.atlas==='allen2020'&&e.hemisphere==='M')&&!['unknown','M'].includes(mapping.hemisphere))return [];
+ // Explicit midline applies only to a midline mesh; never create left/right copies.
+ return mapping.hemisphere==='unknown'?found:found.filter(e=>mapping.hemisphere==='M'?e.hemisphere==='M':mapping.hemisphere==='both'||e.hemisphere===mapping.hemisphere||e.hemisphere==='M');
 }
 export function resolveMapping(region,mapping,entries){
  if(mapping?.hemisphere==='unknown')return [];

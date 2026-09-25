@@ -1,6 +1,6 @@
 // Progressive enhancement through the atlas's public catalogue API. No model/store migration.
 import {listNotes} from './store.js';
-import {noteURL,structureURL,validKey,titleOf} from './model.js';
+import {noteURL,structureURL,validKey,titleOf} from './model.js?v=epithalamus1';
 const detail=document.getElementById('detail3');
 const element=(tag,text,className)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(className)e.className=className;return e;};
 let refreshing=0,started=false;
