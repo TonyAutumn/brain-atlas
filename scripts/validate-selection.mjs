@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRegionSelection,SELECTION_KEY} from '../anatomy/selection.js';
+import {displayState} from '../anatomy/render-mode.js';
+import {emphasis} from '../anatomy/visual-state.js';
+const entries=JSON.parse(fs.readFileSync(new URL('../anatomy/data/manifest.json',import.meta.url))).entries.filter(e=>e.atlas!=='surface');
+const saved=new Map([['brain-atlas-anatomy-known-v1','["cit-21"]'],['unrelated-note','keep']]);
+const storage={getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)};
+const selection=createRegionSelection(entries,storage);
+assert.equal(selection.add(['julich-L-62','cit-25','allen2020-M-10460','cit-25','missing']),3);
+assert.equal(selection.add(['cit-25']),0,'Repeated clicks cannot deselect or duplicate');
+const initial=[...selection.ids];
+for(const renderMode of ['transparent','solid','anatomical'])for(const focusKind of ['entry','group','none']){
+ const view=displayState({renderMode,focusKind,group:'lateral_habenula',selected:'cit-26',selectedIds:selection.ids,isolate:true,colors:false},true);
+ assert(view.isolate);assert.equal(view.focusKind,'multi');
+ assert.deepEqual(entries.filter(e=>emphasis(e,view).inSelection).map(e=>e.id).sort(),initial.toSorted(),'Browsing an empty or unrelated concept must not replace the combination');
+ assert.equal(emphasis(entries.find(e=>e.id==='cit-25'),view).colour,'#39b9ff');
+}
+const background=displayState({renderMode:'solid',focusKind:'none',selectedIds:selection.ids,selectionContext:true,isolate:false},true);
+assert.equal(background.isolate,false);assert.deepEqual([...selection.ids],initial);
+const reloaded=createRegionSelection(entries,storage);assert.deepEqual([...reloaded.ids],initial);
+reloaded.remove('cit-25');assert.deepEqual([...reloaded.ids],['julich-L-62','allen2020-M-10460']);
+assert.equal(reloaded.remove('cit-25'),false);assert.equal(selection.size,3,'No shared mutable collection leaks');
+reloaded.clear();assert.deepEqual(JSON.parse(saved.get(SELECTION_KEY)),[]);
+assert.equal(saved.get('brain-atlas-anatomy-known-v1'),'["cit-21"]');assert.equal(saved.get('unrelated-note'),'keep');
+saved.set(SELECTION_KEY,'{"not":"an array"}');assert.equal(createRegionSelection(entries,storage).size,0);
+saved.set(SELECTION_KEY,'["cit-25","cit-25","unavailable"]');assert.deepEqual([...createRegionSelection(entries,storage).ids],['cit-25']);
+const blocked=createRegionSelection(entries,{getItem(){throw Error('blocked');},setItem(){throw Error('quota');}});
+blocked.add(['cit-25']);assert.equal(blocked.persistent,false);assert(blocked.has('cit-25'),'Save failure preserves the in-memory choice');
+blocked.remove('cit-25');assert.equal(blocked.size,0);
+console.log('Multi-selection checks passed: additive/idempotent choices, cross-atlas union, unchanged filters, reversible display, reload, explicit removal and independent storage.');

@@ -47,6 +47,7 @@ def run():
             expect(page.locator('#atlasSelect')).to_have_value('julich')
             assert page.evaluate('window.brainAtlas.getSelection()')=='julich-L-18'
             assert page.evaluate("window.brainAtlas.getEntry('julich-L-18').nav")=='red_nucleus'
+            page.locator('#clearSelections').click()
             page.locator('#search3').fill('cerebral peduncle')
             page.locator('#regionItems .concept-item[data-group="cerebral_peduncle"]').click()
             page.wait_for_function('window.brainAtlas.getVisibleModelIds().length === 10')

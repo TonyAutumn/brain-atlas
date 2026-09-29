@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="anatomy/geometry-links.css?v=epithalamus1">
 <link rel="stylesheet" href="notes/notes.css?v=epithalamus1">
 <link rel="stylesheet" href="anatomy/render-mode.css?v=epithalamus1">
+<link rel="stylesheet" href="anatomy/selection.css?v=multiselect1">
 </head>
 <body>
 <header class="top">
@@ -19,7 +20,15 @@
  <aside class="left" aria-label="脑区索引">
   <div class="index-head"><span class="eyebrow">ANATOMICAL INDEX</span><h2>探索脑的内部</h2>
    <input class="search3" id="search3" type="search" placeholder="搜索全库：VTA、顶盖、tegmentum…" aria-label="搜索全库的中文名、英文名或缩写，不受图谱和当前分组限制" autocomplete="off">
-   <p class="nav-hint">直接输入名称即可。有关联模型的自动切换图谱；没有模型的也能查看从属关系。</p>
+   <p class="nav-hint">点击模型可累积多选；切换搜索与图谱时保留，点击 × 才取消。</p>
+   <section id="selectionPanel" class="selection-panel" aria-label="已选脑区">
+    <div class="selection-heading"><strong id="selectionCount" role="status" aria-live="polite">已选 0 个模型</strong><button id="clearSelections" aria-label="取消全部已选脑区" hidden>× 清空</button></div>
+    <p id="selectionEmpty" class="selection-hint">逐个选择涉及的脑区，组合展示网络。也可在结构详情中加入一组分区。</p>
+    <ul id="selectedItems" class="selected-items" aria-label="已选模型列表"></ul>
+    <div id="selectionActions" class="selection-actions" hidden><button id="focusSelections">定位全部</button><button id="isolateSelections" aria-pressed="false">只看已选</button></div>
+    <p id="selectionNote" class="selection-hint" hidden>组合用于空间展示；不会自动生成网络连接。已选保存在此浏览器。</p>
+    <p id="selectionStatus" class="selection-status" role="status"></p>
+   </section>
    <nav class="anatomy-nav" aria-label="解剖层级导航">
     <div class="nav-label">按结构浏览</div>
     <div class="filter primary-groups" id="groupFilters"></div>
@@ -70,6 +79,6 @@
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开解剖与层级。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.catalogReady){var n=document.getElementById('loadText');if(n)n.textContent='页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=epithalamus1"></script>
+<script type="module" src="anatomy/app.js?v=multiselect1"></script>
 <script type="module" src="notes/atlas-integration.js?v=epithalamus1"></script>
 </body></html>

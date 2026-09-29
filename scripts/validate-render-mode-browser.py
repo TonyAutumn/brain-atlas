@@ -60,6 +60,7 @@ def run():
             page.locator('#solidMode').click();page.locator('#showWholeBrain').click()
             s=snapshot(page);assert s['mode']=='solid' and s['selected'] is None and s['group']=='all' and not s['isolated']
             assert len(s['visibleShells'])==2;assert_opaque(s['visibleShells'])
+            page.locator('#clearSelections').click()
             # Concepts automatically isolate all their available parcels, not an arbitrary side.
             search_open(page,'VTA','[data-group="ventral_tegmental"]')
             s=snapshot(page);assert sorted(m['id'] for m in s['visibleModels'])==['cit-21','cit-22'];assert not s['visibleShells']
@@ -73,7 +74,9 @@ def run():
                 if snapshot(page)['selected']: break
             s=snapshot(page);assert s['selected'] in ['cit-21','cit-22'], 'Canvas pick must select a visible VTA mesh'
             assert len(s['visibleModels'])==1 and not s['visibleShells'];assert_opaque(s['visibleModels'])
-            page.locator('#detail3 .detail-path [data-group="midbrain_tegmentum"]').click()
+            # Remove the manual pin explicitly before testing group-only isolation.
+            page.evaluate('() => window.brainAtlas.clearSelections()')
+            page.evaluate("() => window.brainAtlas.selectGroup('midbrain_tegmentum')")
             s=snapshot(page);assert s['selected'] is None and s['group']=='midbrain_tegmentum' and s['isolated'];assert not s['visibleShells']
             assert_opaque(s['visibleModels'])
             page.locator('#regionColors').check();assert_opaque(snapshot(page)['visibleModels'])

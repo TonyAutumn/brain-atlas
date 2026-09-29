@@ -55,6 +55,7 @@ def run() -> None:
             assert page.evaluate("window.brainAtlas.getSelection()") == "cit-22"
             page.locator("#markLearned").click()
             assert set(page.evaluate("window.brainAtlas.getKnown()")).issuperset({"julich-L-172", "cit-22"})
+            page.locator("#clearSelections").click()
             search.fill("tectum")
             page.locator('#regionItems [data-group="tectum"]').press("Enter")
             expect(page.locator("#detail3 h2")).to_have_text("中脑顶盖")
