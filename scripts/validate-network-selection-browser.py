@@ -3,7 +3,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
-import json, os
+import json, os, re
 from playwright.sync_api import sync_playwright, expect
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -82,7 +82,7 @@ def run():
             assert page.evaluate('(key)=>localStorage.getItem(key)',KEY)==saved
             assert page.evaluate('()=>localStorage.getItem("network-unrelated")')=='keep'
             page.goto(url+'papers.html');expect(page.locator('#recordTabs [data-kind="network"]')).to_have_count(0)
-            expect(page.locator('#saveStatus')).to_contain_text('本机文献库',timeout=20000)
+            expect(page.locator('#saveStatus')).to_have_text(re.compile('已读取本机文献库|已保存到本机'),timeout=20000)
             assert not errors,errors
             context.close()
             fallback=browser.new_context();fallback.add_init_script("const orig=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return /webgl/.test(t)?null:orig.call(this,t,...a);};")
