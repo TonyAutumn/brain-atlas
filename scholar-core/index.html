@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer"><title>学者 · 概念网络</title>
+<link rel="stylesheet" href="./styles.css"><script type="module" src="./app.js"></script>
+</head>
+<body>
+<div class="shell">
+<header><div class="brand"><div class="mark" aria-hidden="true">s</div><div><h1>学者 · 概念网络</h1><p>已保存的概念、组块、联系与证据出处</p></div></div><span class="pill">只读网络快照</span></header>
+<div class="snapshot-meta"><div><strong id="snapshot-time">正在读取同步时间…</strong><p id="snapshot-origin">正在读取网站快照</p></div><div class="actions"><button id="reload">读取最新快照</button><button id="import-trigger">导入新快照</button><input id="snapshot-file" type="file" accept="application/json,.json" hidden></div></div>
+<div id="load-state" role="status" class="load-state">正在加载网络…</div><p id="snapshot-coverage" class="coverage"></p><div id="counts" class="counts"></div>
+<form id="search-form" class="toolbar"><label class="sr-only" for="query">全库搜索</label><input id="query" type="search" placeholder="全库搜索：中文、英文、缩写或组块名称" maxlength="180" autocomplete="off"><label class="sr-only" for="scope">搜索类型</label><select id="scope"><option value="all">全部类型</option><option value="concept">概念</option><option value="chunk">组块</option><option value="claim">知识联系</option><option value="source">来源</option></select><button id="clear-query" type="button">清除</button><button id="home" type="button">组块全景</button><button id="back" type="button" disabled>← 返回</button></form>
+<main class="workspace">
+<section class="panel catalogue" aria-label="全库目录"><div class="panel-heading"><h2>全库目录</h2><span id="catalogue-count"></span></div><p id="catalogue-help">搜索索引覆盖完整快照，展示按页浏览。</p><div id="catalogue-list" class="catalogue-list"></div><form id="catalogue-page-form" class="paging"><button id="catalogue-prev" type="button">上一页</button><label><input id="catalogue-page" type="number" min="1" value="1" aria-label="目录页码"> / <span id="catalogue-pages">1</span></label><button id="catalogue-next" type="button">下一页</button></form></section>
+<section class="panel network"><div class="panel-heading"><div><h2 id="graph-title">组块全景</h2><p id="graph-description"></p></div><button id="fit" title="恢复当前网络的初始视图">复位视图</button></div><div class="network-legend"><span><i class="key chunk"></i>组块</span><span><i class="key concept"></i>概念</span><span><i class="key claim"></i>知识联系</span><span><i class="key source"></i>来源</span></div><div id="graph-stage" class="graph-stage"><svg id="graph" role="img" aria-label="当前局部知识网络"><g id="graph-scene"></g></svg><div class="zoom-controls"><button id="zoom-out" aria-label="缩小网络">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="放大网络">＋</button></div></div><div class="graph-footer"><p id="graph-coverage"></p><div class="graph-paging"><button id="graph-prev">上一部分</button><span id="graph-page"></span><button id="graph-next">下一部分</button></div><p>拖动空白处移动，滚轮或按钮缩放；点击节点或联系查看完整内容。</p></div></section>
+<aside class="panel inspector" aria-label="内容与证据出处"><div class="panel-heading"><h2>内容与出处</h2><span id="inspector-kind"></span></div><div id="inspector-body"><h3>从组块开始</h3><p>组块按类型和状态分层显示。点击任一入口查看成员，或用全库搜索直接找到概念。</p></div></aside>
+</main>
+<footer><span>知识状态和覆盖范围以同步快照为准；原文和后台学习继续保存在本机。</span><span>此站无需本地服务，不调用模型，不启动学习。</span></footer>
+</div>
+</body>
+</html>
