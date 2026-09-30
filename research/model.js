@@ -1,9 +1,9 @@
 import {cleanEnrichment} from './enrichment-schema.js';
 import {cleanMapping,cleanMappingHistory} from './mapping-state.js?v=epithalamus1';
-import {DMN,networkOf,recordKind,networkEntries} from './networks.js?v=networkselect1';
+import {NETWORKS,isFunctional,networkOf,recordKind,networkEntries} from './networks.js?v=functional2';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js?v=epithalamus1';
 import {NAV,inGroup,mappingGroups} from '../anatomy/navigation.js?v=epithalamus1';
-import {describe} from '../anatomy/labels.js?v=epithalamus1';
+import {describe} from '../anatomy/labels.js?v=functional2';
 import {validateAnalysis,canonicalTheme,themeList} from './schema.js?v=epithalamus1';
 export {canonicalTheme,themeList};
 export const normalize=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
@@ -24,9 +24,10 @@ const aliases={
  basalforebrain:'forebrain',基底前脑:'forebrain',subthalamus:'subthalamus',丘脑底区:'subthalamus',midbrain:'midbrain',中脑:'midbrain'
 };
 export function mappingOptions(entries){
+ entries=entries.filter(e=>!isFunctional(e));
  const options=RULES.filter(rule=>entries.some(e=>rule[2].includes(atlasCode(e)))).map(rule=>({value:'set:'+rule[0],label:rule[1].at(-1)+' · '+rule[0]+'（候选范围）'}));
  for(const id of new Set([...mappingGroups(),...Object.values(aliases)]))if(NAV[id])options.push({value:'group:'+id,label:NAV[id].label+'（已收录范围）'});
- options.unshift({value:'network:DMN',label:'DMN · 功能网络（仅角回参考位置）'});
+ options.unshift(...NETWORKS.map(n=>({value:'network:'+n.id,label:n.id+' · '+n.label+'（皮层图谱范围）'})));
  const seen=new Set();
  for(const e of entries){const key=e.atlas+'|'+e.name.replace(/^[LR] /,'').trim();if(seen.has(key))continue;seen.add(key);options.push({value:'parcel:'+e.id,label:describe(e).title+' · '+e.atlas});}
  return options;
@@ -34,7 +35,8 @@ export function mappingOptions(entries){
 export function suggestMapping(region,entries){
  const side=/^(left\s+|左侧)/i.test(region.name)?'L':/^(right\s+|右侧)/i.test(region.name)?'R':/^(bilateral\s+|双侧)/i.test(region.name)?'both':/^(midline\s+|中线)/i.test(region.name)?'M':null;
  const hemisphere=region.hemisphere==='unknown'&&side?side:region.hemisphere;
- if(networkOf(region)&&human(region.species))return {target:'network:DMN',hemisphere,confirmed:false};
+ if(networkOf(region)&&human(region.species))return {target:'network:'+networkOf(region).id,hemisphere,confirmed:false};
+ entries=entries.filter(e=>!isFunctional(e));
  if(region.level!=='region'||!human(region.species))return null;
  if(side&&region.hemisphere!=='unknown'&&side!==region.hemisphere)return null;
  const variants=nameVariants(region.name).map(normalize);
@@ -49,7 +51,7 @@ export function suggestMapping(region,entries){
  return null;
 }
 export function mappingExplanation(region,mapping,entries){
- if(networkOf(region))return DMN.note;
+ if(networkOf(region))return networkOf(region).note;
  if(region.level!=='region')return '细胞类型或单神经元缺少可用的个体坐标，保留文字证据。';
  if(/人类.*[/、]|[/、].*人类/.test(region.species))return '跨物种合并记录：需根据原文将人类与动物证据分开；不会把动物发现直接投到人脑中。';
  if(/raphe|coeruleus|pedunculopontine|dorsal tegmental/i.test(region.name))return '当前底座未收录该核团，保留机制记录；补充侧别也无法生成其真实几何。';
@@ -83,7 +85,8 @@ export function resolveMappingCandidate(region,mapping,entries){
  if(!mapping||!['region','network'].includes(region.level)||!human(region.species)||!['L','R','both','M','unknown'].includes(mapping.hemisphere))return [];
  const [kind,...rest]=String(mapping.target||'').split(':'),id=rest.join(':');
  let found=[];
- if(kind==='network'&&id==='DMN'&&networkOf(region))found=networkEntries(DMN,entries);
+ if(kind==='network'&&id===networkOf(region)?.id)found=networkEntries(networkOf(region),entries);
+ entries=entries.filter(e=>!isFunctional(e));
  if(kind==='group'&&NAV[id]&&recordKind(region)!=='network')found=entries.filter(e=>(id==='epithalamus'||e.atlas!=='cit168')&&inGroup(e,id));
  if(kind==='set'&&recordKind(region)!=='network'){const rule=RULES.find(r=>r[0]===id);if(rule)found=entries.filter(e=>rule[2].includes(atlasCode(e)));}
  if(kind==='parcel'&&recordKind(region)!=='network'){

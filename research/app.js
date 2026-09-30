@@ -7,9 +7,9 @@ import {cleanMapping,mappingChoices,retainMappingHistory} from './mapping-state.
 import {createSaveQueue} from './save-queue.js';
 import {lookupDescription} from './enrichment-ui.js?v=epithalamus1';
 import {readLookupStream} from './lookup-client.js';
-import {networkOf,recordKind,kindLabel,NETWORK_COLOR} from './networks.js?v=networkselect1';
+import {networkOf,recordKind,kindLabel,NETWORK_COLOR} from './networks.js?v=functional2';
 import {EVIDENCE,ORIGINS,validateAnalysis,quoteCheck} from './schema.js?v=epithalamus1';
-import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,overviewRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=networkselect1';
+import {canonicalTheme,themeList,createPaper,mappingOptions,resolveMapping,evidenceScene,mechanismRows,overviewRows,validateBackup,human,rematchPapers,mappingExplanation} from './model.js?v=functional2';
 import {automaticThemes} from './theme-policy.js';
 import {readLibrary,saveLibrary} from './store.js';
 const $=id=>document.getElementById(id);
@@ -77,7 +77,7 @@ async function updateScene(){
  const allRecords=library.papers.flatMap(p=>p.data.regions.map(r=>({p,r}))),total=allRecords.filter(({p,r})=>p.mappings[r.id]?.target).length;
  const spatial=new Set([...spec.nodes.map(n=>n.id),...spec.points.map(p=>p.recordId)]).size;
  $('mapScope').textContent=`文献库已保存 ${total} 项图谱对应。${recordMode==='catalog'?'参考模式（全部历史结构，不等于证据链）':'证据模式（只显示通过筛选的定位）'}。当前范围：${activeTheme||'全部文献'}${selectedRows?' / 选中的机制':''} / ${{all:'全部类型',region:'解剖结构',network:'功能网络',cell:'细胞与神经元'}[filter]}${search?' / 搜索结果':''}${$('reviewedOnly').checked?' / 已核对文献':''}；可显示 ${spatial} 项定位记录。筛选只改变显示，保留已有记录。`;
- $('recordDetails').innerHTML=refs.filter(x=>filter==='all'||recordKind(x.r)===filter).map(({paper,r})=>`<div style="border-left:3px solid ${networkOf(r)?NETWORK_COLOR:recordKind(r)==='cell'?'#e6b465':'#39b9ff'};padding:8px;margin:8px 0"><b>${kindLabel(r)} · ${esc(r.name)}</b><p>${esc(mappingExplanation(r,paper.mappings[r.id],entries))}</p>${lookupDescription(paper,r,entries,esc)}${networkOf(r)?'<a href="./?network=DMN#selectionPanel">在三维解剖页选择展示 DMN ↗</a>':''}</div>`).join('')||'<p>当前范围没有此类记录。可切换到“全部文献”、关闭“只看已核对文献”，或上传涉及此类机制的论文。</p>';
+ $('recordDetails').innerHTML=refs.filter(x=>filter==='all'||recordKind(x.r)===filter).map(({paper,r})=>`<div style="border-left:3px solid ${networkOf(r)?NETWORK_COLOR:recordKind(r)==='cell'?'#e6b465':'#39b9ff'};padding:8px;margin:8px 0"><b>${kindLabel(r)} · ${esc(r.name)}</b><p>${esc(mappingExplanation(r,paper.mappings[r.id],entries))}</p>${lookupDescription(paper,r,entries,esc)}${networkOf(r)?`<a href="./?network=${encodeURIComponent(networkOf(r).id)}#selectionPanel">在三维解剖页选择展示 ${esc(networkOf(r).label)} ↗</a>`:''}</div>`).join('')||'<p>当前范围没有此类记录。可切换到“全部文献”、关闭“只看已核对文献”，或上传涉及此类机制的论文。</p>';
 
  const confirmed=evidenceScene(currentMapRows,entries,{confirmedOnly:true});$('markLearned').disabled=!confirmed.nodes.length||!['all','region'].includes(filter);
  const key=JSON.stringify(spec),scope=JSON.stringify([recordMode,activeTheme,selectedRows,search,$('reviewedOnly').checked,filter]);
@@ -111,7 +111,7 @@ async function analyze(event){
   stage='正在核对分析服务版本';update();
   const health=await(await callService('/health',{signal:AbortSignal.any([abort.signal,AbortSignal.timeout(30000)])})).json();
   const capabilityError=analysisCapabilityError(health);if(capabilityError)throw Error(capabilityError);
-  const form=new FormData();if(file)form.append('file',file);else form.append('text',text);for(const f of figures)form.append('figures',f);form.append('atlasNames',JSON.stringify([...new Set(entries.map(e=>e.name.replace(/^[LR] /,'')))]));form.append('themes',library.themes.join('\n'));form.append('chosenTheme',$('uploadTheme').value.trim());
+  const form=new FormData();if(file)form.append('file',file);else form.append('text',text);for(const f of figures)form.append('figures',f);form.append('atlasNames',JSON.stringify([...new Set(entries.filter(e=>e.atlas!=='schaefer200').map(e=>e.name.replace(/^[LR] /,'')))]));form.append('themes',library.themes.join('\n'));form.append('chosenTheme',$('uploadTheme').value.trim());
   const response=await callService('/analyze',{method:'POST',body:form,signal:abort.signal});
   if(!response.headers.get('Content-Type')?.includes('application/x-ndjson'))throw Error('分析服务版本不匹配，请更新服务代码。');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
@@ -255,7 +255,7 @@ function bind(){
  });
 }
 async function main(){
- try{bind();const [stored,r]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json')]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=(await r.json()).entries.filter(e=>e.atlas!=='surface');options=mappingOptions(entries);library=stored;saveQueue=createSaveQueue(saveLibrary,stored.revision||0);$('saveStatus').textContent='已读取本机文献库';if(library.mappingRevision!=='epithalamus1'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'epithalamus1'});$('rematchStatus').textContent=`已用新版解剖词表重新处理现有文献：补充 ${result.matched} 项候选，仍有 ${result.remaining} 项等待联网补全或人工核对。原有匹配与核对状态保留，无需重新上传。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
+ try{bind();const [stored,r,functional]=await Promise.all([readLibrary(),fetch('anatomy/data/manifest.json'),fetch('anatomy/data/functional-manifest.json').then(r=>{if(!r.ok)throw Error('无法读取功能分区。');return r.json();})]);if(!r.ok)throw Error('无法读取脑区图谱。');entries=[...(await r.json()).entries.filter(e=>e.atlas!=='surface'),...functional.entries];options=mappingOptions(entries);library=stored;saveQueue=createSaveQueue(saveLibrary,stored.revision||0);$('saveStatus').textContent='已读取本机文献库';if(library.mappingRevision!=='epithalamus1'){const result=rematchPapers(library.papers,entries);await commit({...library,papers:result.papers,mappingRevision:'epithalamus1'});$('rematchStatus').textContent=`已用新版解剖词表重新处理现有文献：补充 ${result.matched} 项候选，仍有 ${result.remaining} 项等待联网补全或人工核对。原有匹配与核对状态保留，无需重新上传。`;}render();if(service)$('settingsBtn').textContent='Kimi 连接设置';if($('brainFrame').contentWindow.brainAtlas){ready=true;updateScene();}}
  catch(e){$('topicSummary').textContent=e.message;$('uploadBtn').disabled=true;message(e.message);}
 }
 if(new URLSearchParams(location.search).get('record')==='network')location.replace('./?network=DMN#selectionPanel');else main();

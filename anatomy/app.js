@@ -1,22 +1,22 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
-import {ATLAS,describe} from './labels.js?v=epithalamus1';
-import {emphasis,showShell} from './visual-state.js?v=networkselect1';
+import {ATLAS,describe} from './labels.js?v=functional2';
+import {emphasis,showShell} from './visual-state.js?v=functional2';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText,hierarchyFor} from './navigation.js?v=epithalamus1';
-import {buildEvidenceLayer} from './evidence-layer.js?v=networkselect1';
+import {buildEvidenceLayer} from './evidence-layer.js?v=functional2';
 import {createSceneSwitch} from './scene-switch.js';
 import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=epithalamus1';
 import {CATALOG_VERSION,SOURCES} from './structure-catalog.js?v=epithalamus1';
 import {inGeometryGroup,GEOMETRY_LINK_VERSION} from './geometry-links.js?v=epithalamus1';
 import {displayState,isSolid,applySurfaceMode,isOccludedByShell,RENDER_MODE_VERSION} from './render-mode.js?v=multiselect1';
 import {configureAppearance,applyAppearance,isAnatomical,APPEARANCE_VERSION} from './anatomical-appearance.js?v=epithalamus1';
-import {createRegionSelection,SELECTION_VERSION} from './selection.js?v=networkselect1';
-import {NETWORKS,NETWORK_COLOR,networkEntries} from '../research/networks.js?v=networkselect1';
+import {createRegionSelection,SELECTION_VERSION} from './selection.js?v=functional2';
+import {NETWORKS,SAVED_NETWORKS,NETWORK_COLOR,NETWORK_NOTE,NETWORK_SOURCE,networkEntries,isFunctional,describeFunctional} from '../research/networks.js?v=functional2';
 const $=id=>document.getElementById(id);
 const knownKey='brain-atlas-anatomy-known-v1';
 let known=new Set();try{known=new Set(JSON.parse(localStorage.getItem(knownKey)||'[]'));}catch{}
 const state={group:'all',hemi:'both',query:'',knownOnly:false,source:'julich',selected:null,focusKind:'none',colors:false,isolate:false,renderMode:'transparent'};
-let entries=[],searchIndex=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
+let entries=[],catalog=[],functionalEntries=[],functionalLoadError=false,searchIndex=[],renderer,scene,camera,controls,raycaster,meshes=new Map(),shells=[],dirty=true,loadedFiles=new Map();
 let evidenceLayer=null,evidenceSwitch=null;
 let previousSurfaceMode='transparent',selection;
 state.selectionContext=false;
@@ -29,7 +29,7 @@ const debounce=(fn,ms)=>{let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>
 const sourceFor=atlas=>atlas==='aal'?'julich':atlas;
 const sourceFits=e=>state.source==='all'||sourceFor(e.atlas)===state.source;
 // Rendering associations are not anatomical ancestry or search filters.
-const matches=e=>sourceFits(e)&&inGeometryGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id));
+const matches=e=>!isFunctional(e)&&sourceFits(e)&&inGeometryGroup(e,state.group)&&(state.hemi==='both'||e.hemisphere===state.hemi||e.hemisphere==='M')&&(!state.knownOnly||known.has(e.id));
 const visibleEntries=()=>entries.filter(matches);
 const usableChildren=id=>childrenOf(id).filter(child=>!['unassigned','midbrain_other','amygdala_other'].includes(child)||entries.some(e=>inGroup(e,child)));
 function toast(s){$('toast3').textContent=s;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast3').textContent='',3200)}
@@ -67,25 +67,25 @@ function entryButton(e){const chosen=isChosen(e.id)||!hasPinned()&&e.id===state.
 function renderSelection(){
  $('selectionPanel').hidden=embedded;
  if(!selection)return;
- const chosen=entries.filter(e=>selection.has(e.id)),yellow=selection.networkIds;
- const presets=NETWORKS.map(n=>`<option value="${n.id}">${escape(n.id+' · '+n.label)} · ${networkEntries(n,entries).length} 个模型（部分参考）</option>`).join('');
+ const chosen=catalog.filter(e=>selection.has(e.id)),yellow=selection.networkIds;
+ const presets=[7,17].map(scheme=>`<optgroup label="Yeo ${scheme} 网络方案">${NETWORKS.filter(n=>n.scheme===scheme).map(n=>`<option value="${n.id}">${escape(n.id+' · '+n.label)} · ${networkEntries(n,catalog).length} 分区</option>`).join('')}</optgroup>`).join('');
  if($('networkSelect').options.length===1)$('networkSelect').insertAdjacentHTML('beforeend',presets);
- $('networkSelect').disabled=false;
- const active=NETWORKS.filter(n=>selection.networks.has(n.id));
- $('selectedNetworks').innerHTML=active.map(n=>`<span class="selected-network"><span>${escape(n.id)} · ${selection.networks.get(n.id).size}/${networkEntries(n,entries).length} 个参考模型</span><button data-remove-network="${n.id}" aria-label="取消网络选择 ${escape(n.id)}" title="取消该网络；保留此前手选的脑区">×</button></span>`).join('');
+ $('networkSelect').disabled=functionalLoadError;
+ const active=SAVED_NETWORKS.filter(n=>selection.networks.has(n.id));
+ $('selectedNetworks').innerHTML=active.map(n=>`<span class="selected-network"><span>${escape(n.label)} · ${selection.networks.get(n.id).size}/${networkEntries(n,catalog).length}</span><button data-remove-network="${n.id}" aria-label="取消网络选择 ${escape(n.id)}" title="取消该网络；保留此前手选的脑区">×</button></span>`).join('');
  $('networkScope').hidden=!active.length;
- $('networkScopeText').innerHTML=active.map(n=>`<p>${escape(n.note)} <a href="${n.source}" target="_blank" rel="noopener">来源 ↗</a></p>`).join('');
+ $('networkScopeText').innerHTML=`<p>${escape(NETWORK_NOTE)} <a href="${NETWORK_SOURCE}" target="_blank" rel="noopener">图谱来源 ↗</a></p>`+active.map(n=>`<p>${escape(n.label)}：${networkEntries(n,catalog).filter(e=>e.hemisphere==='L').length} 左 / ${networkEntries(n,catalog).filter(e=>e.hemisphere==='R').length} 右${n.legacy?'。'+escape(n.note):''}</p>`).join('');
  $('selectionCount').textContent=`已选 ${chosen.length} 个模型`;
  $('selectionEmpty').hidden=chosen.length>0;
  for(const id of ['selectionActions','selectionNote','clearSelections'])$(id).hidden=!chosen.length;
  const html=chosen.map(e=>`<li${yellow.has(e.id)?' class="network-selected"':''}><button class="selection-inspect" data-inspect-selection="${e.id}" title="查看脑区详情">${escape(e.text.side+' · '+e.text.title)}<small>${escape(ATLAS[e.atlas].name)}${yellow.has(e.id)?' · '+[...selection.networks].filter(([,ids])=>ids.has(e.id)).map(([name])=>escape(name)).join(' / '):''}</small></button><button class="selection-remove" data-remove-selection="${e.id}" aria-label="取消选择 ${escape(e.text.full+' · '+ATLAS[e.atlas].name)}" title="取消选择">×</button></li>`).join('');
  if($('selectedItems').innerHTML!==html)$('selectedItems').innerHTML=html;
- $('selectionStatus').textContent=selection.persistent?'':'浏览器暂不能保存；本页的已选仍然保留，刷新后可能丢失。';
+ $('selectionStatus').textContent=functionalLoadError?'网络索引暂未加载，请刷新重试。已保存的选择未被改动。':selection.persistent?'':'浏览器暂不能保存；本页的已选仍然保留，刷新后可能丢失。';
 }
 async function selectNetwork(id){
  if(embedded||!selection||!NETWORKS.some(n=>n.id===id))return;
  clearEvidence();const added=selection.addNetwork(id);state.selectionContext=false;
- renderList();toast(added?`已加入 ${id} 的 ${added} 个参考模型，用黄色显示。`:'该网络的参考模型已在已选列表中。');
+ renderList();renderNetworkDetail(NETWORKS.find(n=>n.id===id));toast(added?`已加入 ${id} 的 ${added} 个皮层分区，用黄色显示。`:'该网络的参考模型已在已选列表中。');
  await focusSelections();
 }
 function removeNetwork(id){
@@ -144,7 +144,7 @@ function updateMaterials(){
  $('showWholeBrain').disabled=!entries.length;
  $('isolate3').disabled=!hasSelection;$('isolate3').checked=display.isolate;
  $('isolate3').title=display.automaticIsolation?'实体模式自动隔离；取消勾选可返回全脑':'仅显示当前选择';
- for(const e of entries){
+ for(const e of catalog){
   const mesh=meshes.get(e.id);if(!mesh)continue;
   const style=emphasis(e,display,known.has(e.id));
   if(evidenceLayer?.ids.has(e.id)&&!(state.focusKind==='entry'&&state.selected===e.id)){Object.assign(style,{inSelection:true,colour:evidenceLayer.colors.get(e.id)||'#39b9ff',opacity:.85,emissive:evidenceLayer.colors.get(e.id)||'#0877b5',emissiveIntensity:.35,depthWrite:true,depthTest:true,order:6});}
@@ -170,11 +170,11 @@ function updateMaterials(){
  const coverage=!pinned&&state.focusKind==='group'?conceptCoverage(state.group,entries):null;
  const modeNote=solid?(display.automaticIsolation?'实体独立显示 · 其它结构及外壳已隐藏 · 点击「显示全脑」返回':'实体显示 · 从左侧选择结构可独立查看'):(display.isolate?'独立查看 · 其他结构与外壳已隐藏':'空间背景 · 可勾选「只看当前选择」');
  $('visibilityNote').textContent=coverage&&!coverage.hasGeometry?'仅层级知识：不绘制虚构模型、坐标或边界。':(coverage?.partial?'部分模型 · 非完整结构边界。':'')+modeNote;
- if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent=(solid?modeNote+'。':'')+'连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；黄色区域：功能网络参考（非完整网络）；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
+ if(evidenceLayer){$('selectionLegend').textContent='文献涉及区域';$('selectionSwatch').style.background='#39b9ff';$('visibilityNote').textContent=(solid?modeNote+'。':'')+'连线为关系示意，非纤维走向或传导时序；蓝色区域：解剖对应；黄色区域：功能网络的皮层图谱范围；紫色虚线：假说 / 模型 / 综述；蓝色光点：细胞示意；绿色点：图谱参考位置';}
  if(anatomical){$('selectionSwatch').style.background='#c7b5ab';$('selectionLegend').textContent='解剖外观 · 模拟材质';$('visibilityNote').textContent=(coverage&&!coverage.hasGeometry?'此结构暂无模型。':coverage?.partial?'部分模型，非完整结构边界。':'')+'原图谱表面 · 色泽与细纹为模拟，不增加解剖精度。'+(display.automaticIsolation?'仅显示当前选择；点击“显示全脑”返回。':'选择结构可独立查看。')+(evidenceLayer?'文献对应保留；切回默认显示可查看证据颜色。':'');}
  const yellowCount=pinned?selection.networkIds.size:0;
  $('networkLegend').hidden=!yellowCount&&!evidenceLayer?.colors.size;
- if(pinned){$('stageTitle').textContent=`已选 ${pinned.size} 个图谱模型 · ${yellowCount?[...selection.networks.keys()].join(' / ')+' 黄色参考':'组合展示'}`;$('selectionLegend').textContent=anatomical?'已选脑区 · 模拟材质':'已选脑区';$('selectionSwatch').style.background=yellowCount===pinned.size?NETWORK_COLOR:anatomical?'#c7b5ab':'#39b9ff';$('visibilityNote').textContent=`${display.isolate?'只显示已选脑区':'已选脑区持续高亮，其他结构作为背景'} · 搜索、图谱和侧别筛选不会移除已选。`+(yellowCount?'黄色：网络参考模型（部分范围）；蓝色：手动选择。':'手动组合不代表已验证的网络或连接。')+(anatomical?'组织色泽为模拟，网络黄色保留。':'');}
+ if(pinned){$('stageTitle').textContent=`已选 ${pinned.size} 个图谱模型 · ${yellowCount?[...selection.networks.keys()].join(' / ')+' 黄色参考':'组合展示'}`;$('selectionLegend').textContent=anatomical?'已选脑区 · 模拟材质':'已选脑区';$('selectionSwatch').style.background=yellowCount===pinned.size?NETWORK_COLOR:anatomical?'#c7b5ab':'#39b9ff';$('visibilityNote').textContent=`${display.isolate?'只显示已选脑区':'已选脑区持续高亮，其他结构作为背景'} · 搜索、图谱和侧别筛选不会移除已选。`+(yellowCount?'黄色：网络皮层分区；蓝色：手动选择。':'手动组合不代表已验证的网络或连接。')+(anatomical?'组织色泽为模拟，网络黄色保留。':'');}
  $('focusSelections').disabled=!scene||!pinned;$('isolateSelections').disabled=!scene||!pinned;
  $('isolateSelections').setAttribute('aria-pressed',String(!!pinned&&display.isolate));$('isolateSelections').textContent=pinned&&display.isolate?'显示背景':'只看已选';
  if(pinned){$('isolate3').title='同时独立显示全部已选脑区';}
@@ -204,7 +204,7 @@ function renderSnapshot(){
  return {mode:state.renderMode,isolated:getDisplayState().isolate,selectedIds:selection?[...selection.ids]:[],networkIds:selection?[...selection.networkIds]:[],selected:state.selected,group:state.group,
   visibleModels:[...meshes.values()].filter(m=>m.visible).map(fields),visibleShells:shells.filter(m=>m.visible).map(fields)};
 }
-function currentUnit(){if(hasPinned())return entries.filter(e=>selection.has(e.id));return state.focusKind==='entry'?entries.filter(e=>e.id===state.selected):evidenceLayer?entries.filter(e=>evidenceLayer.ids.has(e.id)):visibleEntries();}
+function currentUnit(){if(hasPinned())return catalog.filter(e=>selection.has(e.id));return state.focusKind==='entry'?catalog.filter(e=>e.id===state.selected):evidenceLayer?catalog.filter(e=>evidenceLayer.ids.has(e.id)):visibleEntries();}
 function focusUnit(){return focusEntries(currentUnit(),true);}
 function focusEntries(unit,includeMarkers=false){
  if(!camera)return;if(!unit.length&&!evidenceLayer?.markers.length)return;
@@ -249,7 +249,18 @@ async function selectGroup(group){
   catch{toast('部分模型未加载；从属关系仍可查看。');}
  }
 }
+function renderNetworkDetail(network){
+ const list=networkEntries(network,catalog),selected=selection.networks.get(network.id)?.size||0;
+ $('detail3').innerHTML=`<div class="functional-profile"><div class="detail-label"><span class="eyebrow">CORTICAL NETWORK</span><span class="atlas-badge">Yeo ${network.scheme} · Schaefer 200</span></div><h2>${escape(network.label)}</h2><p class="latin3">${escape(network.id)} · ${list.length} 个皮层分区</p><p>已选 ${selected} / ${list.length}。左侧 ${list.filter(e=>e.hemisphere==='L').length} 个，右侧 ${list.filter(e=>e.hemisphere==='R').length} 个。</p><section class="detail-section"><h3>对应范围</h3><p>${escape(NETWORK_NOTE)}</p><p class="micro-note">按原图谱标签提取三维表面，保留左右侧与各分区编号。点击下方条目查看原始名称；不会将附近的解剖结构代替缺少的分区。</p></section><div class="detail-actions"><button id="focusNetwork">定位已选组合</button><button id="isolateSelected">隐藏其他结构</button></div><section class="detail-section"><h3>网络中的全部分区</h3>${list.map(e=>`<button class="region-item network-chosen" data-id="${e.id}"><span class="hem">${e.hemisphere}</span><strong>${escape(e.text.title)}</strong><small>${escape(e.name)}</small></button>`).join('')}</section><a class="source-link" href="${NETWORK_SOURCE}" target="_blank" rel="noopener">官方分区与网络归属 ↗</a></div>`;
+ $('focusNetwork').onclick=focusSelections;$('isolateSelected').onclick=()=>toggleIsolation();updateMaterials();
+}
+function renderFunctionalDetail(e){
+ const n7=NETWORKS.find(n=>n.scheme===7&&n.code===e.network7),n17=NETWORKS.find(n=>n.scheme===17&&n.code===e.network17);
+ $('detail3').innerHTML=`<div class="functional-profile"><div class="detail-label"><span class="eyebrow">FUNCTIONAL PARCEL</span><span class="atlas-badge">Schaefer 2018 · 200</span></div><h2>${escape(e.text.full)}</h2><p class="latin3">${escape(e.name)}</p><section class="detail-section"><h3>官方网络归属</h3><p>Yeo 7：${escape(n7.label)}（${escape(e.network7)}）</p><p>Yeo 17：${escape(n17.label)}（${escape(e.network17)}）</p><p class="micro-note">17 网络原名：${escape(e.name17)}。两套标签对应同一个分区。</p></section><div class="detail-actions"><button id="focusSelected">定位放大</button><button id="isolateSelected">隐藏其他结构</button></div><section class="detail-section"><h3>参考坐标 · MNI 毫米</h3><p>${e.center.map((v,i)=>['X','Y','Z'][i]+': '+v.toFixed(1)).join(' · ')}</p><p class="micro-note">表面网格中心，非实验激活峰。${e.voxelCount} 个源体素；原始分辨率 1 mm。</p></section><section class="detail-section"><h3>显示范围与来源</h3><p>${escape(NETWORK_NOTE)}</p><p class="micro-note">功能分区标签是群体参考；中文位置说明来自官方名称，不表示与同名解剖图谱边界完全一致。各图谱的 MNI 模板版本不同，叠加仅作空间参考。</p><a class="source-link" href="${NETWORK_SOURCE}" target="_blank" rel="noopener">官方图谱来源 ↗</a></section></div>`;
+ $('focusSelected').onclick=()=>focus(e);$('isolateSelected').onclick=()=>toggleIsolation();updateMaterials();
+}
 function renderDetail(e){
+ if(isFunctional(e)){renderFunctionalDetail(e);return;}
  const a=ATLAS[e.atlas],location=NAV[e.nav],hierarchy=hierarchyFor(e),parent=hierarchy.at(-2);
  const hierarchyRows=hierarchy.slice(1).map((n,i)=>`<li class="hierarchy-step"><span>${i+1}</span><div><small>${escape(n.kind||'图谱分区')}</small><strong>${escape(n.label)}</strong></div></li>`).join('');
  const precise=e.name.includes('Subc')?'此标签是“下托复合体”，不能自动等同于所有论文中的 subiculum；需核对论文采用的亚区定义。':e.name.includes('GapMap')?'图谱未定义范围。':a.description;
@@ -263,10 +274,10 @@ function renderDetail(e){
  $('stageTitle').textContent=e.text.full;updateMaterials();
 }
 async function select(id,{zoom=false,reveal=false}={}){
- const e=entries.find(e=>e.id===id);if(!e)return;
+ const e=catalog.find(e=>e.id===id);if(!e)return;
  if(!embedded&&!evidenceLayer){selection.add([id]);state.selectionContext=false;}
  state.selected=id;state.focusKind='entry';
- if(reveal){state.source=sourceFor(e.atlas);state.group=e.nav;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
+ if(reveal&&!isFunctional(e)){state.source=sourceFor(e.atlas);state.group=e.nav;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
  renderList();renderDetail(e);
  if(innerWidth<=1100&&!embedded)$('detail3').classList.add('open');
  if(!scene)return;
@@ -332,7 +343,7 @@ async function loadFile(file){
   if(typeof DecompressionStream==='undefined')throw Error('需要支持解压缩的新版浏览器');
   const magic=new Uint8Array(compressed,0,2);
   buffer=magic[0]===31&&magic[1]===139?await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer():compressed;
-  const items=manifest.entries.filter(e=>e.file===file);
+  const items=[...manifest.entries,...functionalEntries].filter(e=>e.file===file);
   for(const entry of items){
    const positions=Float32Array.from(new Int16Array(buffer,entry.positionOffset,entry.vertices*3),v=>v*entry.positionScale);
    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setIndex(new THREE.BufferAttribute(new Uint16Array(buffer,entry.indexOffset,entry.triangles*3),1));geometry.computeVertexNormals();geometry.computeBoundingSphere();
@@ -383,8 +394,8 @@ async function showEvidence(spec,options={}){
  if(!scene)throw Error('三维图形暂不可用；层级检索和已保存记录仍可使用。');
  if(!evidenceSwitch)evidenceSwitch=createSceneSwitch({
   async prepare(spec){
-   const next=buildEvidenceLayer(spec,entries);
-   const files=[...new Set(entries.filter(e=>next.ids.has(e.id)).map(e=>e.file))];
+   const next=buildEvidenceLayer(spec,catalog);
+   const files=[...new Set(catalog.filter(e=>next.ids.has(e.id)).map(e=>e.file))];
    try{await Promise.all(files.map(loadFile));return next;}catch(error){next.dispose();throw error;}
   },
   discard:next=>next.dispose(),
@@ -406,15 +417,16 @@ function markEvidenceLearned(ids){for(const id of ids)if(entries.some(e=>e.id===
 async function main(){
  try{
   bindUI();
-  const r=await fetch(new URL('data/manifest.json',import.meta.url));if(!r.ok)throw Error('索引读取失败');manifest=await r.json();
+  const [r,fr]=await Promise.all([fetch(new URL('data/manifest.json',import.meta.url)),fetch(new URL('data/functional-manifest.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Functional index');return r.json();}).catch(()=>{functionalLoadError=true;return {entries:[]};})]);if(!r.ok)throw Error('索引读取失败');manifest=await r.json();
   entries=manifest.entries.filter(e=>e.atlas!=='surface');for(const e of entries){e.nav=navigationFor(e);e.text=describe(e);e.text.search+=' '+navigationText(e).toLowerCase();}
-  let storage;try{storage=embedded?null:localStorage;}catch{}
-  selection=createRegionSelection(entries,storage);
+  functionalEntries=fr.entries;for(const e of functionalEntries)e.text=describeFunctional(e);catalog=[...entries,...functionalEntries];
+  let storage;try{storage=embedded?null:localStorage;if(functionalLoadError&&storage){const original=storage;storage={getItem:k=>original.getItem(k),setItem(){throw Error('Network index unavailable');}};}}catch{}
+  selection=createRegionSelection(catalog,storage);
   const requestedNetwork=new URLSearchParams(location.search).get('network');
   if(!embedded&&NETWORKS.some(n=>n.id===requestedNetwork)){selection.addNetwork(requestedNetwork);const url=new URL(location.href);url.searchParams.delete('network');history.replaceState(null,'',url.pathname+url.search+url.hash);}
   searchIndex=createSearchIndex(entries);renderList();groupDetail();
   // Expose the catalogue before loading geometry. A failed model cannot remove knowledge.
-  window.brainAtlas={selectionVersion:SELECTION_VERSION,getSelections:()=>[...selection.ids],getNetworks:()=>[...selection.networks.keys()],selectNetwork,removeNetwork,removeSelection,clearSelections,appearanceVersion:APPEARANCE_VERSION,renderModeVersion:RENDER_MODE_VERSION,setRenderMode,restoreWholeBrain,getRenderState:renderSnapshot,version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>entries.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
+  window.brainAtlas={selectionVersion:SELECTION_VERSION,getSelections:()=>[...selection.ids],getNetworks:()=>[...selection.networks.keys()],selectNetwork,removeNetwork,removeSelection,clearSelections,appearanceVersion:APPEARANCE_VERSION,renderModeVersion:RENDER_MODE_VERSION,setRenderMode,restoreWholeBrain,getRenderState:renderSnapshot,version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>catalog.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
    getModelCoverage:id=>{const {parcels,...coverage}=conceptCoverage(id,entries);return {...coverage,entryIds:parcels.map(e=>e.id)};},
    getVisibleModelIds:()=>[...meshes.values()].filter(m=>m.visible).map(m=>m.userData.entry.id)};
   window.catalogReady=true;
@@ -422,10 +434,10 @@ async function main(){
   const shellFile=manifest.files.find(f=>f.name.startsWith('shell'))?.name;
   if(shellFile)try{await loadFile(shellFile);}catch{toast('参考外壳未加载；结构检索仍可使用。');}
   // Start at the whole index, rather than silently restricting searches to the subiculum.
-  renderList();if(state.focusKind==='entry')renderDetail(entries.find(e=>e.id===state.selected));else groupDetail();$('loadNotice').classList.add('hidden');window.atlasReady=true;
+  renderList();if(state.focusKind==='entry')renderDetail(catalog.find(e=>e.id===state.selected));else groupDetail();$('loadNotice').classList.add('hidden');window.atlasReady=true;
   if(embedded)window.parent.postMessage({type:'brain-atlas-ready'},location.origin);
-  if(requestedNetwork&&!embedded)await focusSelections();
-  let done=loadedFiles.size,failures=0;
+  if(selection.size&&!embedded)await focusSelections();
+  let done=manifest.files.filter(f=>loadedFiles.has(f.name)).length,failures=0;
   const queue=manifest.files.map(f=>f.name).filter(f=>!loadedFiles.has(f));
   async function worker(){while(queue.length){const file=queue.shift();try{await loadFile(file);}catch(e){failures++;console.warn('Atlas file unavailable',file,e.message);}done++;$('modelStatus').textContent=`解剖数据 ${Math.round(done/manifest.files.length*100)}%`;}}
   await Promise.all([worker(),worker(),worker(),worker()]);

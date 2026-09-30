@@ -1,5 +1,5 @@
 import {NAV,pathFor,navigationFor} from './navigation.js?v=epithalamus1';
-import {describe} from './labels.js?v=epithalamus1';
+import {describe} from './labels.js?v=functional2';
 import {RULES,atlasCode} from '../research/mapping-rules.js?v=epithalamus1';
 import {parcelAliases} from './structure-catalog.js?v=epithalamus1';
 import {conceptCoverage} from './geometry-links.js?v=epithalamus1';

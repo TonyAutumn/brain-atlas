@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {NETWORK_COLOR} from '../research/networks.js?v=networkselect1';
+import {NETWORK_COLOR} from '../research/networks.js?v=functional2';
 // Connections are schematic curves between atlas display centres, never tractography.
 export function buildEvidenceLayer(spec,entries){
  const group=new THREE.Group(),anchors=new Map(),pointAnchors=new Map(),ids=new Set(),colors=new Map(),markers=[],pointBounds=new THREE.Box3(),byId=new Map(entries.map(e=>[e.id,e]));

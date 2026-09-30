@@ -1,11 +1,11 @@
 // Display choices are independent of learning marks, notes and paper evidence.
-import {NETWORKS,networkEntries} from '../research/networks.js?v=networkselect1';
-export const SELECTION_VERSION='2026-09-30.1';
+import {SAVED_NETWORKS,networkEntries} from '../research/networks.js?v=functional2';
+export const SELECTION_VERSION='2026-09-30.2';
 export const LEGACY_SELECTION_KEY='brain-atlas-selected-regions-v1';
 export const SELECTION_KEY='brain-atlas-selected-regions-v2';
 export function createRegionSelection(entries,storage){
  const valid=new Set(entries.map(e=>e.id)),manual=new Set(),networks=new Map();let persistent=!!storage;
- const allowed=new Map(NETWORKS.map(n=>[n.id,new Set(networkEntries(n,entries).map(e=>e.id))]));
+ const allowed=new Map(SAVED_NETWORKS.map(n=>[n.id,new Set(networkEntries(n,entries).map(e=>e.id))]));
  const clean=values=>new Set((Array.isArray(values)?values:[]).filter(id=>valid.has(id)));
  const union=()=>new Set([...manual,...[...networks.values()].flatMap(ids=>[...ids])]);
  const networkIds=()=>new Set([...networks.values()].flatMap(ids=>[...ids]));
@@ -16,6 +16,10 @@ export function createRegionSelection(entries,storage){
    for(const [name,ids]of Object.entries(saved.networks||{})){
     const accepted=new Set([...clean(ids)].filter(id=>allowed.get(name)?.has(id)));
     if(accepted.size)networks.set(name,accepted);
+    if(name==='DMN'){
+     const legacy=[...clean(ids)].filter(id=>allowed.get('DMN-legacy')?.has(id));
+     if(legacy.length)networks.set('DMN-legacy',new Set([...(networks.get('DMN-legacy')||[]),...legacy]));
+    }
    }
   }else{
    for(const id of clean(JSON.parse(storage?.getItem(LEGACY_SELECTION_KEY)||'[]')))manual.add(id);

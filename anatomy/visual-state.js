@@ -1,7 +1,7 @@
 // Semantic emphasis is independent of atlas-provided region colours.
 import {NAV} from './navigation.js?v=epithalamus1';
 import {inGeometryGroup as inGroup} from './geometry-links.js?v=epithalamus1';
-import {NETWORK_COLOR} from '../research/networks.js?v=networkselect1';
+import {NETWORK_COLOR} from '../research/networks.js?v=functional2';
 export const GROUP_COLORS={cortex:'#b99aff',hippocampus:'#ffc36b',amygdala:'#f78fae',thalamus:'#a6dd79',basal:'#63d5b8',midbrain:'#ffad78',diencephalon:'#e4cc70',cerebellum:'#92a9ff'};
 export function emphasis(entry,state,learned=false){
  const selected=state.selectedIds?.size?state.selectedIds.has(entry.id):state.focusKind==='entry'&&entry.id===state.selected;

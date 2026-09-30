@@ -1,5 +1,5 @@
 import {sourceScreen,quoteProof,mentionsRegion} from './source-proof.js';
-import {resolveMapping,resolveMappingCandidate,human,normalize} from './model.js?v=epithalamus1';
+import {resolveMapping,resolveMappingCandidate,human,normalize} from './model.js?v=functional2';
 import {RULES,nameVariants} from './mapping-rules.js?v=epithalamus1';
 import {recordKind} from './networks.js';
 import {enrichmentPoints} from './enrichment.js?v=epithalamus1';

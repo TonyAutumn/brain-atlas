@@ -14,14 +14,16 @@ class Quiet(SimpleHTTPRequestHandler):
 def view(page):return page.evaluate('() => window.brainAtlas.getRenderState()')
 def chosen(page):return page.evaluate('() => window.brainAtlas.getSelections()')
 def yellow(page,ids):
+    page.wait_for_function('(ids)=>ids.every(id=>window.brainAtlas.getRenderState().visibleModels.some(m=>m.id===id&&m.colour==="ffd34e"))',arg=ids,timeout=45000)
     models={m['id']:m for m in view(page)['visibleModels']}
     assert all(id in models and models[id]['colour']=='ffd34e' for id in ids),models
 
 def run():
     entries=json.loads((ROOT/'anatomy/data/manifest.json').read_text())['entries']
     count=sum(e['atlas']!='surface' for e in entries)
-    ids=[e['id'] for e in entries if e['atlas']=='julich' and any(e['name'].startswith('Area '+code+' (') for code in ['PGa','PGp'])]
-    assert len(ids)==4,ids
+    functional=json.loads((ROOT/'anatomy/data/functional-manifest.json').read_text())['entries']
+    ids=[e['id'] for e in functional if e['network7']=='Default']
+    assert len(ids)==46,ids
     server=ThreadingHTTPServer(('127.0.0.1',0),partial(Quiet,directory=str(ROOT)))
     Thread(target=server.serve_forever,daemon=True).start()
     url=f'http://127.0.0.1:{server.server_port}/'
@@ -36,11 +38,12 @@ def run():
             page.goto(url);expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000)
             page.evaluate('(data)=>{localStorage.setItem(data.old,JSON.stringify(data.ids));localStorage.setItem("network-unrelated","keep");}',{'old':OLD,'ids':[ids[0],'cit-25']})
             page.reload();expect(page.locator('#networkSelect')).to_be_enabled()
+            expect(page.locator('#networkSelect option')).to_have_count(25)
             assert chosen(page)==[ids[0],'cit-25']
             expect(page.get_by_role('navigation',name='主导航').get_by_role('link',name='功能网络',exact=True)).to_have_count(0)
             page.locator('#networkSelect').select_option('DMN')
-            expect(page.locator('#selectedItems li')).to_have_count(5)
-            expect(page.locator('#selectedItems .network-selected')).to_have_count(4)
+            expect(page.locator('#selectedItems li')).to_have_count(47)
+            expect(page.locator('#selectedItems .network-selected')).to_have_count(46)
             expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000)
             yellow(page,ids)
             page.locator('#isolateSelections').click()
@@ -61,7 +64,7 @@ def run():
             page.locator('#clearSelections').click();page.reload();expect(page.locator('#networkSelect')).to_be_enabled();assert chosen(page)==[]
             # Old links now enter the anatomy picker; consumed query parameters cannot re-add removed members.
             page.goto(url+'papers.html?record=network#recordPanel')
-            page.wait_for_url(url+'*#selectionPanel');expect(page.locator('#selectionCount')).to_have_text('已选 4 个模型')
+            page.wait_for_url(url+'*#selectionPanel');expect(page.locator('#selectionCount')).to_have_text('已选 46 个模型')
             assert 'network=' not in page.url and 'papers.html' not in page.url
             expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000);yellow(page,ids)
             page.locator('[data-remove-selection="'+ids[1]+'"]').click();page.reload();expect(page.locator('#networkSelect')).to_be_enabled();assert ids[1] not in chosen(page)
@@ -69,26 +72,38 @@ def run():
             page.locator('#focusSelections').click();page.locator('#selectionPanel').scroll_into_view_if_needed()
             expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000);yellow(page,ids)
             assert next(m for m in view(page)['visibleModels'] if m['id']=='julich-L-90')['colour']=='39b9ff'
-            page.screenshot(path=str(artifacts/'network-selection-yellow.png'))
+            page.locator('#search3').fill('');page.locator('#networkSelect').select_option('DMN');page.locator('#isolateSelections').click();page.screenshot(path=str(artifacts/'network-selection-yellow.png'))
             page.set_viewport_size({'width':390,'height':844});page.locator('#selectionPanel').scroll_into_view_if_needed()
             box=page.locator('#networkSelect').bounding_box();assert box['x']>=0 and box['x']+box['width']<=390
             page.screenshot(path=str(artifacts/'network-selection-mobile.png'))
-            page.locator('[data-remove-network="DMN"]').click();assert chosen(page)==['julich-L-90']
+            page.locator('#networkSelect').select_option('Y17-DefaultA')
+            fine=[e['id'] for e in functional if e['network17']=='DefaultA']
+            page.wait_for_function('(ids)=>ids.every(id=>window.brainAtlas.getRenderState().visibleModels.some(m=>m.id===id))',arg=fine)
+            page.locator('[data-remove-network="DMN"]').click();assert set(chosen(page))==set(fine+['julich-L-90'])
+            yellow(page,fine);page.locator('[data-remove-network="Y17-DefaultA"]').click();assert chosen(page)==['julich-L-90']
             page.locator('#networkSelect').select_option('DMN');saved=page.evaluate('(key)=>localStorage.getItem(key)',KEY)
             page.goto(url+'?embed=research');page.wait_for_function('window.atlasReady === true',timeout=60000)
             expect(page.locator('#selectionPanel')).to_be_hidden();assert chosen(page)==[]
-            page.evaluate("() => window.brainAtlas.showEvidence({nodes:[{id:'n',kind:'network',entryIds:['julich-L-62']},{id:'a',entryIds:['cit-21']}],links:[]})")
-            yellow(page,['julich-L-62']);assert set(m['id'] for m in view(page)['visibleModels'])=={'julich-L-62','cit-21'}
+            page.evaluate("id => window.brainAtlas.showEvidence({nodes:[{id:'n',kind:'network',entryIds:[id]},{id:'a',entryIds:['cit-21']}],links:[]})",ids[0])
+            yellow(page,[ids[0]]);assert set(m['id'] for m in view(page)['visibleModels'])=={ids[0],'cit-21'}
             assert page.evaluate('(key)=>localStorage.getItem(key)',KEY)==saved
             assert page.evaluate('()=>localStorage.getItem("network-unrelated")')=='keep'
             page.goto(url+'papers.html');expect(page.locator('#recordTabs [data-kind="network"]')).to_have_count(0)
             expect(page.locator('#saveStatus')).to_have_text(re.compile('已读取本机文献库|已保存到本机'),timeout=20000)
             assert not errors,errors
+            # A failed optional index cannot erase saved selections or disable anatomical browsing.
+            protected=page.evaluate('(key)=>localStorage.getItem(key)',KEY)
+            page.route('**/functional-manifest.json',lambda r:r.fulfill(status=503,body='unavailable'))
+            page.goto(url);expect(page.locator('#networkSelect')).to_be_disabled()
+            page.wait_for_function('window.catalogReady === true')
+            page.evaluate("()=>window.brainAtlas.select('cit-25')")
+            assert page.evaluate('(key)=>localStorage.getItem(key)',KEY)==protected
+            expect(page.locator('#selectionStatus')).to_contain_text('网络索引暂未加载')
             context.close()
             fallback=browser.new_context();fallback.add_init_script("const orig=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return /webgl/.test(t)?null:orig.call(this,t,...a);};")
             page=fallback.new_page();page.goto(url);expect(page.locator('#networkSelect')).to_be_enabled()
-            page.locator('#networkSelect').select_option('DMN');expect(page.locator('#selectionCount')).to_have_text('已选 4 个模型')
-            page.locator('[data-remove-selection="'+ids[0]+'"]').click();assert len(chosen(page))==3
+            page.locator('#networkSelect').select_option('DMN');expect(page.locator('#selectionCount')).to_have_text('已选 46 个模型')
+            page.locator('[data-remove-selection="'+ids[0]+'"]').click();assert len(chosen(page))==45
             page.locator('[data-remove-network="DMN"]').click();assert chosen(page)==[]
             fallback.close();browser.close()
             print('Integrated network browser checks passed: yellow materials in every mode, source overlaps, explicit removal, migration/reload, legacy links, mobile, evidence isolation and no-WebGL UI.')

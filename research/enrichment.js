@@ -1,5 +1,5 @@
 import {cleanEnrichment} from './enrichment-schema.js';
-import {suggestMapping,resolveMapping,human} from './model.js?v=epithalamus1';
+import {suggestMapping,resolveMapping,human} from './model.js?v=functional2';
 export function mergeEnrichment(previous,raw){
  const old=cleanEnrichment(previous),next=cleanEnrichment(raw);if(!old)return next;if(!next)return old;
  // Source IDs are local to one lookup. Relabel collisions before combining evidence.

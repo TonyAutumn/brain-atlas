@@ -1,0 +1,65 @@
+{
+  "sourceCommit": "1735ecc7c2e91ceac51f5e3da31d2ef59c8856ae",
+  "coordinateSpace": "FSL MNI152 1mm",
+  "sourceShape": [
+    182,
+    218,
+    182
+  ],
+  "affine": [
+    [
+      -1.0,
+      0.0,
+      0.0,
+      90.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -126.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -72.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "affineField": "sform",
+  "units": "mm",
+  "sourceVoxelCount": 1055685,
+  "parcelCount": 200,
+  "membership": "Exact voxel-mask bijection between the official 7-network and 17-network orderings; every cortical source voxel and all 200 labels retained.",
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/ThomasYeoLab/CBIG/1735ecc7c2e91ceac51f5e3da31d2ef59c8856ae/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_200Parcels_7Networks_order_FSLMNI152_1mm.nii.gz",
+      "sha256": "a47808f907f175f2e83f2c941bc68a766a8991b238e98457e9d27a8760ea21ec"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/ThomasYeoLab/CBIG/1735ecc7c2e91ceac51f5e3da31d2ef59c8856ae/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_200Parcels_17Networks_order_FSLMNI152_1mm.nii.gz",
+      "sha256": "360d582d9cc12946a1f6eb7fc3a79789d04bbba43f14376920f02011611034f6"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/ThomasYeoLab/CBIG/1735ecc7c2e91ceac51f5e3da31d2ef59c8856ae/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/freeview_lut/Schaefer2018_200Parcels_7Networks_order.txt",
+      "sha256": "42927810db2d272189c63c08927f8b2b4c9eac402f26e08e80d5ce70e7dd29f9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/ThomasYeoLab/CBIG/1735ecc7c2e91ceac51f5e3da31d2ef59c8856ae/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/freeview_lut/Schaefer2018_200Parcels_17Networks_order.txt",
+      "sha256": "8b6f9643d8ba87e12062b22e164e82835a18ee63055119f92ce2ca5c6688dc95"
+    }
+  ],
+  "citations": [
+    "https://doi.org/10.1093/cercor/bhx179",
+    "https://doi.org/10.1152/jn.00338.2011"
+  ],
+  "method": "Exposed voxel faces; four Taubin pairs (0.5, -0.53); source sform applied once; 0.05 mm vertex quantization. No invented nodes or parcel-to-anatomy overlap thresholds.",
+  "limitations": "Cortical group reference only; no subcortex or cerebellum. Yeo 7 and 17 assignments are not a strict hierarchy. FSL MNI152 differs from other displayed atlas templates; overlays are spatial references, not subject-level registration or experimental activation.",
+  "license": "MIT; see SCHAEFER-LICENSE.txt"
+}

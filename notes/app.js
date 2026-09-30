@@ -1,5 +1,5 @@
 import {NAV,pathFor,navigationFor} from '../anatomy/navigation.js?v=epithalamus1';
-import {describe,ATLAS} from '../anatomy/labels.js?v=epithalamus1';
+import {describe,ATLAS} from '../anatomy/labels.js?v=functional2';
 import {freshNote,cleanNote,noteURL,structureURL,titleOf,checkImage,packNotes,unpackNotes,LIMITS,validKey} from './model.js?v=epithalamus1';
 import {listNotes,getNote,saveNote,deleteNote,importNotes} from './store.js';
 const $=id=>document.getElementById(id);

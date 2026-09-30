@@ -5,6 +5,7 @@ const detail=document.getElementById('detail3');
 const element=(tag,text,className)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(className)e.className=className;return e;};
 let refreshing=0,started=false;
 function context(){
+ if(detail.querySelector('.functional-profile'))return null;
  const api=window.brainAtlas;if(!api)return null;
  const entry=detail.querySelector('.current-parcel')?api.getEntry(api.getSelection()):null;
  const id=entry?.nav||api.getGroup(),structure=api.getStructure(id);if(!structure)return null;

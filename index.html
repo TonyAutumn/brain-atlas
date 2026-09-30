@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="anatomy/geometry-links.css?v=epithalamus1">
 <link rel="stylesheet" href="notes/notes.css?v=epithalamus1">
 <link rel="stylesheet" href="anatomy/render-mode.css?v=epithalamus1">
-<link rel="stylesheet" href="anatomy/selection.css?v=networkselect1">
+<link rel="stylesheet" href="anatomy/selection.css?v=functional2">
 </head>
 <body>
 <header class="top">
@@ -23,7 +23,7 @@
    <p class="nav-hint">点击模型可累积多选；切换搜索与图谱时保留，点击 × 才取消。</p>
    <section id="selectionPanel" class="selection-panel" aria-label="已选脑区">
     <div class="selection-heading"><strong id="selectionCount" role="status" aria-live="polite">已选 0 个模型</strong><button id="clearSelections" aria-label="取消全部已选脑区" hidden>× 清空</button></div>
-    <label class="network-picker" for="networkSelect">按功能网络选择<select id="networkSelect" disabled><option value="">选择网络，加入下方已选…</option></select></label>
+    <label class="network-picker" for="networkSelect">按功能网络选择 · 7 主网络 / 17 细分<select id="networkSelect" disabled><option value="">选择网络，加入下方已选…</option></select></label>
     <div id="selectedNetworks" class="selected-networks"></div>
     <details id="networkScope" class="network-scope" hidden><summary>网络参考范围与来源</summary><div id="networkScopeText"></div></details>
     <p id="selectionEmpty" class="selection-hint">可逐个选脑区，也可按网络同时加入多个模型。黄色为网络参考，蓝色为手动选择。</p>
@@ -82,6 +82,6 @@
 </dialog>
 <noscript><p>请启用 JavaScript，并通过网站网址打开解剖与层级。</p></noscript>
 <script>window.addEventListener('error',function(e){if(!window.catalogReady){var n=document.getElementById('loadText');if(n)n.textContent='页面未能启动。请刷新页面；若仍无法加载，请使用最新版 Edge 或 Chrome。';}});if(location.protocol==='file:')document.getElementById('loadText').textContent='三维版请通过在线网址打开：tonyautumn.github.io/brain-atlas/';</script>
-<script type="module" src="anatomy/app.js?v=networkselect1"></script>
-<script type="module" src="notes/atlas-integration.js?v=epithalamus1"></script>
+<script type="module" src="anatomy/app.js?v=functional2"></script>
+<script type="module" src="notes/atlas-integration.js?v=functional2"></script>
 </body></html>
