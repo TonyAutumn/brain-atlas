@@ -117,4 +117,4 @@ brain-atlas/
 
 文献对应支持中线 `M`，不会把松果体拆成双侧；旧匹配、核对状态和历史保留，新词表只补缺。分析前核对 Worker 的 `atlas-evidence-v1`、`atlas-candidate-v2`、`atlas-midline-v1` 能力；旧服务不发送论文，页面提示更新。代码发布不等于用户个人 Worker 已部署。
 
-三维解剖页的「已选脑区」支持按功能网络加入多个模型，网络用黄色，手选用蓝色；逐项或整组 × 取消。现有 DMN 仅双侧角回 PGa/PGp 的部分参考，范围与来源在选择处说明。详情见 [多脑区组合展示](anatomy/MULTI-SELECTION.md)。
+三维解剖页的「已选脑区」支持按功能网络加入多个模型，网络用黄色，手选用蓝色；逐项或整组 × 取消。现使用 Schaefer 2018 的 200 个皮层分区及官方 Yeo 7 / 17 网络归属，提供 7 个主网络和 17 个细分网络；DMN 包含 46 个分区。范围、源坐标和限制见 [功能网络图谱](anatomy/FUNCTIONAL-NETWORKS.md)，交互见 [多脑区组合展示](anatomy/MULTI-SELECTION.md)。

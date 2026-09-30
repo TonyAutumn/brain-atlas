@@ -55,6 +55,6 @@ Three.js r160 与 OrbitControls 按 MIT 许可分发，全文见 `vendor/LICENSE
 新增 1 个中线条目 `allen2020-M-10460`，其来源为官方 `annotation_full.nii.gz` 的 pineal body 标签。CC BY 4.0；© 2019 Allen Institute for Brain Science。Ding SL et al. (2020), version 1.0.0, RRID:SCR_017764。源空间为 MNI ICBM152 2009b 非线性对称，0.5 mm 体素。详情、许可、校验值及可复现步骤见 [EPITHALAMUS.md](EPITHALAMUS.md)。原有 458 个图谱条目和两个参考外壳不变，现有 459 个可选图谱条目。
 
 缰核对应 CIT168 原 `cit-25/26`，现归入“上丘脑 → 缰核复合体”；不再用缰核模型代替整个上丘脑。内/外侧缰核仍无独立网格。
-# 功能网络补充
+## 功能网络补充
 
 三维解剖页现可选 Schaefer 2018 的 200 个皮层分区及官方 Yeo 7 / 17 网络归属。详见 [功能网络范围、来源和核对方法](FUNCTIONAL-NETWORKS.md)。功能模型与原解剖模型独立保存。
