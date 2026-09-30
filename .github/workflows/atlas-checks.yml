@@ -40,6 +40,10 @@ jobs:
         env:
           BRAIN_ATLAS_ARTIFACT_DIR: /tmp/brain-atlas-browser-artifacts
         run: python scripts/validate-selection-browser.py
+      - name: Exercise integrated yellow network selections
+        env:
+          BRAIN_ATLAS_ARTIFACT_DIR: /tmp/brain-atlas-browser-artifacts
+        run: python scripts/validate-network-selection-browser.py
       - name: Preserve new anatomy browser previews
         if: always()
         uses: actions/upload-artifact@v4

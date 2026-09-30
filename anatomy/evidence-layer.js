@@ -1,10 +1,11 @@
 import * as THREE from './vendor/three.module.js';
+import {NETWORK_COLOR} from '../research/networks.js?v=networkselect1';
 // Connections are schematic curves between atlas display centres, never tractography.
 export function buildEvidenceLayer(spec,entries){
  const group=new THREE.Group(),anchors=new Map(),pointAnchors=new Map(),ids=new Set(),colors=new Map(),markers=[],pointBounds=new THREE.Box3(),byId=new Map(entries.map(e=>[e.id,e]));
  for(const node of (spec.nodes||[]).slice(0,500)){
   const parcels=(node.entryIds||[]).map(id=>byId.get(id)).filter(Boolean);if(!parcels.length)continue;
-  const box=new THREE.Box3();for(const e of parcels){ids.add(e.id);if(node.kind==='network')colors.set(e.id,'#b58aff');box.expandByPoint(new THREE.Vector3(...e.bounds[0]));box.expandByPoint(new THREE.Vector3(...e.bounds[1]));}
+  const box=new THREE.Box3();for(const e of parcels){ids.add(e.id);if(node.kind==='network')colors.set(e.id,NETWORK_COLOR);box.expandByPoint(new THREE.Vector3(...e.bounds[0]));box.expandByPoint(new THREE.Vector3(...e.bounds[1]));}
   anchors.set(node.id,box.getCenter(new THREE.Vector3()));
  }
  for(const p of (spec.points||[]).slice(0,200)){

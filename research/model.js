@@ -1,6 +1,6 @@
 import {cleanEnrichment} from './enrichment-schema.js';
 import {cleanMapping,cleanMappingHistory} from './mapping-state.js?v=epithalamus1';
-import {DMN,networkOf,recordKind} from './networks.js';
+import {DMN,networkOf,recordKind,networkEntries} from './networks.js?v=networkselect1';
 import {RULES,nameVariants,atlasName,atlasCode} from './mapping-rules.js?v=epithalamus1';
 import {NAV,inGroup,mappingGroups} from '../anatomy/navigation.js?v=epithalamus1';
 import {describe} from '../anatomy/labels.js?v=epithalamus1';
@@ -83,7 +83,7 @@ export function resolveMappingCandidate(region,mapping,entries){
  if(!mapping||!['region','network'].includes(region.level)||!human(region.species)||!['L','R','both','M','unknown'].includes(mapping.hemisphere))return [];
  const [kind,...rest]=String(mapping.target||'').split(':'),id=rest.join(':');
  let found=[];
- if(kind==='network'&&id==='DMN'&&networkOf(region))found=entries.filter(e=>DMN.codes.includes(atlasCode(e)));
+ if(kind==='network'&&id==='DMN'&&networkOf(region))found=networkEntries(DMN,entries);
  if(kind==='group'&&NAV[id]&&recordKind(region)!=='network')found=entries.filter(e=>(id==='epithalamus'||e.atlas!=='cit168')&&inGroup(e,id));
  if(kind==='set'&&recordKind(region)!=='network'){const rule=RULES.find(r=>r[0]===id);if(rule)found=entries.filter(e=>rule[2].includes(atlasCode(e)));}
  if(kind==='parcel'&&recordKind(region)!=='network'){

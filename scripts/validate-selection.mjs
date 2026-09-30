@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createRegionSelection,SELECTION_KEY} from '../anatomy/selection.js';
+import {createRegionSelection,SELECTION_KEY,LEGACY_SELECTION_KEY} from '../anatomy/selection.js';
 import {displayState} from '../anatomy/render-mode.js';
 import {emphasis} from '../anatomy/visual-state.js';
 const entries=JSON.parse(fs.readFileSync(new URL('../anatomy/data/manifest.json',import.meta.url))).entries.filter(e=>e.atlas!=='surface');
@@ -21,10 +21,10 @@ assert.equal(background.isolate,false);assert.deepEqual([...selection.ids],initi
 const reloaded=createRegionSelection(entries,storage);assert.deepEqual([...reloaded.ids],initial);
 reloaded.remove('cit-25');assert.deepEqual([...reloaded.ids],['julich-L-62','allen2020-M-10460']);
 assert.equal(reloaded.remove('cit-25'),false);assert.equal(selection.size,3,'No shared mutable collection leaks');
-reloaded.clear();assert.deepEqual(JSON.parse(saved.get(SELECTION_KEY)),[]);
+reloaded.clear();assert.deepEqual(JSON.parse(saved.get(SELECTION_KEY)),{version:2,manual:[],networks:{}});
 assert.equal(saved.get('brain-atlas-anatomy-known-v1'),'["cit-21"]');assert.equal(saved.get('unrelated-note'),'keep');
 saved.set(SELECTION_KEY,'{"not":"an array"}');assert.equal(createRegionSelection(entries,storage).size,0);
-saved.set(SELECTION_KEY,'["cit-25","cit-25","unavailable"]');assert.deepEqual([...createRegionSelection(entries,storage).ids],['cit-25']);
+saved.delete(SELECTION_KEY);saved.set(LEGACY_SELECTION_KEY,'["cit-25","cit-25","unavailable"]');assert.deepEqual([...createRegionSelection(entries,storage).ids],['cit-25']);
 const blocked=createRegionSelection(entries,{getItem(){throw Error('blocked');},setItem(){throw Error('quota');}});
 blocked.add(['cit-25']);assert.equal(blocked.persistent,false);assert(blocked.has('cit-25'),'Save failure preserves the in-memory choice');
 blocked.remove('cit-25');assert.equal(blocked.size,0);

@@ -7,7 +7,7 @@ import json, os
 from playwright.sync_api import sync_playwright, expect
 
 ROOT=Path(__file__).resolve().parents[1]
-KEY='brain-atlas-selected-regions-v1'
+KEY='brain-atlas-selected-regions-v2'
 class Quiet(SimpleHTTPRequestHandler):
     def log_message(self,*args):pass
 def chosen(page):return page.evaluate('() => window.brainAtlas.getSelections()')
@@ -87,7 +87,7 @@ def run():
             page.evaluate("() => window.brainAtlas.showEvidence({nodes:[{id:'a',entryIds:['cit-21']}],links:[]})")
             assert visible(page)==['cit-21']
             page.evaluate("() => window.brainAtlas.select('cit-21')")
-            assert page.evaluate('(key) => JSON.parse(localStorage.getItem(key))',KEY)==saved
+            assert page.evaluate('(key) => JSON.parse(localStorage.getItem(key)).manual',KEY)==saved
             assert not errors,errors
             context.close()
             fallback=browser.new_context(viewport={'width':1440,'height':1000})
