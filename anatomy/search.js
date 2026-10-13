@@ -3,6 +3,8 @@ import {describe} from './labels.js?v=functional2';
 import {RULES,atlasCode} from '../research/mapping-rules.js?v=epithalamus1';
 import {parcelAliases} from './structure-catalog.js?v=epithalamus1';
 import {conceptCoverage} from './geometry-links.js?v=epithalamus1';
+import {OLFACTORY_PRESETS} from './olfactory-circuit.js?v=olfactory1';
+import {networkEntries} from '../research/networks.js?v=olfactory1';
 export {conceptCoverage};
 export const normalizeSearch=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
 const compact=s=>s.replaceAll(' ','');
@@ -24,7 +26,7 @@ function score(query,fields){
  }
  return best;
 }
-export function createSearchIndex(entries){
+export function createSearchIndex(entries,{includePresets=true}={}){
  const concepts=Object.entries(NAV).filter(([id])=>id!=='all'&&!['unassigned','midbrain_other','amygdala_other'].includes(id)).map(([id,n])=>{
   const coverage=conceptCoverage(id,entries);
   return {kind:'concept',id,label:n.label,fields:[n.label,n.english,...n.aliases],path:pathFor(id).map(p=>NAV[p].label).join(' › '),parcels:coverage.parcels.map(e=>e.id),coverageLabel:coverage.label,partial:coverage.partial};
@@ -33,7 +35,8 @@ export function createSearchIndex(entries){
   const group=e.nav||navigationFor(e),nav=NAV[group],text=describe(e);
   return {kind:'parcel',id:e.id,label:text.title,atlas:e.atlas,hemisphere:e.hemisphere,fields:[e.name,e.name.replace(/^[LR] /,'').trim(),text.title,String(e.label??''),...RULES.filter(r=>r[2].includes(atlasCode(e))).flatMap(r=>r[1]),...parcelAliases(e),nav?.label,nav?.english,...(ALIAS_GROUPS.has(group)?nav.aliases:[])],path:pathFor(e.nav||navigationFor(e)).map(p=>NAV[p].label).join(' › ')};
  });
- return [...concepts,...parcels];
+ const presets=includePresets?OLFACTORY_PRESETS.map(p=>({kind:'preset',id:p.id,label:p.label,fields:[p.id,p.label,...p.aliases],parcels:networkEntries(p,entries).map(e=>e.id),coverageLabel:'组合参考',path:p.scope})):[];
+ return [...concepts,...parcels,...presets];
 }
 // Search is intentionally independent of the rendering source, hemisphere and learned filter.
 export function searchAtlas(query,index){

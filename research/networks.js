@@ -1,4 +1,5 @@
 import {atlasCode} from './mapping-rules.js?v=epithalamus1';
+import {OLFACTORY_PRESETS} from '../anatomy/olfactory-circuit.js?v=olfactory1';
 export const NETWORK_COLOR='#ffd34e';
 export const NETWORK_SOURCE='https://github.com/ThomasYeoLab/CBIG/blob/1735ecc7c2e91ceac51f5e3da31d2ef59c8856ae/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/README.md';
 export const NETWORK_NOTE='按 Schaefer 2018 的 200 个皮层分区及官方 Yeo 网络归属显示。仅覆盖该图谱的皮层范围，不含皮层下与小脑；不是论文激活范围。7 网络与 17 网络是两套归属，不是严格的父子层级。';
@@ -17,9 +18,10 @@ export const NETWORKS=[...coarse.map(([id,code,label,aliases])=>({...common,id,c
 export const DMN=NETWORKS[0];
 // Retain the user's old four-parcel selections until explicitly removed.
 export const LEGACY_DMN={id:'DMN-legacy',label:'旧 DMN 角回参考',legacy:true,color:NETWORK_COLOR,source:'https://pubmed.ncbi.nlm.nih.gov/11209064/',note:'此前选中的 PGa / PGp 已保留，仍可用 × 取消。选择上方 DMN 可载入新的 46 个标准皮层分区。'};
-export const SAVED_NETWORKS=[...NETWORKS,LEGACY_DMN];
+export const DISPLAY_PRESETS=[...NETWORKS,...OLFACTORY_PRESETS];
+export const SAVED_NETWORKS=[...DISPLAY_PRESETS,LEGACY_DMN];
 export const isFunctional=e=>e.atlas==='schaefer200';
-export function networkEntries(network,entries){return entries.filter(e=>network.legacy?e.atlas==='julich'&&['PGa','PGp'].includes(atlasCode(e)):isFunctional(e)&&e['network'+network.scheme]===network.code);}
+export function networkEntries(network,entries){return entries.filter(e=>network.kind==='circuit'?e.atlas==='julich'&&network.atlasCodes.includes(atlasCode(e)):network.legacy?e.atlas==='julich'&&['PGa','PGp'].includes(atlasCode(e)):isFunctional(e)&&e['network'+network.scheme]===network.code);}
 export function networkOf(r){
  const name=(r.name||'').normalize('NFKC').trim().toLowerCase();
  return NETWORKS.find(n=>name===n.id.toLowerCase()||name===n.label.toLowerCase()||n.aliases.some(a=>name===a.toLowerCase())||new RegExp('(?:^|[\\s(])'+n.id+'(?:$|[\\s)])','i').test(name))||null;

@@ -1,6 +1,6 @@
 // Display choices are independent of learning marks, notes and paper evidence.
-import {SAVED_NETWORKS,networkEntries} from '../research/networks.js?v=functional2';
-export const SELECTION_VERSION='2026-09-30.2';
+import {SAVED_NETWORKS,networkEntries} from '../research/networks.js?v=olfactory1';
+export const SELECTION_VERSION='2026-10-13.1';
 export const LEGACY_SELECTION_KEY='brain-atlas-selected-regions-v1';
 export const SELECTION_KEY='brain-atlas-selected-regions-v2';
 export function createRegionSelection(entries,storage){

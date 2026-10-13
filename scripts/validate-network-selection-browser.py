@@ -38,7 +38,7 @@ def run():
             page.goto(url);expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000)
             page.evaluate('(data)=>{localStorage.setItem(data.old,JSON.stringify(data.ids));localStorage.setItem("network-unrelated","keep");}',{'old':OLD,'ids':[ids[0],'cit-25']})
             page.reload();expect(page.locator('#networkSelect')).to_be_enabled()
-            expect(page.locator('#networkSelect option')).to_have_count(25)
+            expect(page.locator('#networkSelect option')).to_have_count(28)
             assert chosen(page)==[ids[0],'cit-25']
             expect(page.get_by_role('navigation',name='主导航').get_by_role('link',name='功能网络',exact=True)).to_have_count(0)
             page.locator('#networkSelect').select_option('DMN')
@@ -90,6 +90,29 @@ def run():
             assert page.evaluate('()=>localStorage.getItem("network-unrelated")')=='keep'
             page.goto(url+'papers.html');expect(page.locator('#recordTabs [data-kind="network"]')).to_have_count(0)
             expect(page.locator('#saveStatus')).to_have_text(re.compile('已读取本机文献库|已保存到本机'),timeout=20000)
+            # Olfactory sets reuse real anatomical meshes and remain independent of paper evidence.
+            page.goto(url);expect(page.locator('#modelStatus')).to_contain_text(f'{count} 个模型条目',timeout=90000)
+            page.locator('#clearSelections').click();page.set_viewport_size({'width':1440,'height':1000})
+            page.locator('#search3').fill('POC');page.locator('#regionItems [data-preset="POC"]').click()
+            poc=[e['id'] for e in entries if e['atlas']=='julich' and e['label'] in [17,51,130]]
+            soc=[e['id'] for e in entries if e['atlas']=='julich' and e['label'] in [36,42,60,65,89,98,110,159,192,203]]
+            expect(page.locator('#selectedItems li')).to_have_count(6);yellow(page,poc)
+            expect(page.locator('#detail3')).to_contain_text('前嗅核 AON')
+            page.locator('#networkSelect').select_option('SOC');expect(page.locator('#selectedItems li')).to_have_count(26);yellow(page,poc+soc)
+            page.locator('#networkSelect').select_option('OLF');expect(page.locator('#selectedItems li')).to_have_count(32)
+            olf=chosen(page);yellow(page,olf)
+            page.locator('#isolateSelections').click();page.locator('#solidMode').click();yellow(page,olf)
+            page.locator('#anatomicalMode').click();yellow(page,olf)
+            page.locator('#selectionPanel').scroll_into_view_if_needed();page.screenshot(path=str(artifacts/'olfactory-selection-yellow.png'))
+            page.locator('[data-remove-network="OLF"]').click();assert set(chosen(page))==set(poc+soc)
+            page.locator('[data-remove-selection="julich-R-17"]').click();page.reload()
+            expect(page.locator('#networkSelect')).to_be_enabled();assert 'julich-R-17' not in chosen(page)
+            yellow(page,[id for id in poc+soc if id!='julich-R-17'])
+            page.set_viewport_size({'width':390,'height':844});page.locator('#search3').fill('SOC')
+            page.locator('#regionItems [data-preset="SOC"]').click();page.locator('#selectionPanel').scroll_into_view_if_needed()
+            box=page.locator('#networkSelect').bounding_box();assert box['x']>=0 and box['x']+box['width']<=390
+            page.screenshot(path=str(artifacts/'olfactory-selection-mobile.png'))
+            page.locator('[data-remove-network="SOC"]').click();assert set(chosen(page))==set(poc)-{'julich-R-17'}
             assert not errors,errors
             # A failed optional index cannot erase saved selections or disable anatomical browsing.
             protected=page.evaluate('(key)=>localStorage.getItem(key)',KEY)
