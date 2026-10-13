@@ -147,8 +147,8 @@ export function createIndex(raw){
   page=Math.max(0,Math.min(pages-1,Math.trunc(page)||0));
   const visible=children.slice(page*capacity,(page+1)*capacity),graphNodes=center?[center,...visible]:visible,visibleIds=new Set(graphNodes.map(n=>n.id)),edges=[];
   if(center?.kind==='bucket')for(const node of visible)edges.push({id:'layer:'+node.id,type:'layer',source:id,target:node.id,label:'分层目录'});
-  if(center?.kind==='chunk')for(const node of visible)edges.push({id:'member:'+node.id,type:'member',source:id,target:node.id,label:'组块成员'});
-  if(center?.kind==='concept')for(const node of visible)if(node.kind==='chunk')edges.push({id:'member:'+node.id,type:'member',source:id,target:node.id,label:'组块成员'});
+  if(center?.kind==='chunk')for(const node of visible){const historical=center.record.chunk_kind==='topology'&&center.record.state==='stale';edges.push({id:'member:'+node.id,type:'member',source:id,target:node.id,label:historical?'历史组块成员':'组块成员',historical})}
+  if(center?.kind==='concept')for(const node of visible)if(node.kind==='chunk'){const historical=node.record.chunk_kind==='topology'&&node.record.state==='stale';edges.push({id:'member:'+node.id,type:'member',source:id,target:node.id,label:historical?'历史组块成员':'组块成员',historical})}
   const relevant=center?.kind==='chunk'?(center.record.usable_claim_ids??center.record.claim_ids??[]).map(id=>nodes.get(id)):center?.kind==='concept'?(conceptClaims.get(id)||[]):[];
   for(const node of relevant){const row=node.record;if(row.subject!==row.object&&visibleIds.has(row.subject)&&visibleIds.has(row.object))edges.push({id:node.id,type:'claim',source:row.subject,target:row.object,label:relationLabel(row.predicate),claim_id:node.id,status:row.status,active:row.active})}
   if(center?.kind==='claim'){
@@ -158,7 +158,7 @@ export function createIndex(raw){
   if(overview&&!layered){
    const pairs=new Map();
    for(const [concept,chunkNodes] of conceptChunks){
-    const ids=chunkNodes.map(n=>n.id).filter(id=>visibleIds.has(id)).sort();
+    const ids=chunkNodes.filter(n=>!(n.record.chunk_kind==='topology'&&n.record.state==='stale')).map(n=>n.id).filter(id=>visibleIds.has(id)).sort();
     for(let a=0;a<ids.length;a++)for(let b=a+1;b<ids.length;b++){
      const key=ids[a]+'|'+ids[b];if(!pairs.has(key))pairs.set(key,{id:'shared:'+key,type:'shared',source:ids[a],target:ids[b],concept_ids:[]});pairs.get(key).concept_ids.push(concept);
     }

@@ -147,8 +147,9 @@ function renderInspector(node){
  if(node.kind==='chunk'){
   if(row.definition)body.append(element('p',row.definition,'definition'));
   body.append(element('span',STATUS_LABELS[row.state]||row.state||'未分类','tag'));
+  if(row.topology){const views={support:'来源支持关系',cooccurrence:'文献共现',mixed:'混合关联'};body.append(element('p',(views[row.topology.view]||row.topology.view)+' · 粒度 '+(row.topology.equivalent_resolutions||[row.topology.resolution]).join(' / ')+' · 本地组织索引，不代表新证据。','hint'))}
   pagedRows(body,'全部成员概念',row.members.map(id=>index.get(id)),renderEntityRow);
-  pagedRows(body,'组块知识联系',(row.claim_ids||[]).map(id=>index.get(id)),renderEntityRow);
+  pagedRows(body,row.chunk_kind==='topology'&&row.state==='stale'?'历史知识联系（待重建）':'组块知识联系',(row.claim_ids||[]).map(id=>index.get(id)),renderEntityRow);
   if(row.source_id&&index.get(row.source_id))append(group(body,'组块来源'),nodeButton(index.get(row.source_id)));return;
  }
  if(node.kind==='claim'){
