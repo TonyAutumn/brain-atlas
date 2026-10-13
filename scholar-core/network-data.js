@@ -7,7 +7,7 @@ const kinds = {concepts:'concept',chunks:'chunk',claims:'claim',sources:'source'
 const kindOrder = {concept:0,chunk:1,claim:2,source:3};
 export const KIND_LABELS = {concept:'概念',chunk:'组块',claim:'知识联系',source:'来源',bucket:'组块分层'};
 export const STATUS_LABELS = {active:'可压缩',candidate:'候选',stale:'待更新',source_supported:'有来源支持',vocabulary_supported:'术语结构',provisional:'候选论断',contested:'存在分歧',withdrawn:'已撤回',superseded:'已替换',needs_review:'待核查'};
-export const CHUNK_LABELS = {source:'资料组块',source_unit:'资料组块',template:'结构组块'};
+export const CHUNK_LABELS = {source:'资料组块',source_unit:'资料组块',template:'结构组块',topology:'拓扑组块'};
 export const RELATIONS={defined_by:'定义',related_to:'相关',is_a:'属于',part_of:'组成部分',measured_by:'测量方法',associated_with:'关联',causes:'因果',contrasts_with:'对照',supports:'支持',limited_by:'适用限制'};
 export function relationLabel(value){return RELATIONS[value]||value||'联系'}
 export function claimAvailability(record){
@@ -149,7 +149,7 @@ export function createIndex(raw){
   if(center?.kind==='bucket')for(const node of visible)edges.push({id:'layer:'+node.id,type:'layer',source:id,target:node.id,label:'分层目录'});
   if(center?.kind==='chunk')for(const node of visible)edges.push({id:'member:'+node.id,type:'member',source:id,target:node.id,label:'组块成员'});
   if(center?.kind==='concept')for(const node of visible)if(node.kind==='chunk')edges.push({id:'member:'+node.id,type:'member',source:id,target:node.id,label:'组块成员'});
-  const relevant=center?.kind==='chunk'?(center.record.claim_ids||[]).map(id=>nodes.get(id)):center?.kind==='concept'?(conceptClaims.get(id)||[]):[];
+  const relevant=center?.kind==='chunk'?(center.record.usable_claim_ids??center.record.claim_ids??[]).map(id=>nodes.get(id)):center?.kind==='concept'?(conceptClaims.get(id)||[]):[];
   for(const node of relevant){const row=node.record;if(row.subject!==row.object&&visibleIds.has(row.subject)&&visibleIds.has(row.object))edges.push({id:node.id,type:'claim',source:row.subject,target:row.object,label:relationLabel(row.predicate),claim_id:node.id,status:row.status,active:row.active})}
   if(center?.kind==='claim'){
    for(const node of visible)edges.push({id:'claim:'+node.id,type:node.kind==='source'?'evidence':'endpoint',source:id,target:node.id,label:node.kind==='source'?'证据出处':node.id===center.record.subject?'主语概念':'对象概念',claim_id:id,status:center.record.status,active:center.record.active});
