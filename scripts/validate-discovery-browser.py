@@ -96,9 +96,9 @@ def run() -> None:
             expect(page.locator("#detail3 h2")).to_contain_text("外侧膝状体")
             page.locator("#search3").fill("Heschl’s gyrus")
             expect(page.locator('#regionItems [data-id="julich-L-10"]')).to_have_count(1)
-            page.locator('#hemiControls [data-hemi="R"]').click()
-            page.locator("#search3").fill("left dorsolateral prefrontal cortex")
-            functional_hit = page.locator('#regionItems [data-id^="schaefer200-L-"]').first
+            page.locator('#hemiControls [data-hemi="L"]').click()
+            page.locator("#search3").fill("right dorsolateral prefrontal cortex")
+            functional_hit = page.locator('#regionItems [data-id^="schaefer200-R-"]').first
             expect(functional_hit).to_be_visible()
             functional_id = functional_hit.get_attribute("data-id")
             functional_hit.click()
