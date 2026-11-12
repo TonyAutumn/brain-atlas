@@ -6,7 +6,7 @@ import {emphasis,showShell} from './visual-state.js?v=functional2';
 import {NAV,pathFor,childrenOf,navigationFor,inGroup,topGroup,navigationText,hierarchyFor} from './navigation.js?v=epithalamus1';
 import {buildEvidenceLayer} from './evidence-layer.js?v=functional2';
 import {createSceneSwitch} from './scene-switch.js';
-import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=olfactory1';
+import {createSearchIndex,searchAtlas,conceptCoverage} from './search.js?v=aliases1';
 import {CATALOG_VERSION,SOURCES} from './structure-catalog.js?v=epithalamus1';
 import {inGeometryGroup,GEOMETRY_LINK_VERSION} from './geometry-links.js?v=epithalamus1';
 import {displayState,isSolid,applySurfaceMode,isOccludedByShell,RENDER_MODE_VERSION} from './render-mode.js?v=multiselect1';
@@ -57,7 +57,7 @@ function renderNavigation(){
  if(activeId&&!document.activeElement?.dataset.group)$('groupFilters').parentElement.querySelector(`[data-group="${activeId}"]`)?.focus({preventScroll:true});
  $('navHint').textContent='名称、英文或缩写均可搜索；“部分模型”只显示已收录分区，“仅层级”也能点开。';
  setHTML('indexPath',breadcrumbs(state.group));
- $('search3').placeholder='搜索全库：VTA、顶盖、tegmentum…';
+ $('search3').placeholder='搜索全库：DLPFC、Heschl、VTA、丘脑…';
  $('atlasSelect').value=state.source;
  $('knownOnly').disabled=!!state.query;
 }
@@ -125,7 +125,7 @@ function renderList(){
  if(state.query){
   const hits=searchAtlas(state.query,searchIndex),concepts=hits.filter(h=>h.kind==='concept').length,presets=hits.filter(h=>h.kind==='preset').length;
   $('listCount').textContent=`${concepts} 个结构 · ${hits.length-concepts-presets} 个模型条目${presets?' · '+presets+' 个组合':''}`;
-  $('regionItems').innerHTML='<p class="search-note">全库结果，包含全部图谱，不受当前分组、侧别或已学习筛选限制。点击后自动显示。</p>'+(hits.length?hits.map(hit=>hit.kind==='preset'?`<button class="region-item concept-item" data-preset="${hit.id}"><span class="hem">黄色</span><strong>${escape(hit.label)}</strong><small>${hit.parcels.length} 个参考模型 · 点击加入已选</small><small class="search-path">${escape(hit.path)}</small></button>`:hit.kind==='parcel'?entryButton(entries.find(e=>e.id===hit.id)):`<button class="region-item concept-item" data-group="${hit.id}"><span class="hem">${escape(hit.coverageLabel)}</span><strong>${escape(hit.label)}</strong><small>${escape(NAV[hit.id].english)} · ${hit.partial?'部分模型 · 非完整边界':hit.parcels.length?'有关联模型':'仅层级 · 暂无模型'}</small><small class="search-path">${escape(hit.path)}</small></button>`).join(''):'<p class="empty3">全库中没有这个名称。可尝试中文名、英文全名或常用缩写；词库仍在补充。</p>');
+  $('regionItems').innerHTML='<p class="search-note">全库结果，不受显示筛选限制；可输入 left / right 指定侧别。检索称谓不表示图谱边界完全等同。</p>'+(hits.length?hits.map(hit=>hit.kind==='preset'?`<button class="region-item concept-item" data-preset="${hit.id}"><span class="hem">黄色</span><strong>${escape(hit.label)}</strong><small>${hit.parcels.length} 个参考模型 · 点击加入已选</small><small class="search-path">${escape(hit.path)}</small></button>`:hit.kind==='parcel'?entryButton(catalog.find(e=>e.id===hit.id)):`<button class="region-item concept-item" data-group="${hit.id}"><span class="hem">${escape(hit.coverageLabel)}</span><strong>${escape(hit.label)}</strong><small>${escape(NAV[hit.id].english)} · ${hit.partial?'部分模型 · 非完整边界':hit.parcels.length?'有关联模型':'仅层级 · 暂无模型'}</small><small class="search-path">${escape(hit.path)}</small></button>`).join(''):'<p class="empty3">全库中没有这个名称。可尝试中文名、英文全名或常用缩写；词库仍在补充。</p>');
  }else{
   const list=visibleEntries().sort((a,b)=>a.text.title.localeCompare(b.text.title,'zh-CN')||a.hemisphere.localeCompare(b.hemisphere));
   $('listCount').textContent=`当前 ${list.length} 个模型条目`;
@@ -294,6 +294,7 @@ async function select(id,{zoom=false,reveal=false}={}){
  const e=catalog.find(e=>e.id===id);if(!e)return;
  if(!embedded&&!evidenceLayer){selection.add([id]);state.selectionContext=false;}
  state.selected=id;state.focusKind='entry';
+ if(reveal&&isFunctional(e)){state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
  if(reveal&&!isFunctional(e)){state.source=sourceFor(e.atlas);state.group=e.nav;state.query='';$('search3').value='';state.knownOnly=false;$('knownOnly').setAttribute('aria-pressed','false');if(state.hemi!=='both'&&state.hemi!==e.hemisphere)setHemi('both');}
  renderList();renderDetail(e);
  if(innerWidth<=1100&&!embedded)$('detail3').classList.add('open');
@@ -441,7 +442,7 @@ async function main(){
   selection=createRegionSelection(catalog,storage);
   const requestedNetwork=new URLSearchParams(location.search).get('network');
   if(!embedded&&DISPLAY_PRESETS.some(n=>n.id===requestedNetwork)){selection.addNetwork(requestedNetwork);const url=new URL(location.href);url.searchParams.delete('network');history.replaceState(null,'',url.pathname+url.search+url.hash);}
-  searchIndex=createSearchIndex(entries,{includePresets:!embedded});renderList();groupDetail();
+  searchIndex=createSearchIndex(embedded?entries:catalog,{includePresets:!embedded});renderList();groupDetail();
   // Expose the catalogue before loading geometry. A failed model cannot remove knowledge.
   window.brainAtlas={selectionVersion:SELECTION_VERSION,getSelections:()=>[...selection.ids],getNetworks:()=>[...selection.networks.keys()],selectNetwork,removeNetwork,removeSelection,clearSelections,appearanceVersion:APPEARANCE_VERSION,renderModeVersion:RENDER_MODE_VERSION,setRenderMode,restoreWholeBrain,getRenderState:renderSnapshot,version:manifest.version,catalogVersion:CATALOG_VERSION,geometryLinkVersion:GEOMETRY_LINK_VERSION,select:id=>select(id,{reveal:true,zoom:true}),getSelection:()=>state.selected,getEntry:id=>catalog.find(e=>e.id===id),getKnown:()=>[...known],selectGroup,getGroup:()=>state.group,showEvidence,markLearned:markEvidenceLearned,search:q=>searchAtlas(q,searchIndex).map(({fields,...hit})=>hit),getStructure:id=>NAV[id]?{id,...NAV[id],path:pathFor(id)}:null,
    getModelCoverage:id=>{const {parcels,...coverage}=conceptCoverage(id,entries);return {...coverage,entryIds:parcels.map(e=>e.id)};},
