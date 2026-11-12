@@ -1,0 +1,14 @@
+/* Read first; anatomy metadata, notes and references remain available below. */
+.region-knowledge{margin:15px 0 18px;padding:14px;border:1px solid #355363;border-left:3px solid #7bcbb8;border-radius:8px;background:#14232a}
+.region-knowledge h3{margin:0 0 9px;color:#a8e2d3;font-size:13px;letter-spacing:.04em}
+.region-knowledge .knowledge-summary{font-size:15px;line-height:1.8;color:#edf3f5;overflow-wrap:anywhere}
+.region-knowledge .knowledge-scope{font-size:11px;line-height:1.6;color:#9eb8bd;margin-bottom:7px}
+.region-knowledge .knowledge-hint{margin-top:9px;font-size:12px;line-height:1.7;color:#b3c4cb}
+.knowledge-sources{margin-top:11px;font-size:12px;line-height:1.7;color:#a3b7c0}
+.knowledge-sources summary{width:fit-content;cursor:pointer;min-height:24px;padding:2px 0}
+.knowledge-sources summary:hover{color:#ddf4ff}
+.knowledge-sources summary:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
+.knowledge-sources a{display:block;margin-top:7px;overflow-wrap:anywhere}
+.knowledge-sources p{margin-top:8px;color:#9eb3bb}
+.right h2+.region-knowledge{margin-top:12px}
+@media(max-width:1100px){.region-knowledge{padding:12px}.right h2{font-size:21px}}

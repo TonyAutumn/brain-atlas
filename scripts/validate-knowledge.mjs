@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {NAV} from '../anatomy/navigation.js';
+import {DISPLAY_PRESETS} from '../research/networks.js';
+import {PROFILES,knowledgeForEntry,knowledgeForGroup,knowledgeForNetwork,renderKnowledgeCard} from '../anatomy/knowledge.js';
+
+const read=p=>JSON.parse(fs.readFileSync(new URL(p,import.meta.url)));
+const anatomical=read('../anatomy/data/manifest.json').entries.filter(e=>e.atlas!=='surface');
+const functional=read('../anatomy/data/functional-manifest.json').entries;
+const unchanged=JSON.stringify([anatomical,functional]);
+function check(k,label){
+ assert(k,`Missing knowledge: ${label}`);
+ assert(k.summary.length>=20&&k.summary.length<=110,`Unhelpful length: ${label}`);
+ assert(k.hint.length<=65,`Long caveat: ${label}`);
+ assert(k.references.length>0,`Missing references: ${label}`);
+ for(const r of k.references)assert(r?.title&&new URL(r.url).protocol==='https:',`Bad source: ${label}`);
+ const html=renderKnowledgeCard(k);
+ assert(html.includes('class="knowledge-summary"'));
+ assert(html.includes('<details class="knowledge-sources">'));
+ assert(!html.includes('<details class="knowledge-sources" open'));
+ if(['family','functional-area','network-family'].includes(k.scope))assert(html.includes('概述'));
+}
+for(const e of [...anatomical,...functional])check(knowledgeForEntry(Object.freeze(e)),e.id);
+const excluded=new Set(['all','unassigned','midbrain_other']);
+const concepts=Object.keys(NAV).filter(id=>!excluded.has(id));
+for(const id of concepts)check(knowledgeForGroup(id),id);
+for(const n of DISPLAY_PRESETS)check(knowledgeForNetwork(n),n.id);
+for(const [key,p] of Object.entries(PROFILES))assert(p.summary.length<=110,key);
+assert.equal(JSON.stringify([anatomical,functional]),unchanged,'Read-only descriptions must not mutate atlas data');
+
+const julich=(category,code)=>knowledgeForEntry(anatomical.find(e=>e.atlas==='julich'&&e.category===category&&e.name.replace(/^Area /,'').split(' (')[0]===code));
+const cit=name=>knowledgeForEntry(anatomical.find(e=>e.atlas==='cit168'&&e.name.trim()==='L '+name));
+assert.equal(julich('amygdala','CM').key,'centromedial');
+assert.equal(julich('thalamus','CM').key,'cmThalamus');
+for(const [category,a,b] of [['thalamus','CGL','CGM'],['thalamus','VPL','VPM'],['thalamus','VPM','VPMpc'],['midbrain','SNC','SNR'],['hippocampus','CA1','CA2'],['hippocampus','CA2','CA3'],['hippocampus','CA3','DG'],['basal','Tu','TuTi'],['basal','Ch 4','Ch 123'],['cortex','Fo1','Fp1'],['cortex','Op1','Op5']])assert.notEqual(julich(category,a).summary,julich(category,b).summary,`${a}/${b} must not collide`);
+assert.equal(julich('cortex','Fo7').scope,'family');
+assert.match(julich('hippocampus','CA2').summary,/小鼠/);
+assert.match(julich('hippocampus','CA2').hint,/动物/);
+assert.notEqual(cit('Parabrachial Pigmented').key,knowledgeForGroup('parabrachial_nuclei').key);
+assert.notEqual(cit('Mammillary Nucleus').key,cit('Hypothalamus').key);
+assert.notEqual(cit('Globus Pallidus externa').key,cit('Globus Pallidus interna').key);
+assert.equal(cit('Substantia-Nigra-pars-reticulata').key,'snr');
+assert.equal(knowledgeForEntry({atlas:'julich',category:'thalamus',name:'Fo1 (unknown)'}),null);
+assert.equal(knowledgeForEntry({atlas:'julich',category:'cortex',name:'Area Fo999 (OFC)'}),null);
+assert.equal(knowledgeForEntry({atlas:'unknown',category:'cortex',name:'Area Fo1 (OFC)'}),null);
+assert.equal(knowledgeForEntry({atlas:'surface',name:'Left'}),null);
+assert.equal(knowledgeForGroup('unassigned'),null);
+assert.equal(renderKnowledgeCard(null),'');
+const escaped=renderKnowledgeCard({...knowledgeForGroup('hippocampus'),summary:'<img src=x onerror="alert(1)">',hint:'<script>x</script>'});
+assert(!escaped.includes('<img'));assert(!escaped.includes('<script>'));
+console.log(`Knowledge checks passed: ${anatomical.length} anatomy + ${functional.length} functional parcels, ${concepts.length} concepts, ${DISPLAY_PRESETS.length} network/circuit presets; short sourced notes, scoped identities, explicit family summaries, immutable data, escaped HTML.`);
