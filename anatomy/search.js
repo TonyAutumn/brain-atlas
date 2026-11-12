@@ -47,17 +47,20 @@ export function createSearchIndex(entries,{includePresets=true}={}){
 }
 // Explicit query laterality is separate from the page's display-side filter.
 function queryParts(value){
- let query=normalizeSearch(value),hemisphere=null;
+ const full=normalizeSearch(value);
+ const bracket=String(value||'').normalize('NFKC').match(/^(.*?)\s*\(([A-Za-z0-9 .-]{1,16})\)\s*$/);
+ const qualifier=bracket&&!/^(left|right|lh|rh|l|r)$/i.test(bracket[2].trim())?normalizeSearch(bracket[2]):null;
+ let query=qualifier?normalizeSearch(bracket[1]):full,hemisphere=null;
  const side={'left':'L','lh':'L','l':'L','左':'L','左侧':'L','左半球':'L','right':'R','rh':'R','r':'R','右':'R','右侧':'R','右半球':'R','midline':'M','中线':'M'};
  const prefix=query.match(/^(left|right|lh|rh|l|r)\s+(.+)$/)||query.match(/^(左半球|右半球|左侧|右侧|中线|左|右)\s*(.+)$/);
  const suffix=query.match(/^(.+)\s+(left|right|lh|rh|l|r)$/);
  if(prefix){hemisphere=side[prefix[1]];query=prefix[2];}
  else if(suffix){hemisphere=side[suffix[2]];query=suffix[1];}
- return {query,hemisphere};
+ return {query,hemisphere,qualifier,full};
 }
 export function searchAtlas(query,index){
  const parts=queryParts(query),rank={concept:0,preset:1,parcel:2};
  return index.filter(item=>!parts.hemisphere||item.kind==='parcel'&&item.hemisphere===parts.hemisphere)
- .map(item=>({...item,score:score(parts.query,item.fields)})).filter(item=>item.score>0)
+ .map(item=>({...item,score:parts.qualifier?Math.max(score(parts.full,item.fields),Math.min(score(parts.query,item.fields),score(parts.qualifier,item.fields))):score(parts.query,item.fields)})).filter(item=>item.score>0)
  .sort((a,b)=>b.score-a.score||rank[a.kind]-rank[b.kind]||a.label.localeCompare(b.label,'zh-CN')||a.id.localeCompare(b.id));
 }

@@ -89,7 +89,7 @@ def run() -> None:
                 expect(page.locator("#isolate3")).to_be_checked()
                 page.locator("#isolate3").uncheck()
             # English expansions, hemisphere query and newly indexed functional parcels.
-            page.locator("#search3").fill("left lateral geniculate body")
+            page.locator("#search3").fill("left lateral geniculate nucleus (LGN)")
             expect(page.locator('#regionItems [data-id="julich-L-92"]')).to_have_count(1)
             expect(page.locator('#regionItems [data-id="julich-R-92"]')).to_have_count(0)
             page.locator('#regionItems [data-id="julich-L-92"]').click()

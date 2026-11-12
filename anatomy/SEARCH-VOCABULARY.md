@@ -8,7 +8,7 @@
 - 补充丘脑核团的常见词序与写法，例如 VPL / ventral posterolateral nucleus / ventral posterior lateral nucleus；保留 CM、MD、MV 等标签的不同含义。
 - 补充海马、杏仁核、基底前脑、基底节、中脑和小脑称谓，例如 HATA 全称、NBM / Meynert、SNpc / SNpr、GPe / GPi、LGB / MGB，以及小脑分叶的阿拉伯和罗马数字。
 - 原搜索漏掉全部 200 个功能分区。本次加入两套官方原名、功能分区位置缩写及网络名称；DLPFC / VLPFC 根据 PFCld / PFClv 原标签返回功能分区，不把所有外侧前额叶模型标成 DLPFC。
-- 支持大小写、全角字母、空格、连字符、下划线、直/弯所有格撇号，以及前后置 left / right / LH / RH 和中文侧别。显示筛选仍不限制全库搜索；查询中明确的侧别会缩小结果。
+- 支持大小写、全角字母、空格、连字符、下划线、直/弯所有格撇号，全称附括号缩写（如 lateral geniculate nucleus (LGN)），以及前后置 left / right / LH / RH 和中文侧别。显示筛选仍不限制全库搜索；查询中明确的侧别会缩小结果。
 - 概念和模型仍显示各自名称、图谱和范围。网络可从搜索结果直接选择，延续黄色组合选择。
 
 ## 命名边界
